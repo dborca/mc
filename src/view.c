@@ -1650,10 +1650,32 @@ view_display_status (WView *view)
     if (width < file_label_width + 6)
 	addstr ((char *) name_trunc (file_name, width));
     else {
-	i = (width > 22 ? 22 : width) - file_label_width;
+	/* XXX ugly hack which needs proper reworking (especially if clock is added)
+	 * [name]  [offset / line+col]  [size]  [percent]
+	 * sizeof(offset) = 17
+	 * sizeof(size) = at most 18
+	 */
+#define _46 (_22 + 24)
+#define _24 (_22 + 2)
+#define _62 (_22 + 40)
+#define _43 (_22 + 21)
+#define _26 (_22 + 4)
+	int _22 = 22;
+	if (width > 80 - 17) {
+	    int xtra = width - (80 - 17);
+	    int need = file_label_width + strlen(file_name);
+	    if (need < 22) {
+		need = 22;
+	    }
+	    _22 += xtra;
+	    if (_22 > need) {
+		_22 = need;
+	    }
+	}
+	i = (width > _22 ? _22 : width) - file_label_width;
 	tty_printf (file_label, name_trunc (file_name, i));
-	if (width > 46) {
-	    widget_move (view, top, left + 24);
+	if (width > _46) {
+	    widget_move (view, top, left + _24);
 	    /* FIXME: the format strings need to be changed when offset_type changes */
 	    if (view->hex_mode)
 		tty_printf (_("Offset 0x%08lx"), (unsigned long) view->hex_cursor);
@@ -1665,21 +1687,26 @@ view_display_status (WView *view)
 		    (unsigned long) (view->text_wrap_mode ? col : view->dpy_text_column));
 	    }
 	}
-	if (width > 62) {
+	if (width > _62) {
 	    offset_type filesize;
 	    filesize = view_get_filesize (view);
-	    widget_move (view, top, left + 43);
+	    widget_move (view, top, left + _43);
 	    if (!view_may_still_grow (view)) {
 		tty_printf (_("%s bytes"), size_trunc (filesize));
 	    } else {
 		tty_printf (_(">= %s bytes"), size_trunc (filesize));
 	    }
 	}
-	if (width > 26) {
+	if (width > _26) {
 	    view_percent (view, view->hex_mode
 		? view->hex_cursor
 		: view->dpy_end);
 	}
+#undef _26
+#undef _43
+#undef _62
+#undef _24
+#undef _46
     }
     tty_setcolor (SELECTED_COLOR);
 }
