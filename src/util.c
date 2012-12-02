@@ -1242,10 +1242,29 @@ concat_dir_and_file (const char *dir, const char *file)
 {
     int i = strlen (dir);
     
+#if 0
     if (dir [i-1] == PATH_SEP)
 	return  g_strconcat (dir, file, (char *) NULL);
     else
 	return  g_strconcat (dir, PATH_SEP_STR, file, (char *) NULL);
+#else
+    int j = 0;
+    char *p;
+    if (file != NULL) {
+	j = strlen(file);
+    }
+    if (i && dir[i - 1] == PATH_SEP) {
+	i--;
+    }
+    p = malloc(i + 1 + j + 1);
+    memcpy(p, dir, i);
+    p[i++] = PATH_SEP;
+    p[i] = '\0';
+    if (j) {
+	memcpy(p + i, file, j + 1);
+    }
+    return  p;
+#endif
 }
 
 /* Append text to GList, remove all entries with the same text */
