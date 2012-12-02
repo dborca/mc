@@ -290,7 +290,7 @@ void chmod_cmd (void)
 
 	/* set check buttons */
 	for (i = 0; i < PERMISSIONS; i++){
-	    check_perm[i].check->state = (c_stat & check_perm[i].mode) ? 1 : 0;
+	    check_perm[i].check->state = (c_stat & check_perm[i].mode) ? C_BOOL : 0;
 	    check_perm[i].selected = 0;
 	}
 
