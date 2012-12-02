@@ -1,4 +1,121 @@
-Current
+Version 4.6.3b.
+
+- Editor.
+	- Added positive lookahead assertion \<...\> to syntax highlighting.
+	- Added C++ and Obj-C idioms to C syntax.  Added INI syntax.
+	- Added block indent mode (Shift-F6).  Use Tab/Backspace to indent.
+	- Added block tolower/toupper in menu.
+	- Added search-all a.k.a. create bookmarks.
+	- Added search/replace in selection.
+	- Added kill word shortcut (Alt-d).
+	- Added whitespace toggle shortcut (Alt-_).
+	- Added edit_filter_cmd to filter block through any command (Alt-x).
+	- Made tabs visible through selection.
+	- Home key toggles between start of line and start of non-whitespace.
+	- New menu entries and shortcuts (M-i M-j M-k) for visible bookmarks.
+	- Syntax highlighting pattern "...*" stops at '\n' without failing.
+	- Uniformized UI for search/replace.
+	- Fixed regexp search.
+	- Fixed search-again not asking for string.
+	- Fixed edit_sort_cmd to clear block file.
+	- Fixed a case where SaveAs inherited wrong read-only permissions.
+	- Fixed vertical/horizontal offsets, useful for bordering.
+
+- Viewer.
+	- Added string highlighting mode (F19).
+	- Added monitor mode a la "tail -f".  The shortcut is uppercase F.
+	- Uniformized UI for search in all modes, now consistent with editor.
+	- Fixed viewer to remember file position; new checkbox in Options.
+	- Hack to improve status bar readability.
+	- Added antiword as a filter for MS Word files in mc.ext.
+
+- Core functionality.
+	- Added --with-glib0 option to configure with included glib.
+	- Added Dialog Switcher (Alt-` Alt-, Alt-.) for main, edit and view.
+	- Added Diff Viewer for text/binary files and directories: C-x C-y;
+	  mcdiff is a link to mc which brings it up in diff mode.
+	- Added free space report in panel; new checkbox in Layout.
+	- Added mountpoint selector: F11 for left panel, F12 for right panel.
+	- Added simple panel scrollbar.
+	- Added relative symlink (C-x v).
+	- Added support for .xz and .lzma archives.
+	- Added geeqie as alternate image viewer in mc.ext.
+	- Common search history in Editor, Viewer, Diff Viewer and Find File.
+	- Changed regex search to be disabled by default in Find File.
+	- Improved Find File: insensitive filenames, whole words, first hit.
+	- Improved Find File: edit directories to be skipped during recursion.
+	- Made dirsize verbose and interruptible.
+	- Made the buttonbar elastic.
+	- Moved selection summary from mini_info to mini_info_separator.
+	- Improved my_statfs accuracy, although it became a bit heavy-handed.
+	- Made subshell pty fd to close-on-exec.
+	- Avoid translation if codepage selector is cancelled.
+	- Shell Patterns extension: handle pattern1|pattern2.
+	- Fixed %e expansion for editor scripts.
+	- Fixed copy/move dialogs to avoid stealing Alt-d.
+	- Fixed completion in command line, with escaping.
+	- Changed behavior of % in command-line.  It is treated as a simple
+	  character, unless it is quoted with a backslash; in which case, it
+	  will be substituted with the usual MC macros.
+
+- VFS.
+	- fish: added support for specifying port.
+	- fish: fixed symlinks.
+	- fish: fixed handling of unreadable files.
+	- extfs: fixed iso9660 to work with newer isoinfo.
+	- extfs: fixed patchfs to correctly recognize file types.
+	- extfs: added hfsplus support.
+	- extfs: added xar support.
+
+- Miscellaneous.
+	- Weakened glib dependencies.
+	- Bugfixes.
+
+
+Version 4.6.2-pre1.
+
+- Editor.
+	- Prompt the user whether to detach a hardlinked file
+	  in "Quick save" mode.
+	- Fix a bug which prevented the editor from creating a
+	  lock file in certain scenarios (bug #13673).
+	- New shortcut - Ctrl+S. Allows the user to toggle
+	  syntax highlighting.
+	- Allow the user to override the automatic syntax 
+	  highlighting.
+	- Duplicate hotkey fixes.
+
+- VFS.
+	- extfs: Do not hang waiting for user input on password
+	  protected .rar archives.
+	- extfs: Do not leave stale temporary files.
+	- extfs: Add support for ALZip archives.
+	- extfs: Properly retrieve the filesize of very large
+	  files stored inside a .zip archive.
+	- extfs: Various quoting fixes.
+	- extfs: Various improvements in deb, iso9660, mailfs, rpm, trpm.
+
+	- fish: Fix uploading of files with backtick characters in
+	  their names.
+	- fish: Improve upload speed.
+	- fish: Allow for retrieving files larger than 2 GB.
+	- fish: Enable reget functionality.
+	- fish: Use numerical uid/gid when retrieving the directory
+	  listing.
+
+	- ftpfs: Allow for entering non-readable directories.
+	- ftpfs: Allow the user to interrupt the connection establishment.
+	- ftpfs: Enable reget functionality.
+	- ftpfs: `first_cd_then_ls' is the default mode for retrieving
+	  directory contents now.
+
+	- tarfs: Add support for long filenames as stored in
+	  ustar format archives.
+	- tarfs: Allow for working with archives conforming to
+	  POSIX.1-2001 standard
+
+
+Version 4.6.1.
 
 - Core functionality.
 	- Bash < 2.05b no longer supported. For usage with bash < 2.05b fix
