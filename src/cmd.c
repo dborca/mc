@@ -1183,10 +1183,13 @@ single_dirsize_cmd (void)
 
     entry = &(panel->dir.list[panel->selected]);
     if (S_ISDIR (entry->st.st_mode) && strcmp(entry->fname, "..") != 0) {
+	ComputeDirSizeUI *ui = compute_dir_size_create_ui();
 	total = 0.0;
-	compute_dir_size (entry->fname, &marked, &total);
-	entry->st.st_size = (off_t) total;
-	entry->f.dir_size_computed = 1;
+	if (compute_dir_size (entry->fname, &marked, &total, ui, compute_dir_size_update_ui) != FILE_ABORT) {
+	    entry->st.st_size = (off_t) total;
+	    entry->f.dir_size_computed = 1;
+	}
+	compute_dir_size_destroy_ui(ui);
     }
 
     if (mark_moves_down)
@@ -1204,17 +1207,26 @@ dirsizes_cmd (void)
     off_t marked;
     double total;
 
+    ComputeDirSizeUI *ui = NULL;
+
     for (i = 0; i < panel->count; i++) 
 	if (S_ISDIR (panel->dir.list [i].st.st_mode) &&
 	         ((panel->dirs_marked && panel->dir.list [i].f.marked) || 
                    !panel->dirs_marked) &&
 	         strcmp (panel->dir.list [i].fname, "..") != 0) {
 	    total = 0.0l;
-	    compute_dir_size (panel->dir.list [i].fname, &marked, &total);
+	    if (ui == NULL) {
+		ui = compute_dir_size_create_ui();
+	    }
+	    if (compute_dir_size (panel->dir.list [i].fname, &marked, &total, ui, compute_dir_size_update_ui) == FILE_ABORT) {
+		break;
+	    }
 	    panel->dir.list [i].st.st_size = (off_t) total;
 	    panel->dir.list [i].f.dir_size_computed = 1;
 	}
 	
+    compute_dir_size_destroy_ui(ui);
+
     recalculate_panel_summary (panel);
     panel_re_sort (panel);
     panel->dirty = 1;

@@ -1487,19 +1487,29 @@ panel_get_file (WPanel *panel, struct stat *stat_buf)
  * compute_dir_size:
  *
  * Computes the number of bytes used by the files in a directory
+ *
+ * XXX This function can return FILE_CONT if everything went ok,
+ * FILE_SKIP if any of the files were skipped, or FILE_ABORT if
+ * the user interrupted the operation.
+ * The OR trick below works as long as:
+ * 1. FILE_ABORT masks any other return value
+ * 2. FILE_ABORT cannot result by OR'ing any other return values
  */
-void
-compute_dir_size (const char *dirname, off_t *ret_marked, double *ret_total)
+FileProgressStatus
+compute_dir_size (const char *dirname, off_t *ret_marked, double *ret_total,
+		  const ComputeDirSizeUI *ui, ComputeDirSizeCallback callback)
 {
+    FileProgressStatus rv = FILE_CONT;
+
     DIR *dir;
     struct dirent *dirent;
 
     dir = mc_opendir (dirname);
 
     if (!dir)
-	return;
+	return FILE_SKIP;
 
-    while ((dirent = mc_readdir (dir)) != NULL) {
+    while (rv != FILE_ABORT && (dirent = mc_readdir (dir)) != NULL) {
 	struct stat s;
 	char *fullname;
 	int res;
@@ -1511,10 +1521,19 @@ compute_dir_size (const char *dirname, off_t *ret_marked, double *ret_total)
 
 	fullname = concat_dir_and_file (dirname, dirent->d_name);
 
+	if (callback) {
+	    rv |= callback(ui, fullname);
+	    if (rv == FILE_ABORT) {
+		g_free (fullname);
+		break;
+	    }
+	}
+
 	res = mc_lstat (fullname, &s);
 
 	if (res != 0) {
 	    g_free (fullname);
+	    rv |= FILE_SKIP;
 	    continue;
 	}
 
@@ -1522,7 +1541,7 @@ compute_dir_size (const char *dirname, off_t *ret_marked, double *ret_total)
 	    off_t subdir_count = 0;
 	    double subdir_bytes = 0;
 
-	    compute_dir_size (fullname, &subdir_count, &subdir_bytes);
+	    rv |= compute_dir_size (fullname, &subdir_count, &subdir_bytes, ui, callback);
 
 	    *ret_marked += subdir_count;
 	    *ret_total += subdir_bytes;
@@ -1534,6 +1553,7 @@ compute_dir_size (const char *dirname, off_t *ret_marked, double *ret_total)
     }
 
     mc_closedir (dir);
+    return rv;
 }
 
 /**
@@ -1544,9 +1564,12 @@ compute_dir_size (const char *dirname, off_t *ret_marked, double *ret_total)
  * as required.  In addition, it checks to see if it will
  * overwrite any files by doing the copy.
  */
-static void
+static FileProgressStatus
 panel_compute_totals (WPanel *panel, off_t *ret_marked, double *ret_total)
 {
+    FileProgressStatus rv = FILE_CONT;
+    ComputeDirSizeUI *ui = NULL;
+
     int i;
 
     *ret_marked = 0;
@@ -1567,7 +1590,13 @@ panel_compute_totals (WPanel *panel, off_t *ret_marked, double *ret_total)
 
 	    dir_name =
 		concat_dir_and_file (panel->cwd, panel->dir.list[i].fname);
-	    compute_dir_size (dir_name, &subdir_count, &subdir_bytes);
+	    if (ui == NULL) {
+		ui = compute_dir_size_create_ui();
+	    }
+	    if (compute_dir_size (dir_name, &subdir_count, &subdir_bytes, ui, compute_dir_size_update_ui) == FILE_ABORT) {
+		rv = FILE_ABORT;
+		i = panel->count;
+	    }
 
 	    *ret_marked += subdir_count;
 	    *ret_total += subdir_bytes;
@@ -1577,6 +1606,9 @@ panel_compute_totals (WPanel *panel, off_t *ret_marked, double *ret_total)
 	    *ret_total += s->st_size;
 	}
     }
+
+    compute_dir_size_destroy_ui(ui);
+    return rv;
 }
 
 /*
@@ -1925,8 +1957,10 @@ panel_operate (void *source_panel, FileOperation operation,
 
 	/* Initialize variables for progress bars */
 	if (operation != OP_MOVE && verbose && file_op_compute_totals) {
-	    panel_compute_totals (panel, &ctx->progress_count,
-				  &ctx->progress_bytes);
+	    if (panel_compute_totals (panel, &ctx->progress_count,
+				  &ctx->progress_bytes) == FILE_ABORT) {
+		goto clean_up;
+	    }
 	    ctx->progress_totals_computed = 1;
 	} else {
 	    ctx->progress_totals_computed = 0;
