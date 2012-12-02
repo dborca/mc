@@ -118,6 +118,7 @@ int exist_file (const char *name);
 /* Returns a copy of *s until a \n is found and is below top */
 const char *extract_line (const char *s, const char *top);
 const char *_icase_search (const char *text, const char *data, int *lng);
+const char *_case_search (const char *text, const char *data, int *lng);
 #define icase_search(T,D) _icase_search((T), (D), NULL)
 
 /* Matching */
