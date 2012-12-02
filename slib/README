@@ -1,0 +1,10 @@
+This is the GLib library, version 2.22.2.  It has been radically
+stripped down to remove functions that are either unused by the Midnight
+Commander or were too heavy for their purpose here.  The complete
+distribution can be downloaded from:
+
+http://ftp.gnome.org/pub/gnome/sources/glib/2.22/
+
+The sources in this directory are only used if you request to use these
+sources by specifying the option `--with-glib0' to the `configure'
+script.

@@ -148,10 +148,9 @@ edit_load_file_fast (WEdit *edit, const char *filename)
     buf2 = edit->curs2 >> S_EDIT_BUF_SIZE;
 
     if ((file = mc_open (filename, O_RDONLY | O_BINARY)) == -1) {
-	GString *errmsg = g_string_new(NULL);
-	g_string_sprintf(errmsg, _(" Cannot open %s for reading "), filename);
-	edit_error_dialog (_("Error"), get_sys_error (errmsg->str));
-	g_string_free (errmsg, TRUE);
+	char *errmsg = g_strdup_printf(_(" Cannot open %s for reading "), filename);
+	edit_error_dialog (_("Error"), get_sys_error (errmsg));
+	g_free (errmsg);
 	return 1;
     }
 
@@ -270,18 +269,16 @@ edit_insert_file (WEdit *edit, const char *filename)
 	    edit_insert_stream (edit, f);
 	    edit_cursor_move (edit, current - edit->curs1);
 	    if (pclose (f) > 0) {
-	        GString *errmsg = g_string_new (NULL);
-		g_string_sprintf (errmsg, _(" Error reading from pipe: %s "), p);
-		edit_error_dialog (_("Error"), errmsg->str);
-		g_string_free (errmsg, TRUE);
+	        char *errmsg = g_strdup_printf (_(" Error reading from pipe: %s "), p);
+		edit_error_dialog (_("Error"), errmsg);
+		g_free (errmsg);
 		g_free (p);
 		return 0;
 	    }
 	} else {
-	    GString *errmsg = g_string_new (NULL);
-	    g_string_sprintf (errmsg, _(" Cannot open pipe for reading: %s "), p);
-	    edit_error_dialog (_("Error"), errmsg->str);
-	    g_string_free (errmsg, TRUE);
+	    char *errmsg = g_strdup_printf (_(" Cannot open pipe for reading: %s "), p);
+	    edit_error_dialog (_("Error"), errmsg);
+	    g_free (errmsg);
 	    g_free (p);
 	    return 0;
 	}
@@ -311,7 +308,7 @@ static int
 check_file_access (WEdit *edit, const char *filename, struct stat *st)
 {
     int file;
-    GString *errmsg = (GString *) 0;
+    char *errmsg = NULL;
 
     /* Try opening an existing file */
     file = mc_open (filename, O_NONBLOCK | O_RDONLY | O_BINARY, 0666);
@@ -326,7 +323,7 @@ check_file_access (WEdit *edit, const char *filename, struct stat *st)
 		     O_NONBLOCK | O_RDONLY | O_BINARY | O_CREAT | O_EXCL,
 		     0666);
 	if (file < 0) {
-	    g_string_sprintf (errmsg = g_string_new (NULL),
+	    errmsg = g_strdup_printf (
 		_(" Cannot open %s for reading "), filename);
 	    goto cleanup;
 	} else {
@@ -337,14 +334,14 @@ check_file_access (WEdit *edit, const char *filename, struct stat *st)
 
     /* Check what we have opened */
     if (mc_fstat (file, st) < 0) {
-	g_string_sprintf (errmsg = g_string_new (NULL),
+	errmsg = g_strdup_printf (
 	    _(" Cannot get size/permissions for %s "), filename);
 	goto cleanup;
     }
 
     /* We want to open regular files only */
     if (!S_ISREG (st->st_mode)) {
-	g_string_sprintf (errmsg = g_string_new (NULL),
+	errmsg = g_strdup_printf (
 	    _(" %s is not a regular file "), filename);
 	goto cleanup;
     }
@@ -358,7 +355,7 @@ check_file_access (WEdit *edit, const char *filename, struct stat *st)
     }
 
     if (st->st_size >= SIZE_LIMIT) {
-        g_string_sprintf (errmsg = g_string_new (NULL),
+        errmsg = g_strdup_printf (
 	    _(" File %s is too large "), filename);
 	goto cleanup;
     }
@@ -366,8 +363,8 @@ check_file_access (WEdit *edit, const char *filename, struct stat *st)
 cleanup:
     (void) mc_close (file);
     if (errmsg) {
-	edit_error_dialog (_("Error"), errmsg->str);
-	g_string_free (errmsg, TRUE);
+	edit_error_dialog (_("Error"), errmsg);
+	g_free (errmsg);
 	return 1;
     }
     return 0;
