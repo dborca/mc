@@ -2923,7 +2923,7 @@ edit_completion_dialog (WEdit * edit, int max_len, int word_len,
     /* calculate the dialog metrics */
     compl_dlg_h = num_compl + 2;
     compl_dlg_w = max_len + 4;
-    start_x = edit->curs_col + edit->start_col - (compl_dlg_w / 2);
+    start_x = edit->curs_col + edit->start_col - (compl_dlg_w / 2) + EDIT_TEXT_HORIZONTAL_OFFSET;
     start_y = edit->curs_row + EDIT_TEXT_VERTICAL_OFFSET + 1;
 
     if (start_x < 0)
