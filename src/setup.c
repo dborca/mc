@@ -60,7 +60,7 @@
 #endif
 
 
-extern char *find_ignore_dirs;
+extern char **find_ignore_dirs;
 
 extern int num_history_items_recorded;
 
@@ -547,7 +547,7 @@ load_setup (void)
     load_string ("Misc", "find_ignore_dirs", "", setup_color_string,
 		 sizeof (setup_color_string));
     if (setup_color_string [0])
-	find_ignore_dirs = g_strconcat (":", setup_color_string, ":", (char *) NULL);
+	find_ignore_dirs = str_split (setup_color_string, ":");
 
     /* The default color and the terminal dependent color */
     load_string ("Colors", "base_color", "", setup_color_string,

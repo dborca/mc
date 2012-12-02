@@ -18,6 +18,9 @@ void str_replace(char *s, char from, char to);
 int  is_printable (int c);
 void msglen (const char *text, /*@out@*/ int *lines, /*@out@*/ int *columns);
 
+char **str_split(const char *string, const char *delim);
+char *str_merge(const char *const *array, int delim);
+
 /* Copy from s to d, and trim the beginning if necessary, and prepend
  * "..." in this case.  The destination string can have at most len
  * bytes, not counting trailing 0. */
@@ -126,7 +129,7 @@ enum {
 
 extern int easy_patterns;
 char *convert_pattern (const char *pattern, int match_type, int do_group);
-int regexp_match (const char *pattern, const char *string, int match_type);
+int regexp_match (const char *pattern, const char *string, int match_type, int flags);
 
 /* Error pipes */
 void open_error_pipe (void);

@@ -47,7 +47,7 @@
 #include "key.h"
 
 /* Size of the find parameters window */
-#define FIND_Y 15
+#define FIND_Y 21
 static int FIND_X = 50;
 
 /* Size of the find window */
@@ -72,19 +72,23 @@ typedef enum {
 } FindProgressStatus;
 
 /* List of directories to be ignored, separated by ':' */
-char *find_ignore_dirs = 0;
+char **find_ignore_dirs = 0;
 
 static WInput *in_start;	/* Start path */
 static WInput *in_name;		/* Pattern to search */
 static WInput *in_with;		/* Text inside filename */
 static WCheck *case_sense;	/* "case sensitive" checkbox */
 static WCheck *find_regex_cbox;	/* [x] find regular expression */
+static WCheck *whole_words_cbox;/* [x] whole words only */
+static WCheck *first_hit_cbox;	/* [x] first hit only */
+static WCheck *invert_match_cbox;/* [x] Invert match */
 
 static int running = 0;		/* nice flag */
 static char *find_pattern;	/* Pattern to search */
 static char *content_pattern;	/* pattern to search inside files; if
 				   find_regex_flag is true, it contains the
 				   regex pattern, else the search string. */
+static int content_pattern_len;
 static int count;		/* Number of files displayed */
 static int matches;		/* Number of matches */
 static int is_start;		/* Status of the start/stop toggle button */
@@ -141,8 +145,12 @@ static void get_list_info (char **file, char **dir) {
 static regex_t *r; /* Pointer to compiled content_pattern */
  
 static int case_sensitive = 1;
-static gboolean find_regex_flag = TRUE;
+static gboolean find_regex_flag = FALSE;
+static int whole_words_only = 0;
+static int first_hit_only = 0;
+static int invert_match_flag = 0;
 static int find_recursively = 1;
+static int fnsense_flag = 1;
 
 /*
  * Callback for the parameter dialog.
@@ -164,6 +172,10 @@ find_parm_callback (struct Dlg_head *h, dlg_msg_t msg, int parm)
 	if (!(case_sense->state & C_BOOL))
 	    flags |= REG_ICASE;
 
+	if (whole_words_cbox->state & C_BOOL) {
+	    /* XXX cannot use \b assertions, because Apple wants REG_ENHANCED :\ */
+	    flags &= ~REG_NOSUB;
+	}
 	if (regcomp (r, in_with->buffer, flags)) {
 	    message (1, MSG_ERROR, _("  Malformed regular expression  "));
 	    dlg_select_widget (in_with);
@@ -196,15 +208,18 @@ find_parameters (char **start_dir, char **pattern, char **content)
     char *temp_dir;
     static const char *case_label = N_("case &Sensitive");
     static const char *recurs_label = N_("find Re&cursively");
+    static const char *fnsense_label = N_("s&ensitive filename");
 
     WCheck *recursively_cbox;
+    WCheck *fnsense_cbox;
+    WInput *ignore_dirs;
 
     static char *in_contents = NULL;
     static char *in_start_dir = NULL;
     static char *in_start_name = NULL;
 
     static const char *labs[] =
-	{ N_("Start at:"), N_("Filename:"), N_("Content: ") };
+	{ N_("Start at:"), N_("Filename:"), N_("Content: "), N_("Skip dirs:") };
     static const char *buts[] = { N_("&OK"), N_("&Tree"), N_("&Cancel") };
     static int ilen = 30, istart = 14;
     static int b0 = 3, b1 = 16, b2 = 36;
@@ -258,25 +273,43 @@ find_parameters (char **start_dir, char **pattern, char **content)
 		    DLG_CENTER | DLG_REVERSE);
 
     add_widget (find_dlg,
-		button_new (12, b2, B_CANCEL, NORMAL_BUTTON, buts[2], 0));
+		button_new (18, b2, B_CANCEL, NORMAL_BUTTON, buts[2], 0));
     add_widget (find_dlg,
-		button_new (12, b1, B_TREE, NORMAL_BUTTON, buts[1], 0));
+		button_new (18, b1, B_TREE, NORMAL_BUTTON, buts[1], 0));
     add_widget (find_dlg,
-		button_new (12, b0, B_ENTER, DEFPUSH_BUTTON, buts[0], 0));
+		button_new (18, b0, B_ENTER, DEFPUSH_BUTTON, buts[0], 0));
 
+    fnsense_cbox =
+	check_new (7, istart, fnsense_flag, fnsense_label);
     recursively_cbox =
 	check_new (6, istart, find_recursively, recurs_label);
  
-    find_regex_cbox = check_new (10, istart, find_regex_flag, _("&Regular expression"));
+    temp_dir = str_merge((const char *const *)find_ignore_dirs, PATH_ENV_SEP);
+    ignore_dirs =
+	input_new (16, istart, INPUT_COLOR, ilen, temp_dir, "exclude");
+    add_widget (find_dlg, ignore_dirs);
+    free(temp_dir);
+
+    invert_match_cbox = check_new (14, istart, invert_match_flag, _("&Invert match"));
+    add_widget (find_dlg, invert_match_cbox);
+
+    first_hit_cbox = check_new (13, istart, first_hit_only, _("&First hit only"));
+    add_widget (find_dlg, first_hit_cbox);
+
+    find_regex_cbox = check_new (12, istart, find_regex_flag, _("&Regular expression"));
     add_widget (find_dlg, find_regex_cbox);
 
-    case_sense = check_new (9, istart, case_sensitive, case_label);
+    whole_words_cbox = check_new (11, istart, whole_words_only, _("&Whole words only"));
+    add_widget (find_dlg, whole_words_cbox);
+
+    case_sense = check_new (10, istart, case_sensitive, case_label);
     add_widget (find_dlg, case_sense);
 
     in_with =
-	input_new (8, istart, INPUT_COLOR, ilen, in_contents, "content");
+	input_new (9, istart, INPUT_COLOR, ilen, in_contents, "content");
     add_widget (find_dlg, in_with);
 
+    add_widget (find_dlg, fnsense_cbox);
     add_widget (find_dlg, recursively_cbox);
     in_name =
 	input_new (5, istart, INPUT_COLOR, ilen, in_start_name, "name");
@@ -286,7 +319,8 @@ find_parameters (char **start_dir, char **pattern, char **content)
 	input_new (3, istart, INPUT_COLOR, ilen, in_start_dir, "start");
     add_widget (find_dlg, in_start);
 
-    add_widget (find_dlg, label_new (8, 3, labs[2]));
+    add_widget (find_dlg, label_new(16, 3, labs[3]));
+    add_widget (find_dlg, label_new (9, 3, labs[2]));
     add_widget (find_dlg, label_new (5, 3, labs[1]));
     add_widget (find_dlg, label_new (3, 3, labs[0]));
 
@@ -303,7 +337,11 @@ find_parameters (char **start_dir, char **pattern, char **content)
 	temp_dir = g_strdup (in_start->buffer);
 	case_sensitive = case_sense->state & C_BOOL;
 	find_regex_flag = find_regex_cbox->state & C_BOOL;
+	whole_words_only = whole_words_cbox->state & C_BOOL;
+	first_hit_only = first_hit_cbox->state & C_BOOL;
+	invert_match_flag = invert_match_cbox->state & C_BOOL;
  	find_recursively = recursively_cbox->state & C_BOOL;
+	fnsense_flag = fnsense_cbox->state & C_BOOL;
 	destroy_dlg (find_dlg);
 	g_free (in_start_dir);
 	if (strcmp (temp_dir, ".") == 0) {
@@ -331,7 +369,11 @@ find_parameters (char **start_dir, char **pattern, char **content)
 
 	case_sensitive = case_sense->state & C_BOOL;
 	find_regex_flag = find_regex_cbox->state & C_BOOL;
+	whole_words_only = whole_words_cbox->state & C_BOOL;
+	first_hit_only = first_hit_cbox->state & C_BOOL;
+	invert_match_flag = invert_match_cbox->state & C_BOOL;
  	find_recursively = recursively_cbox->state & C_BOOL;
+	fnsense_flag = fnsense_cbox->state & C_BOOL;
 	return_value = 1;
 	*start_dir = g_strdup (in_start->buffer);
 	*pattern = g_strdup (in_name->buffer);
@@ -340,6 +382,12 @@ find_parameters (char **start_dir, char **pattern, char **content)
 	in_start_dir = g_strdup (*start_dir);
 	g_free (in_start_name);
 	in_start_name = g_strdup (*pattern);
+
+	free (find_ignore_dirs);
+	find_ignore_dirs = 0;
+	if (ignore_dirs->buffer[0]) {
+	    find_ignore_dirs = str_split (ignore_dirs->buffer, ":");
+	}
     }
 
     destroy_dlg (find_dlg);
@@ -506,10 +554,18 @@ check_find_events(Dlg_head *h)
  * 
  * returns 0 if do_search should look for another file
  *         1 if do_search should exit and proceed to the event handler
+ *        -1 if do_search should look for another file, but add this one to list
  */
 static int
 search_content (Dlg_head *h, const char *directory, const char *filename)
 {
+    static const char *wholechars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_";
+#define IS_WHOLE_OR_DONT_CARE(p, q, sz)				\
+    (!whole_words_only || (					\
+     ((q) == (p) || strchr(wholechars, (q)[-1]) == NULL) &&	\
+     ((q)[sz] == '\0' || strchr(wholechars, (q)[sz]) == NULL)	\
+    ))
+
     struct stat s;
     char buffer [BUF_SMALL];
     char *fname;
@@ -538,6 +594,7 @@ search_content (Dlg_head *h, const char *directory, const char *filename)
     got_interrupt ();
 
     {
+	int post_add = invert_match_flag;
 	int line = 1;
 	int pos = 0;
 	int n_read = 0;
@@ -558,26 +615,40 @@ search_content (Dlg_head *h, const char *directory, const char *filename)
 	
 	while ((p = get_line_at (file_fd, buffer, &pos, &n_read, sizeof (buffer), &has_newline)) && (ret_val == 0)){
 	    if (found == 0){	/* Search in binary line once */
-	    	if (find_regex_flag) {
-		if (regexec (r, p, 1, 0, 0) == 0){
-		    g_free (p);
-		    p = g_strdup_printf ("%d:%s", line, filename);
-		    find_add_match (h, directory, p);
-		    found = 1;
+		if (find_regex_flag) {
+		    regmatch_t reg[1];
+		    reg[0].rm_so = -1;
+		    if (regexec (r, p, 1, reg, 0) == 0) {
+			const char *q = p + reg[0].rm_so;
+			size_t sz = reg[0].rm_eo - reg[0].rm_so;
+			assert(!whole_words_only || reg[0].rm_so != -1);
+			if (IS_WHOLE_OR_DONT_CARE(p, q, sz)) {
+			    goto match;
+			}
+		    }
+		} else {
+		    const char *q = search_func (p, content_pattern);
+		    if (q != NULL && IS_WHOLE_OR_DONT_CARE(p, q, content_pattern_len)) {
+		      match:
+			g_free (p);
+			if (invert_match_flag) {
+			    post_add = 0;
+			    break;
+			}
+			p = g_strdup_printf ("%d:%s", line, filename);
+			find_add_match (h, directory, p);
+			found = 1;
+		    }
 		}
-	    	} else {
-	    	    if (search_func (p, content_pattern) != NULL) {
-	    	    	char *match = g_strdup_printf("%d:%s", line, filename);
-			find_add_match (h, directory, match);
-			found = TRUE;
-	    	    }
-	    	}
+	    }
+	    g_free (p);
+	    if (found && first_hit_only) {
+		break;
 	    }
 	    if (has_newline){
 		line++;
 		found = 0;
 	    }
-	    g_free (p);
  
  	    if ((line & 0xff) == 0) {
 		FindProgressStatus res;
@@ -598,6 +669,9 @@ search_content (Dlg_head *h, const char *directory, const char *filename)
 		}
 	    }
  
+	}
+	if (ret_val == 0) {
+	    ret_val -= post_add;
 	}
     }
     disable_interrupt_key ();
@@ -646,11 +720,25 @@ do_search (struct Dlg_head *h)
 		    return 0;
 		}
 		if (find_ignore_dirs){
-                    int found;
-		    char *temp_dir = g_strconcat (":", tmp, ":", (char *) NULL);
-
-                    found = strstr (find_ignore_dirs, temp_dir) != 0;
-                    g_free (temp_dir);
+		    int found = 0;
+		    int i;
+		    for (i = 0; find_ignore_dirs[i]; i++) {
+			const char *tok = find_ignore_dirs[i];
+			if (tok[0] == PATH_SEP) {
+			    int len = strlen(tok);
+			    if (!strncmp(tok, tmp, len) && (tmp[len] == '\0' || tmp[len] == PATH_SEP)) {
+				found = 1;
+				break;
+			    }
+			} else {
+			    char *temp_dir = g_strconcat (PATH_SEP_STR, tok, PATH_SEP_STR, (char *) NULL);
+			    found = strstr (tmp, temp_dir) != 0;
+			    g_free(temp_dir);
+			    if (found) {
+				break;
+			    }
+			}
+		    }
 		    if (found)
 			g_free (tmp);
 		    else
@@ -701,10 +789,14 @@ do_search (struct Dlg_head *h)
 	g_free (tmp_name);
     }
 
-    if (regexp_match (find_pattern, dp->d_name, match_file)){
+    if (regexp_match (find_pattern, dp->d_name, match_file, fnsense_flag ? 0 : REG_ICASE)){
 	if (content_pattern) {
-	    if (search_content (h, directory, dp->d_name)) {
+	    int rv = search_content (h, directory, dp->d_name);
+	    if (rv == 1) {
 		return 1;
+	    }
+	    if (rv == -1) {
+		find_add_match (h, directory, dp->d_name);
 	    }
 	} else 
 	    find_add_match (h, directory, dp->d_name);
@@ -763,7 +855,7 @@ find_do_view_edit (int unparsed_view, int edit, char *dir, char *file)
     const char *filename;
     int line;
     
-    if (content_pattern){
+    if (content_pattern && !invert_match_flag){
 	filename = strchr (file + 4, ':') + 1;
 	line = atoi (file + 4);
     } else {
@@ -968,6 +1060,7 @@ find_file (char *start_dir, char *pattern, char *content, char **dirname,
     /* FIXME: Need to cleanup this, this ought to be passed non-globaly */
     find_pattern = pattern;
     content_pattern = content;
+    content_pattern_len = content ? strlen(content) : 0;
 
     init_find_vars ();
     push_directory (start_dir);
@@ -1001,7 +1094,7 @@ find_file (char *start_dir, char *pattern, char *content, char **dirname,
 	    if (!entry->text || !entry->data)
 		continue;
 
-	    if (content_pattern)
+	    if (content_pattern && !invert_match_flag)
 		filename = strchr (entry->text + 4, ':') + 1;
 	    else
 		filename = entry->text + 4;
@@ -1088,7 +1181,7 @@ do_find (void)
 		if (dirname){
 		    do_cd (dirname, cd_exact);
 		    if (filename)
-			try_to_select (current_panel, filename + (content ? 
+			try_to_select (current_panel, filename + ((content && !invert_match_flag) ? 
 			   (strchr (filename + 4, ':') - filename + 1) : 4) );
 		} else if (filename)
 		    do_cd (filename, cd_exact);

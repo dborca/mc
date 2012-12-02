@@ -534,7 +534,7 @@ select_unselect_cmd (const char *title, int cmd)
 		continue;
 	}
 	c = regexp_match (reg_exp_t, current_panel->dir.list[i].fname,
-			  match_file);
+			  match_file, 0);
 	if (c == -1) {
 	    message (1, MSG_ERROR, _("  Malformed regular expression  "));
 	    g_free (reg_exp);

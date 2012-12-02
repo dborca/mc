@@ -418,18 +418,18 @@ static char *test_condition (WEdit *edit_widget, char *p, int *condition)
 	    break;
 	case 'f': /* file name pattern */
 	    p = extract_arg (p, arg, sizeof (arg));
-	    *condition = panel && regexp_match (arg, panel->dir.list [panel->selected].fname, match_file);
+	    *condition = panel && regexp_match (arg, panel->dir.list [panel->selected].fname, match_file, 0);
 	    break;
 	case 'y': /* syntax pattern */
             if (edit_widget && edit_widget->syntax_type) {
 	        p = extract_arg (p, arg, sizeof (arg));
 	        *condition = panel &&
-                    regexp_match (arg, edit_widget->syntax_type, match_normal);
+                    regexp_match (arg, edit_widget->syntax_type, match_normal, 0);
 	    }
             break;
 	case 'd':
 	    p = extract_arg (p, arg, sizeof (arg));
-	    *condition = panel && regexp_match (arg, panel->cwd, match_file);
+	    *condition = panel && regexp_match (arg, panel->cwd, match_file, 0);
 	    break;
 	case 't':
 	    p = extract_arg (p, arg, sizeof (arg));
