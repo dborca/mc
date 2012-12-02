@@ -52,6 +52,9 @@
 #define CK_Save_Block		207
 #define CK_Column_Mark		208
 
+#define CK_Block_ToLower	260
+#define CK_Block_ToUpper	261
+
 /* search and replace */
 #define CK_Find			301
 #define CK_Find_Again		302
