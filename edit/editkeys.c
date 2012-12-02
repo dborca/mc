@@ -109,6 +109,9 @@ static const edit_key_map_type common_key_map[] = {
     { ALT ('<'), CK_Beginning_Of_Text },
     { ALT ('>'), CK_End_Of_Text },
     { ALT (KEY_BACKSPACE), CK_Delete_Word_Left },
+    { ALT ('i'), CK_Prev_Bookmark },
+    { ALT ('j'), CK_Next_Bookmark },
+    { ALT ('k'), CK_Toggle_Bookmark },
 
     { XCTRL ('k'), CK_Delete_To_Line_End },
     { XCTRL ('l'), CK_Refresh },

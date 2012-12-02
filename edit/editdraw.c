@@ -298,6 +298,14 @@ edit_draw_this_line (WEdit *edit, long b, long row, long start_col,
     int color;
     int i;
 
+    int book_mark = 0;
+
+    if (book_mark_query_color(edit, edit->start_line + row, BOOK_MARK_COLOR)) {
+	book_mark = BOOK_MARK_COLOR;
+    } else if (book_mark_query_color(edit, edit->start_line + row, BOOK_MARK_FOUND_COLOR)) {
+	book_mark = BOOK_MARK_FOUND_COLOR;
+    }
+
     edit_get_syntax_color (edit, b - 1, &color);
     q = edit_move_forward3 (edit, b, start_col - edit->start_col, 0);
     start_col_real = (col =
@@ -337,8 +345,12 @@ edit_draw_this_line (WEdit *edit, long b, long row, long start_col,
 		    *p |= MOD_BOLD;
 		c = edit_get_byte (edit, q);
 /* we don't use bg for mc - fg contains both */
-		edit_get_syntax_color (edit, q, &color);
-		*p |= color << 16;
+		if (book_mark) {
+		    *p |= book_mark << 16;
+		} else {
+		    edit_get_syntax_color (edit, q, &color);
+		    *p |= color << 16;
+		}
 		switch (c) {
 		case '\n':
 		    col = end_col - edit->start_col + 1;	/* quit */

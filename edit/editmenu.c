@@ -73,6 +73,30 @@ edit_about_cmd (void)
 }
 
 static void
+menu_toggle_bookmark_cmd (void)
+{
+    menu_cmd (CK_Toggle_Bookmark);
+}
+
+static void
+menu_prev_bookmark_cmd (void)
+{
+    menu_cmd (CK_Prev_Bookmark);
+}
+
+static void
+menu_next_bookmark_cmd (void)
+{
+    menu_cmd (CK_Next_Bookmark);
+}
+
+static void
+menu_flush_bookmarks_cmd (void)
+{
+    menu_cmd (CK_Flush_Bookmarks);
+}
+
+static void
 menu_mail_cmd (void)
 {
     menu_cmd (CK_Mail);
@@ -374,7 +398,12 @@ static menu_entry SearReplMenu[] =
 {
     {' ', N_("&Search...         F7"), 'S', menu_search_cmd},
     {' ', N_("Search &again     F17"), 'A', menu_search_again_cmd},
-    {' ', N_("&Replace...        F4"), 'R', menu_replace_cmd}
+    {' ', N_("&Replace...        F4"), 'R', menu_replace_cmd},
+    {' ', "", ' ', 0},
+    {' ', N_("&Flush bookmarks"), 'F', menu_flush_bookmarks_cmd},
+    {' ', N_("&Prev bookmark    M-i"), 'P', menu_prev_bookmark_cmd},
+    {' ', N_("&Next bookmark    M-j"), 'N', menu_next_bookmark_cmd},
+    {' ', N_("Toggle bookmar&k  M-k"), 'K', menu_toggle_bookmark_cmd}
 };
 
 #define SearReplMenuEmacs SearReplMenu
