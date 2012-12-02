@@ -14,7 +14,9 @@ use File::Temp 'tempfile';
 # standard binaries
 my $bzip = 'bzip2';
 my $gzip = 'gzip';
-my $fileutil = 'file';
+my $lzma = 'lzma';
+my $xz = 'xz';
+my $fileutil = 'file -b';
 
 # date parsing requires Date::Parse from TimeDate module
 my $parsedates = eval 'require Date::Parse';
@@ -70,10 +72,14 @@ sub myin
     my ($qfname)=(quotemeta $_[0]);
 
     $_=`$fileutil $qfname`;
-    if (/bzip/) {
+    if (/^bzip/) {
 	return "$bzip -dc $qfname";
-    } elsif (/gzip/) {
+    } elsif (/^gzip/) {
 	return "$gzip -dc $qfname";
+    } elsif (/^lzma/) {
+	return "$lzma -dc $qfname";
+    } elsif (/^xz/) {
+	return "$xz -dc $qfname";
     } else {
 	return "cat $qfname";
     }
@@ -86,10 +92,14 @@ sub myout
     my ($sep) = $append ? '>>' : '>';
 
     $_=`$fileutil $qfname`;
-    if (/bzip/) {
+    if (/^bzip/) {
 	return "$bzip -c $sep $qfname";
-    } elsif (/gzip/) {
+    } elsif (/^gzip/) {
 	return "$gzip -c $sep $qfname";
+    } elsif (/^lzma/) {
+	return "$lzma -dc $qfname";
+    } elsif (/^xz/) {
+	return "$xz -dc $qfname";
     } else {
 	return "cat $sep $qfname";
     }
