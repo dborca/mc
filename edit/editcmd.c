@@ -1368,7 +1368,7 @@ edit_replace_dialog (WEdit * edit, const char *search_default,
 	{quick_label, 2, REPLACE_DLG_WIDTH, 4, REPLACE_DLG_HEIGHT, N_(" Enter replacement string:"), 0, 0, 0,
 	 0, 0},
 	{quick_input, 3, REPLACE_DLG_WIDTH, 3, REPLACE_DLG_HEIGHT, "", 52, 0, 0,
-	 0, "edit-search"},
+	 0, N_("Search")},
 	{quick_label, 2, REPLACE_DLG_WIDTH, 2, REPLACE_DLG_HEIGHT, N_(" Enter search string:"), 0, 0, 0,
 	 0, 0},
 	 NULL_QuickWidget};
@@ -1448,7 +1448,7 @@ edit_search_dialog (WEdit * edit, char **search_text)
 	{quick_checkbox, 4, SEARCH_DLG_WIDTH, 4, SEARCH_DLG_HEIGHT, N_("case &Sensitive"), 0, 0,
 	 0, 0, NULL},
 	{quick_input, 3, SEARCH_DLG_WIDTH, 3, SEARCH_DLG_HEIGHT, "", 52, 0, 0,
-	 0, "edit-search"},
+	 0, N_("Search")},
 	{quick_label, 2, SEARCH_DLG_WIDTH, 2, SEARCH_DLG_HEIGHT, N_(" Enter search string:"), 0, 0, 0,
 	 0, 0},
 	 NULL_QuickWidget};

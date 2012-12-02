@@ -302,7 +302,7 @@ find_parameters (char **start_dir, char **pattern, char **content)
     add_widget (find_dlg, case_sense);
 
     in_with =
-	input_new (9, istart, INPUT_COLOR, ilen, in_contents, "content");
+	input_new (9, istart, INPUT_COLOR, ilen, in_contents, N_("Search"));
     add_widget (find_dlg, in_with);
 
     add_widget (find_dlg, fnsense_cbox);
