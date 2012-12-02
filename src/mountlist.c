@@ -363,7 +363,7 @@ read_filesystem_list (int need_fs_type, int all_fs)
 #ifdef HAVE_STRUCT_STATFS_F_FSTYPENAME
 	    me->me_type = strdup (fsp->f_fstypename);
 #else
-	    me->me_type = fstype_to_string (fsp->f_type);
+	    me->me_type = strdup (fstype_to_string (fsp->f_type));
 #endif
 	    me->me_dev = -1;	/* Magic; means not known yet. */
 	    me->me_next = NULL;
@@ -409,7 +409,7 @@ read_filesystem_list (int need_fs_type, int all_fs)
 	    me = (struct mount_entry *) malloc (sizeof (struct mount_entry));
 	    me->me_devname = strdup (fsd.fd_req.devname);
 	    me->me_mountdir = strdup (fsd.fd_req.path);
-	    me->me_type = gt_names[fsd.fd_req.fstype];
+	    me->me_type = strdup (gt_names[fsd.fd_req.fstype]);
 	    me->me_dev = fsd.fd_req.dev;
 	    me->me_next = NULL;
 
@@ -443,7 +443,7 @@ read_filesystem_list (int need_fs_type, int all_fs)
 	    me = (struct mount_entry *) malloc (sizeof (struct mount_entry));
 	    me->me_devname = strdup (stats[counter].f_mntfromname);
 	    me->me_mountdir = strdup (stats[counter].f_mntonname);
-	    me->me_type = mnt_names[stats[counter].f_type];
+	    me->me_type = strdup (mnt_names[stats[counter].f_type]);
 	    me->me_dev = -1;	/* Magic; means not known yet. */
 	    me->me_next = NULL;
 
@@ -477,7 +477,7 @@ read_filesystem_list (int need_fs_type, int all_fs)
 #endif
 	    me->me_mountdir = strdup (mnt.mt_filsys);
 	    me->me_dev = -1;	/* Magic; means not known yet. */
-	    me->me_type = "";
+	    me->me_type = NULL;
 #ifdef GETFSTYP			/* SVR3.  */
 	    if (need_fs_type) {
 		struct statfs fsd;
@@ -488,6 +488,9 @@ read_filesystem_list (int need_fs_type, int all_fs)
 		    me->me_type = strdup (typebuf);
 	    }
 #endif
+	    if (me->me_type == NULL) {
+		me->me_type = strdup ("");
+	    }
 	    me->me_next = NULL;
 
 	    /* Add to the linked list. */
@@ -659,6 +662,7 @@ read_filesystem_list(int need_fs_type, int all_fs)
 	me->me_mountdir = strdup(dir);
 	me->me_type = strdup(tp);
 	me->me_dev = de.disk_type;
+	me->me_next = NULL;
 
 #ifdef DEBUG
 	fprintf(stderr, "disk_get_entry():\n\tdisk_type=%d (%s)\n\tdriver_name='%-*.*s'\n\tdisk_drv=%d\n",
@@ -675,6 +679,14 @@ void
 init_my_statfs (void)
 {
 #ifdef HAVE_INFOMOUNT_LIST
+    while (mount_list != NULL) {
+	struct mount_entry *entry = mount_list;
+	mount_list = mount_list->me_next;
+	free(entry->me_devname);
+	free(entry->me_mountdir);
+	free(entry->me_type);
+	free(entry);
+    }
     mount_list = read_filesystem_list (1, 1);
 #endif /* HAVE_INFOMOUNT_LIST */
 }
@@ -687,7 +699,12 @@ my_statfs (struct my_statfs *myfs_stats, const char *path)
     struct mount_entry *entry = NULL;
     struct mount_entry *temp = mount_list;
     struct fs_usage fs_use;
+    int tries = 1;
 
+#if 1 /* XXX on systems with removable disks, always force rescan */
+    temp = NULL;
+#endif
+  retry:
     while (temp){
 	i = strlen (temp->me_mountdir);
 	if (i > len && (strncmp (path, temp->me_mountdir, i) == 0))
@@ -696,6 +713,11 @@ my_statfs (struct my_statfs *myfs_stats, const char *path)
 		entry = temp;
 	    }
 	temp = temp->me_next;
+    }
+    if (!entry && tries--) {
+	init_my_statfs();
+	temp = mount_list;
+	goto retry;
     }
 
     if (entry){
