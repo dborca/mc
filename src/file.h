@@ -27,7 +27,7 @@ int file_error (const char *format, const char *file);
 
 /* Query routines */
 
-void compute_dir_size (const char *dirname, off_t *ret_marked,
-		       double *ret_total);
+FileProgressStatus compute_dir_size (const char *dirname, off_t *ret_marked,
+		       double *ret_total, const ComputeDirSizeUI *ui, ComputeDirSizeCallback callback);
 
 #endif

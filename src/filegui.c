@@ -421,6 +421,84 @@ file_progress_show_bytes (FileOpContext *ctx, double done, double total)
 	return show_no_bar (ctx, 2);
 }
 
+/* status dialog of directory size computing */
+
+struct ComputeDirSizeUI {
+    Dlg_head *dlg;
+    WLabel *label;
+};
+
+ComputeDirSizeUI *
+compute_dir_size_create_ui (void)
+{
+    ComputeDirSizeUI *ui;
+
+    const char *b_name = _("&Abort");
+
+    ui = g_new (ComputeDirSizeUI, 1);
+
+    ui->dlg = create_dlg (0, 0, 8, WX, dialog_colors, NULL,
+			    NULL, _("Directory scanning"), DLG_CENTER);
+    ui->label = label_new (3, 3, "");
+    add_widget (ui->dlg, ui->label);
+
+    add_widget (ui->dlg,
+		button_new (5, (ui->dlg->cols - strlen (b_name)) / 2,
+		FILE_ABORT, NORMAL_BUTTON, b_name, NULL));
+
+    /* We will manage the dialog without any help,
+       that's why we have to call init_dlg */
+    init_dlg (ui->dlg);
+
+    return ui;
+}
+
+void
+compute_dir_size_destroy_ui (ComputeDirSizeUI *ui)
+{
+    if (ui != NULL) {
+	/* schedule to update passive panel */
+	/* XXX other_panel->dirty = 1; */
+
+	/* close and destroy dialog */
+	dlg_run_done (ui->dlg);
+	destroy_dlg (ui->dlg);
+	g_free (ui);
+    }
+}
+
+FileProgressStatus
+compute_dir_size_update_ui (const ComputeDirSizeUI *ui, const char *name)
+{
+    int c;
+    Gpm_Event event;
+
+    if (ui == NULL)
+	return FILE_CONT;
+
+    label_set_text (ui->label, name_trunc (name, ui->dlg->cols - 6));
+
+    event.x = -1;		/* Don't show the GPM cursor */
+    c = get_event (&event, 0, 0);
+    if (c == EV_NONE)
+	return FILE_CONT;
+
+    /* Reinitialize to avoid old values after events other than
+       selecting a button */
+    ui->dlg->ret_value = FILE_CONT;
+
+    dlg_process_event (ui->dlg, c, &event);
+    switch (ui->dlg->ret_value) {
+    case FILE_SKIP:
+	return FILE_SKIP;
+    case B_CANCEL:
+    case FILE_ABORT:
+	return FILE_ABORT;
+    default:
+	return FILE_CONT;
+    }
+}
+
 /* }}} */
 
 #define truncFileString(ui, s)       name_trunc (s, ui->eta_extra + 47)

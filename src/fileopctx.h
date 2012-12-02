@@ -158,5 +158,12 @@ FileProgressStatus file_progress_real_query_replace (FileOpContext *ctx,
 						     struct stat *_s_stat,
 						     struct stat *_d_stat);
 
+/* status dialog of directory size computing */
+typedef struct ComputeDirSizeUI ComputeDirSizeUI;
+typedef FileProgressStatus (*ComputeDirSizeCallback) (const ComputeDirSizeUI *ui, const char *name);
+
+ComputeDirSizeUI *compute_dir_size_create_ui (void);
+void compute_dir_size_destroy_ui (ComputeDirSizeUI *ui);
+FileProgressStatus compute_dir_size_update_ui (const ComputeDirSizeUI *ui, const char *name);
 
 #endif
