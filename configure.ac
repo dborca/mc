@@ -665,6 +665,7 @@ vfs/extfs/uarj
 vfs/extfs/uha
 vfs/extfs/ulha 
 vfs/extfs/urar
+vfs/extfs/uxar
 vfs/extfs/uzip
 vfs/extfs/uzoo
 

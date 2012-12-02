@@ -27,6 +27,7 @@ EXTFS_IN    = 			\
 	uha.in			\
 	ulha.in			\
 	urar.in			\
+	uxar.in			\
 	uzip.in			\
 	uzoo.in
 
@@ -51,6 +52,7 @@ EXTFS_OUT = 			\
 	uha			\
 	ulha			\
 	urar			\
+	uxar			\
 	uzip			\
 	uzoo
 

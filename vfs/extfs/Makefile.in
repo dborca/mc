@@ -45,7 +45,7 @@ DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/lslR.in $(srcdir)/mailfs.in $(srcdir)/patchfs.in \
 	$(srcdir)/rpms.in $(srcdir)/ualz.in $(srcdir)/uar.in \
 	$(srcdir)/uarj.in $(srcdir)/uha.in $(srcdir)/ulha.in \
-	$(srcdir)/urar.in $(srcdir)/uzip.in $(srcdir)/uzoo.in
+	$(srcdir)/urar.in $(srcdir)/uxar.in $(srcdir)/uzip.in $(srcdir)/uzoo.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/codeset.m4 \
 	$(top_srcdir)/m4/fstypename.m4 $(top_srcdir)/m4/fsusage.m4 \
@@ -71,7 +71,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES = a apt audio deb deba debd dpkg iso9660 hp48 lslR \
-	mailfs patchfs rpms ualz uar uarj uha ulha urar uzip uzoo
+	mailfs patchfs rpms ualz uar uarj uha ulha urar uxar uzip uzoo
 am__installdirs = "$(DESTDIR)$(extfsdir)" "$(DESTDIR)$(extfsdir)"
 extfsSCRIPT_INSTALL = $(INSTALL_SCRIPT)
 SCRIPTS = $(extfs_SCRIPTS)
@@ -274,6 +274,7 @@ EXTFS_IN = \
 	uha.in			\
 	ulha.in			\
 	urar.in			\
+	uxar.in			\
 	uzip.in			\
 	uzoo.in
 
@@ -299,6 +300,7 @@ EXTFS_OUT = \
 	uha			\
 	ulha			\
 	urar			\
+	uxar			\
 	uzip			\
 	uzoo
 
@@ -374,6 +376,8 @@ uha: $(top_builddir)/config.status $(srcdir)/uha.in
 ulha: $(top_builddir)/config.status $(srcdir)/ulha.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 urar: $(top_builddir)/config.status $(srcdir)/urar.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+uxar: $(top_builddir)/config.status $(srcdir)/uxar.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 uzip: $(top_builddir)/config.status $(srcdir)/uzip.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@

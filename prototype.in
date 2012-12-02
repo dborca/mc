@@ -75,8 +75,10 @@ f none $datadir/mc/extfs/trpm
 f none $datadir/mc/extfs/uar
 f none $datadir/mc/extfs/uarj
 f none $datadir/mc/extfs/uha
+f none $datadir/mc/extfs/uhfs
 f none $datadir/mc/extfs/ulha
 f none $datadir/mc/extfs/urar
+f none $datadir/mc/extfs/uxar
 f none $datadir/mc/extfs/uzip
 f none $datadir/mc/extfs/uzoo
 #
