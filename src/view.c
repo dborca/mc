@@ -188,6 +188,9 @@ struct WView {
     offset_type search_start;	/* First character to start searching from */
     offset_type search_length;	/* Length of found string or 0 if none was found */
     char *search_exp;		/* The search expression */
+    int  searchopt_case;	/* Case sensitive search */
+    int  searchopt_whole;	/* Search whole words only */
+    int  searchopt_regexp;	/* Regular expression search */
     int  direction;		/* 1= forward; -1 backward */
     void (*last_search)(WView *);
 				/* Pointer to the last search command */
@@ -210,6 +213,14 @@ struct WView {
 
 
 /* {{{ Global Variables }}} */
+
+#define IS_WHOLE_OR_DONT_CARE()						\
+    (!view->searchopt_whole || (					\
+     (q - lng == data || strchr(wholechars, q[-(lng + 1)]) == NULL) &&	\
+     (q[0] == '\0' || strchr(wholechars, q[0]) == NULL)			\
+    ))
+
+static const char *wholechars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_";
 
 /* Maxlimit for skipping updates */
 int max_dirt_limit = 10;
@@ -1095,7 +1106,7 @@ view_movement_fixups (WView *view, gboolean reset_search)
 {
     view_scroll_to_cursor (view);
     if (reset_search) {
-	view->search_start = view->dpy_start;
+	view->search_start = view->hex_mode ? view->hex_cursor : view->dpy_start;
 	view->search_length = 0;
     }
     view->dirty++;
@@ -2259,6 +2270,7 @@ my_define (Dlg_head *h, int idx, const char *text, void (*fn) (WView *),
 static int
 icase_search_p (WView *view, char *text, char *data, int nothing)
 {
+    const char *p;
     const char *q;
     int lng;
     const int direction = view->direction;
@@ -2271,7 +2283,51 @@ icase_search_p (WView *view, char *text, char *data, int nothing)
 	g_strreverse (data);
     }
 
-    q = _icase_search (text, data, &lng);
+    for (p = data; ; p++) {
+	q = _icase_search (text, p, &lng);
+	if (!q || IS_WHOLE_OR_DONT_CARE()) {
+	    break;
+	}
+    }
+
+    if (direction == -1) {
+	g_strreverse (text);
+	g_strreverse (data);
+    }
+
+    if (q != 0) {
+	if (direction > 0)
+	    view->search_start = q - data - lng;
+	else
+	    view->search_start = strlen (data) - (q - data);
+	view->search_length = lng;
+	return 1;
+    }
+    return 0;
+}
+
+static int
+case_search_p (WView *view, char *text, char *data, int nothing)
+{
+    const char *p;
+    const char *q;
+    int lng;
+    const int direction = view->direction;
+
+    (void) nothing;
+
+    /* If we are searching backwards, reverse the string */
+    if (direction == -1) {
+	g_strreverse (text);
+	g_strreverse (data);
+    }
+
+    for (p = data; ; p++) {
+	q = _case_search (text, p, &lng);
+	if (!q || IS_WHOLE_OR_DONT_CARE()) {
+	    break;
+	}
+    }
 
     if (direction == -1) {
 	g_strreverse (text);
@@ -2660,44 +2716,46 @@ regexp_view_search (WView *view, char *pattern, char *string,
     static regex_t r;
     static char *old_pattern = NULL;
     static int old_type;
+    static int old_flags;
     regmatch_t pmatch[1];
-    int i, flags = REG_ICASE;
+    int flags = view->searchopt_case ? 0 : REG_ICASE;
 
     if (old_pattern == NULL || strcmp (old_pattern, pattern) != 0
-	|| old_type != match_type) {
+	|| old_type != match_type || old_flags != flags) {
 	if (old_pattern != NULL) {
 	    regfree (&r);
 	    g_free (old_pattern);
 	    old_pattern = 0;
 	}
-	for (i = 0; pattern[i] != '\0'; i++) {
-	    if (isupper ((unsigned char) pattern[i])) {
-		flags = 0;
-		break;
-	    }
-	}
-	flags |= REG_EXTENDED;
-	if (regcomp (&r, pattern, flags)) {
+	if (regcomp (&r, pattern, flags | REG_EXTENDED)) {
 	    message (1, MSG_ERROR, _(" Invalid regular expression "));
 	    return -1;
 	}
 	old_pattern = g_strdup (pattern);
 	old_type = match_type;
+	old_flags = flags;
     }
-    if (regexec (&r, string, 1, pmatch, 0) != 0)
-	return 0;
+    if (view->direction == 1) {
+	if (regexec (&r, string, 1, pmatch, 0) != 0)
+	    return 0;
+    } else {
+	int found = 0;
+	char *p = string + strlen(string);
+	while (--p >= string) {
+	    if (regexec (&r, p, 1, pmatch, 0) == 0 && pmatch[0].rm_so == 0) {
+		pmatch[0].rm_so += p - string;
+		pmatch[0].rm_eo += p - string;
+		found = 1;
+		break;
+	    }
+	}
+	if (!found) {
+	    return 0;
+	}
+    }
     view->search_length = pmatch[0].rm_eo - pmatch[0].rm_so;
     view->search_start = pmatch[0].rm_so;
     return 1;
-}
-
-static void
-do_regexp_search (WView *view)
-{
-    search (view, view->search_exp, regexp_view_search);
-    /* Had a refresh here */
-    view->dirty++;
-    view_update (view);
 }
 
 static void
@@ -2705,6 +2763,10 @@ do_normal_search (WView *view)
 {
     if (view->hex_mode)
 	hex_search (view, view->search_exp);
+    else if (view->searchopt_regexp)
+	search (view, view->search_exp, regexp_view_search);
+    else if (view->searchopt_case)
+	search (view, view->search_exp, case_search_p);
     else
 	search (view, view->search_exp, icase_search_p);
     /* Had a refresh here */
@@ -2809,60 +2871,46 @@ view_hexedit_save_changes_cmd (WView *view)
 
 /* {{{ Searching }}} */
 
-static void
-regexp_search (WView *view, int direction)
-{
-    const char *defval;
-    char *regexp;
-    static char *last_regexp;
-
-    defval = (last_regexp != NULL ? last_regexp : "");
-
-    regexp = input_dialog (_("Search"), _(" Enter regexp:"), defval);
-    if (regexp == NULL || regexp[0] == '\0') {
-	g_free (regexp);
-	return;
-    }
-
-    g_free (last_regexp);
-    view->search_exp = last_regexp = regexp;
-
-    view->direction = direction;
-    do_regexp_search (view);
-    view->last_search = do_regexp_search;
-}
-
 /* {{{ User-definable commands }}} */
-
-static void
-view_regexp_search_cmd (WView *view)
-{
-    regexp_search (view, 1);
-}
 
 /* Both views */
 static void
-view_normal_search_cmd (WView *view)
+normal_search_cmd (WView *view, int want_regexp, int want_backwards)
 {
     char *defval, *exp = NULL;
     static char *last_search_string;
 
     enum {
-	SEARCH_DLG_HEIGHT = 8,
+	SEARCH_DLG_HEIGHT = 10,
 	SEARCH_DLG_WIDTH = 58
     };
 
     static int replace_backwards;
+    static int replace_regexp = 0;
+    static int replace_whole = 0;
+    static int replace_case = 0;
     int treplace_backwards = replace_backwards;
+    int treplace_regexp = replace_regexp;
+    int treplace_whole = replace_whole;
+    int treplace_case = replace_case;
 
     static QuickWidget quick_widgets[] = {
-	{quick_button, 6, 10, 5, SEARCH_DLG_HEIGHT, N_("&Cancel"), 0,
+	{quick_button, 6, 10, 7, SEARCH_DLG_HEIGHT, N_("&Cancel"), 0,
 	 B_CANCEL,
 	 0, 0, NULL},
-	{quick_button, 2, 10, 5, SEARCH_DLG_HEIGHT, N_("&OK"), 0, B_ENTER,
+	{quick_button, 2, 10, 7, SEARCH_DLG_HEIGHT, N_("&OK"), 0, B_ENTER,
 	 0, 0, NULL},
-	{quick_checkbox, 3, SEARCH_DLG_WIDTH, 4, SEARCH_DLG_HEIGHT,
+	{quick_checkbox, 33, SEARCH_DLG_WIDTH, 4, SEARCH_DLG_HEIGHT,
 	 N_("&Backwards"), 0, 0,
+	 0, 0, NULL},
+	{quick_checkbox, 4, SEARCH_DLG_WIDTH, 6, SEARCH_DLG_HEIGHT,
+	 N_("&Regular expression"), 0, 0,
+	 0, 0, NULL},
+	{quick_checkbox, 4, SEARCH_DLG_WIDTH, 5, SEARCH_DLG_HEIGHT,
+	 N_("&Whole words only"), 0, 0,
+	 0, 0, NULL},
+	{quick_checkbox, 4, SEARCH_DLG_WIDTH, 4, SEARCH_DLG_HEIGHT,
+	 N_("case &Sensitive"), 0, 0,
 	 0, 0, NULL},
 	{quick_input, 3, SEARCH_DLG_WIDTH, 3, SEARCH_DLG_HEIGHT, "", 52, 0,
 	 0, 0, N_("Search")},
@@ -2879,14 +2927,27 @@ view_normal_search_cmd (WView *view)
     defval = g_strdup (last_search_string != NULL ? last_search_string : "");
     convert_to_display (defval);
 
+    if (want_regexp >= 0) {
+	treplace_regexp = want_regexp;
+    }
+    if (want_backwards >= 0) {
+	treplace_backwards = want_backwards;
+    }
+
     quick_widgets[2].result = &treplace_backwards;
-    quick_widgets[3].str_result = &exp;
-    quick_widgets[3].text = defval;
+    quick_widgets[3].result = &treplace_regexp;
+    quick_widgets[4].result = &treplace_whole;
+    quick_widgets[5].result = &treplace_case;
+    quick_widgets[6].str_result = &exp;
+    quick_widgets[6].text = defval;
 
     if (quick_dialog (&Quick_input) == B_CANCEL)
 	goto cleanup;
 
     replace_backwards = treplace_backwards;
+    replace_regexp = treplace_regexp;
+    replace_whole = treplace_whole;
+    replace_case = treplace_case;
 
     if (exp == NULL || exp[0] == '\0')
 	goto cleanup;
@@ -2897,6 +2958,9 @@ view_normal_search_cmd (WView *view)
     view->search_exp = last_search_string = exp;
     exp = NULL;
 
+    view->searchopt_case = replace_case;
+    view->searchopt_regexp = replace_regexp;
+    view->searchopt_whole = replace_whole;
     view->direction = replace_backwards ? -1 : 1;
     do_normal_search (view);
     view->last_search = do_normal_search;
@@ -2904,6 +2968,18 @@ view_normal_search_cmd (WView *view)
 cleanup:
     g_free (exp);
     g_free (defval);
+}
+
+static void
+view_regexp_search_cmd (WView *view)
+{
+    normal_search_cmd (view, 1, 0);
+}
+
+static void
+view_normal_search_cmd (WView *view)
+{
+    normal_search_cmd (view, -1, -1);
 }
 
 static void
@@ -3119,11 +3195,11 @@ view_handle_key (WView *view, int c)
     switch (c) {
 
     case '?':
-	regexp_search (view, -1);
+	normal_search_cmd (view, 1, 1);
 	return MSG_HANDLED;
 
     case '/':
-	regexp_search (view, 1);
+	normal_search_cmd (view, 1, 0);
 	return MSG_HANDLED;
 
 	/* Continue search */
