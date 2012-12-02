@@ -95,7 +95,7 @@ am__mc_SOURCES_DIST = achown.c achown.h background.c background.h \
 	mountlist.c mountlist.h mouse.c mouse.h myslang.h option.c \
 	option.h panel.h panelize.c panelize.h poptalloca.h popt.c \
 	poptconfig.c popt.h popthelp.c poptint.h poptparse.c profile.c \
-	profile.h regex.c rxvt.c screen.c setup.c setup.h slint.c \
+	profile.h regex.c rxvt.c screen.c selmnt.c selmnt.h setup.c setup.h slint.c \
 	subshell.c subshell.h textconf.c textconf.h tree.c tree.h \
 	treestore.c treestore.h tty.c tty.h user.c user.h util.c \
 	util.h utilunix.c view.c view.h vfsdummy.h widget.c widget.h \
@@ -115,7 +115,7 @@ am__objects_1 = achown.$(OBJEXT) background.$(OBJEXT) boxes.$(OBJEXT) \
 	panelize.$(OBJEXT) popt.$(OBJEXT) poptconfig.$(OBJEXT) \
 	popthelp.$(OBJEXT) poptparse.$(OBJEXT) profile.$(OBJEXT) \
 	regex.$(OBJEXT) rxvt.$(OBJEXT) screen.$(OBJEXT) \
-	setup.$(OBJEXT) slint.$(OBJEXT) subshell.$(OBJEXT) \
+	selmnt.$(OBJEXT) setup.$(OBJEXT) slint.$(OBJEXT) subshell.$(OBJEXT) \
 	textconf.$(OBJEXT) tree.$(OBJEXT) treestore.$(OBJEXT) \
 	tty.$(OBJEXT) user.$(OBJEXT) util.$(OBJEXT) utilunix.$(OBJEXT) \
 	view.$(OBJEXT) widget.$(OBJEXT) win.$(OBJEXT) wtools.$(OBJEXT) \
@@ -345,7 +345,7 @@ SRCS = achown.c achown.h background.c background.h boxes.c boxes.h	\
 	menu.c menu.h mountlist.c mountlist.h mouse.c mouse.h myslang.h	\
 	option.c option.h panel.h panelize.c panelize.h poptalloca.h	\
 	popt.c poptconfig.c popt.h popthelp.c poptint.h poptparse.c	\
-	profile.c profile.h regex.c rxvt.c screen.c setup.c setup.h	\
+	profile.c profile.h regex.c rxvt.c screen.c selmnt.c selmnt.h setup.c setup.h	\
 	slint.c	subshell.c subshell.h textconf.c textconf.h		\
 	tree.c tree.h treestore.c treestore.h tty.c tty.h user.c user.h	\
 	util.c util.h utilunix.c view.c view.h vfsdummy.h widget.c	\
@@ -518,6 +518,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rxvt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/screen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/selcodepage.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/selmnt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/setup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/slint.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/subshell.Po@am__quote@

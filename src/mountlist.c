@@ -123,16 +123,6 @@
 #    define HAVE_INFOMOUNT
 #endif
 
-/* A mount table entry. */
-struct mount_entry
-{
-  char *me_devname;		/* Device node pathname, including "/dev/". */
-  char *me_mountdir;		/* Mount point directory pathname. */
-  char *me_type;		/* "nfs", "4.2", etc. */
-  dev_t me_dev;			/* Device number of me_mountdir. */
-  struct mount_entry *me_next;
-};
-
 struct fs_usage
 {
   long fsu_blocks;		/* Total blocks. */
@@ -292,7 +282,7 @@ fstype_to_string (int t)
    If ALL_FS is zero, do not return entries for filesystems that
    are automounter (dummy) entries.  */
 
-static struct mount_entry *
+struct mount_entry *
 read_filesystem_list (int need_fs_type, int all_fs)
 {
     struct mount_entry *mlist;
@@ -613,7 +603,7 @@ read_filesystem_list (int need_fs_type, int all_fs)
 ** this hack.
 */
 
-static struct mount_entry *
+struct mount_entry *
 read_filesystem_list(int need_fs_type, int all_fs)
 {
 	struct _disk_entry	de;
