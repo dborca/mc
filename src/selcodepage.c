@@ -95,7 +95,11 @@ do_select_codepage (void)
     const char *errmsg;
 
     if (display_codepage > 0) {
-	source_codepage = select_charset (source_codepage, 0);
+	int r = select_charset (source_codepage, 0);
+	if (r == -2) {
+	    return 0;
+	}
+	source_codepage = r;
 	errmsg =
 	    init_translation_table (source_codepage, display_codepage);
 	if (errmsg) {
