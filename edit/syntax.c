@@ -65,6 +65,7 @@
 #define SYNTAX_TOKEN_PLUS	'\002'
 #define SYNTAX_TOKEN_BRACKET	'\003'
 #define SYNTAX_TOKEN_BRACE	'\004'
+#define SYNTAX_TOKEN_CHEVRON	'\005'
 
 struct key_word {
     char *keyword;
@@ -166,6 +167,7 @@ compare_word_to_right (WEdit *edit, long i, const char *text,
 		       int line_start)
 {
     const unsigned char *p, *q;
+    int stok, etok;
     int c, d, j;
 
     if (!*text)
@@ -256,16 +258,20 @@ compare_word_to_right (WEdit *edit, long i, const char *text,
 		i--;
 	    break;
 	case SYNTAX_TOKEN_BRACE:
+	case SYNTAX_TOKEN_CHEVRON:
+	    stok = *p;
+	    etok = *p;
 	    if (++p > q)
 		return -1;
 	    c = edit_get_byte (edit, i);
-	    for (; *p != SYNTAX_TOKEN_BRACE && *p; p++)
+	    for (; *p != etok && *p; p++)
 		if (c == *p)
 		    goto found_char3;
 	    return -1;
 	  found_char3:
-	    while (*p != SYNTAX_TOKEN_BRACE && p < q)
+	    while (*p != etok && p < q)
 		 p++;
+	    i -= (stok == SYNTAX_TOKEN_CHEVRON);
 	    break;
 	default:
 	    if (*p != edit_get_byte (edit, i))
@@ -280,7 +286,7 @@ compare_word_to_right (WEdit *edit, long i, const char *text,
 
 static inline const char *xx_strchr (const unsigned char *s, int c)
 {
-    while (*s >= '\005' && *s != (unsigned char) c) {
+    while (*s > '\005' && *s != (unsigned char) c) {
 	s++;
     }
     return (const char *) s;
@@ -585,6 +591,10 @@ static char *convert (char *s)
 	    case '{':
 	    case '}':
 		*p = SYNTAX_TOKEN_BRACE;
+		break;
+	    case '<':
+	    case '>':
+		*p = SYNTAX_TOKEN_CHEVRON;
 		break;
 	    case 0:
 		*p = *s;

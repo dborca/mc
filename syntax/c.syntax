@@ -40,9 +40,6 @@ context default
     keyword whole inline yellow
     keyword whole new yellow
     keyword whole operator yellow
-    keyword whole private yellow
-    keyword whole protected yellow
-    keyword whole public yellow
     keyword whole this yellow
     keyword whole throw yellow
     keyword whole template yellow
@@ -65,7 +62,37 @@ context default
     keyword whole ... yellow
     keyword whole linestart \{\s\t\}\[\s\t\]#*\n brightmagenta
     keyword whole \[\s\t\]default yellow
-    keyword whole linestart \[\s\t\]\{ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\}\[0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\]: cyan
+    keyword whole \[\s\t\]private yellow
+    keyword whole \[\s\t\]protected yellow
+    keyword whole \[\s\t\]public yellow
+    keyword linestart \[\s\t\]\{ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\}\[0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\]:\[\s\t\]\<;/\n\> cyan
+    keyword wholeleft \{ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\}\[0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\]:: white
+    keyword wholeleft \{ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\}\[0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\]\<:\> brightmagenta
+    keyword <\{ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\}\[0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz,\s\]> white
+
+    keyword whole @catch yellow
+    keyword whole @class yellow
+    keyword whole @compatibility_alias yellow
+    keyword whole @defs yellow
+    keyword whole @dynamic yellow
+    keyword whole @encode yellow
+    keyword whole @end yellow
+    keyword whole @finally yellow
+    keyword whole @implementation yellow
+    keyword whole @interface yellow
+    keyword whole @optional yellow
+    keyword whole @package yellow
+    keyword whole @private yellow
+    keyword whole @property yellow
+    keyword whole @protected yellow
+    keyword whole @protocol yellow
+    keyword whole @public yellow
+    keyword whole @required yellow
+    keyword whole @selector yellow
+    keyword whole @synchronized yellow
+    keyword whole @synthesize yellow
+    keyword whole @throw yellow
+    keyword whole @try yellow
 
     keyword /\* brown
     keyword \*/ brown
