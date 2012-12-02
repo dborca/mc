@@ -364,13 +364,15 @@ fish_dir_load(struct vfs_class *me, struct vfs_s_inode *dir, char *remote_path)
     dir->timestamp.tv_sec += fish_directory_timeout;
     quoted_path = name_quote (remote_path, 0);
     fish_command (me, super, NONE,
+	    /* XXX no -L here, unless -L in RETR; otherwise we'll be inconsistent */
+	    /* XXX The trailing slash is needed to accomodate directory symlinks */
 	    "#LIST /%s\n"
-	    "ls -lLan /%s 2>/dev/null | grep '^[^cbt]' | (\n"
+	    "ls -lan /%s/ 2>/dev/null | grep '^[^cbt]' | (\n"
 	      "while read p l u g s m d y n; do\n"
 	        "echo \"P$p $u.$g\nS$s\nd$m $d $y\n:$n\n\"\n"
 	      "done\n"
 	    ")\n"
-	    "ls -lan /%s 2>/dev/null | grep '^[cb]' | (\n"
+	    "ls -lan /%s/ 2>/dev/null | grep '^[cb]' | (\n"
 	      "while read p l u g a i m d y n; do\n"
 	        "echo \"P$p $u.$g\nE$a$i\nd$m $d $y\n:$n\n\"\n"
 	      "done\n"
@@ -395,13 +397,27 @@ fish_dir_load(struct vfs_class *me, struct vfs_s_inode *dir, char *remote_path)
 	    break;
 	if ((!buffer[0])) {
 	    if (ent->name) {
+#define ST ent->ino->st
+		if (S_ISLNK(ST.st_mode) && ent->ino->linkname == NULL) {
+		    /* Symlink, without 'L' reply.  We assume the name has this form
+		     * <pathname of link> -> <contents of link> and that size is the
+		     * number of characters in <contents of link>
+		     */
+		    const char *lsep = " -> ";
+		    const int lsep_len = strlen(lsep);
+		    int real_len = strlen(ent->name) - ST.st_size - lsep_len;
+		    if (real_len > 0 && !strncmp(ent->name + real_len, lsep, lsep_len)) {
+			ent->ino->linkname = g_strdup(ent->name + real_len + lsep_len);
+			ent->name[real_len] = '\0';
+		    } else {
+			ST.st_mode = 0;
+		    }
+		}
 		vfs_s_insert_entry(me, dir, ent);
 		ent = vfs_s_generate_entry(me, NULL, dir, 0);
 	    }
 	    continue;
 	}
-	
-#define ST ent->ino->st
 
 	switch(buffer[0]) {
 	case ':': {
@@ -421,8 +437,8 @@ fish_dir_load(struct vfs_class *me, struct vfs_s_inode *dir, char *remote_path)
 	    size_t skipped;
 
 	    if (vfs_parse_filemode (buffer + 1, &skipped, &ST.st_mode)) {
-		if (S_ISLNK(ST.st_mode))
-		    ST.st_mode = 0;
+		/*if (S_ISLNK(ST.st_mode))
+		    ST.st_mode = 0; XXX we'll deal with it, eventually */
 	    }
 	    break;
 	}
@@ -620,14 +636,18 @@ fish_linear_start (struct vfs_class *me, struct vfs_s_fh *fh, off_t offset)
     fh->u.fish.append = 0;
     offset = fish_command (me, FH_SUPER, WANT_STRING,
 		"#RETR /%s\n"
+		"if dd if=/%s of=/dev/null bs=1 count=1 2>/dev/null; then\n"
 		"ls -ln /%s 2>/dev/null | (\n"
 		  "read p l u g s r\n"
 		  "echo \"$s\"\n"
 		")\n"
 		"echo '### 100'\n"
 		"cat /%s\n"
-		"echo '### 200'\n", 
-		name, name, name );
+		"echo '### 200'\n"
+		"else\n"
+		"echo '### 500'\n"
+		"fi\n",
+		name, name, name, name );
     g_free (name);
     if (offset != PRELIM) ERRNOR (E_REMOTE, 0);
     fh->linear = LS_LINEAR_OPEN;
