@@ -164,6 +164,11 @@ regex/\.[rR]([aA][rR]|[0-9][0-9])$
 	Open=%cd %p#urar
 	View=%view{ascii} rar v -c- %f
 
+# dmg
+shell/.dmg
+	Open=%cd %p#uhfs
+	View=%view{ascii} hfsplus %f list
+
 # ALZip
 regex/\.(alz|ALZ)$
 	Open=%cd %p#ualz

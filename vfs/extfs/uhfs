@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# extfs support for HFS+
+# Written by Daniel Borca, 2012
+# Licensed under GNU GPL version 2 or later version.
+#
+# HFS+ can be found on https://github.com/dborca/xpwn.git
+
+HFSPLUS=hfsplus
+
+mchfs_list ()
+{
+    $HFSPLUS "$1" list
+}
+
+mchfs_copyout ()
+{
+    $HFSPLUS "$1" extract "$2" "$3"
+}
+
+umask 077
+
+cmd="$1"
+shift
+
+case "$cmd" in
+    list)    mchfs_list    "$@" ;;
+    copyout) mchfs_copyout "$@" ;;
+    *)       exit 1 ;;
+esac
