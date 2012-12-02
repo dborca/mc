@@ -153,6 +153,99 @@ trim (const char *s, char *d, int len)
     return d;
 }
 
+#if WANT_SMART_COMPLETE
+
+char *
+name_quote_and_free (char *s)
+{
+    char *t = name_quote(s, 2);
+    g_free(s);
+    return t;
+}
+
+char *
+name_unquote (char *s, int in_place)
+{
+    char *ret, *d;
+
+    d = ret = in_place ? s : g_malloc (strlen (s) + 1);
+
+    for (; *s; s++, d++) {
+	if (*s == '\\') {
+#if 1
+	    /* remove the trailing '\' */
+	    if (*++s == '\0') {
+		break;
+	    }
+#else
+	    /* keep the trailing '\' */
+	    if (s[1] != '\0') {
+		s++;
+	    }
+#endif
+	}
+	*d = *s;
+    }
+    *d = '\0';
+    return ret;
+}
+
+char *
+strip_unquote_dir (char *s)
+{
+    char *ret, *d;
+
+    int len = strlen(s) - 1;
+    while (len >= 0 && (s[len] == ' ' || s[len] == '\t' || s[len] == '\n') && !is_quoted(s, len)) {
+	len--;
+    }
+    s[++len] = '\0';
+
+    d = ret = g_malloc (len + 1 + 1);
+
+    for (; *s; s++, d++) {
+	if (*s == '\\') {
+	    if (*++s == '\0') {
+		break;
+	    }
+	}
+	*d = *s;
+    }
+    if (d > ret && d[-1] != '/' && d[-1] != '-' /* actually, we only want to exempt "cd -" */) {
+	*d++ = '/';
+    }
+    *d = '\0';
+    return ret;
+}
+
+char *
+strrchr_unquoted (const char *s, int c)
+{
+    const char *last = NULL;
+    do {
+	if (*s == '\\') {
+	    s++;
+	    continue;
+	}
+	if (*s == c) {
+	    last = s;
+	}
+    } while (*s++);
+    return (char *)last;
+}
+
+int
+is_quoted (const char *s, int i)
+{
+    int n = 0;
+    while (i > 0 && s[--i] == '\\') {
+	n++;
+    }
+    return n & 1;
+}
+
+#endif	/* WANT_SMART_COMPLETE */
+
 /*
  * Quote the filename for the purpose of inserting it into the command
  * line.  If quote_percent is 1, replace "%" with "%%" - the percent is
@@ -172,7 +265,7 @@ name_quote (const char *s, int quote_percent)
     for (; *s; s++, d++) {
 	switch (*s) {
 	case '%':
-	    if (quote_percent)
+	    if (quote_percent & 1)
 		*d++ = '%';
 	    break;
 	case '\'':
@@ -202,7 +295,7 @@ name_quote (const char *s, int quote_percent)
 	    break;
 	case '~':
 	case '#':
-	    if (d == ret)
+	    if (d == ret && !(quote_percent & 2)) /* XXX hack: if called from completion, don't fix leading ~ */
 		*d++ = '\\';
 	    break;
 	}

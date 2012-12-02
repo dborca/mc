@@ -262,4 +262,29 @@ extern int ascii_alpha_to_cntrl (int ch);
 #undef Q_
 const char *Q_ (const char *s);
 
+#define WANT_SMART_COMPLETE 1
+#if WANT_SMART_COMPLETE
+
+#define q_free(p) g_free(p)
+
+char *name_quote_and_free (char *s);
+char *name_unquote (char *s, int in_place);
+char *strip_unquote_dir (char *s);
+char *strrchr_unquoted (const char *s, int c);
+
+int is_quoted(const char *s, int i);
+
+#else	/* !WANT_SMART_COMPLETE */
+
+#define q_free(p)
+
+#define name_quote_and_free(s) s
+#define name_unquote(s, in_place) s
+#define strip_unquote_dir s
+#define strrchr_unquoted strrchr
+
+#define is_quoted(p, i) 0
+
+#endif	/* !WANT_SMART_COMPLETE */
+
 #endif

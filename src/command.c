@@ -206,7 +206,9 @@ enter (WInput *cmdline)
 	return MSG_HANDLED;
 
     if (strncmp (cmd, "cd ", 3) == 0 || strcmp (cmd, "cd") == 0) {
+	cmd = strip_unquote_dir(cmd);
 	do_cd_command (cmd);
+	q_free(cmd);
 	new_input (cmdline);
 	return MSG_HANDLED;
     } else {
