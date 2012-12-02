@@ -47,8 +47,6 @@ struct WInfo {
     int ready;
 };
 
-/* Have we called the init_my_statfs routine? */
-static int initialized;
 static struct my_statfs myfs_stats;
 
 static void info_box (Dlg_head *h, struct WInfo *info)
@@ -237,7 +235,6 @@ info_callback (Widget *w, widget_msg_t msg, int parm)
 
     case WIDGET_DRAW:
 	info_hook (info);
-	info_show_info (info);
 	return MSG_HANDLED;
 
     case WIDGET_FOCUS:
@@ -260,11 +257,6 @@ struct WInfo *info_new ()
 
     /* We do not want the cursor */
     widget_want_cursor (info->widget, 0);
-
-    if (!initialized){
-	initialized = 1;
-	init_my_statfs ();
-    }
 
     return info;
 }
