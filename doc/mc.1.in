@@ -2016,7 +2016,8 @@ or executing an
 extension dependent command\&,
 .\"Extension File Edit"
 or running a command from the command line input, a simple macro
-substitution takes place.
+substitution takes place.  Note that in command line, the macros
+must be preceded by '\\'.
 .PP
 The macros are:
 .TP

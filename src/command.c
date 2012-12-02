@@ -231,21 +231,31 @@ enter (WInput *cmdline)
 #endif
 	cmd_len = strlen (cmd);
 	command = g_malloc (cmd_len + 1);
-	command[0] = 0;
 	for (i = j = 0; i < cmd_len; i++) {
-	    if (cmd[i] == '%') {
+	    size_t s_len;
+	    if (cmd[i] == '\\') {
 		i++;
-		s = expand_format (NULL, cmd[i], 1);
-		command = g_realloc (command, j + strlen (s) + cmd_len - i + 1);
-		strcpy (command + j, s);
-		g_free (s);
-		j = strlen (command);
-	    } else {
-		command[j] = cmd[i];
-		j++;
+		if (cmd[i] == '%') {
+		    i++;
+		    s = expand_format (NULL, cmd[i], 1);
+		    s_len = strlen (s);
+		    command = g_realloc (command, j + s_len + cmd_len - i + 1);
+		    strcpy (command + j, s);
+		    g_free (s);
+		    j += s_len;
+		    continue;
+		} else {
+		    command[j] = cmd[i - 1];
+		    j++;
+		    if (i == cmd_len) {
+			break;
+		    }
+		}
 	    }
-	    command[j] = 0;
+	    command[j] = cmd[i];
+	    j++;
 	}
+	command[j] = 0;
 	new_input (cmdline);
 	shell_execute (command, 0);
 	g_free (command);
@@ -300,14 +310,15 @@ command_new (int y, int x, int cols)
 
 /*
  * Insert quoted text in input line.  The function is meant for the
- * command line, so the percent sign is quoted as well.
+ * command line, so the percent sign has no special meaning, unless
+ * it is preceded by '\\'.  This is a change from earlier versions!
  */
 void
 command_insert (WInput * in, const char *text, int insert_extra_space)
 {
     char *quoted_text;
 
-    quoted_text = name_quote (text, 1);
+    quoted_text = name_quote (text, 0);
     stuff (in, quoted_text, insert_extra_space);
     g_free (quoted_text);
 }
