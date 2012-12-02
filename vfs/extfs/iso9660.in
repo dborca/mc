@@ -15,7 +15,7 @@ test_iso () {
     fi
     if test -n "$CHARSET"; then
 	CHARSET=`echo "$CHARSET" | tr '[A-Z]' '[a-z]' | sed -e 's/^iso-/iso/'`
-	isoinfo -j $CHARSET -i /dev/null 2>&1 | grep "Unknown charset" >/dev/null && CHARSET=
+	isoinfo -j $CHARSET -i /dev/null 2>&1 | @AWK@ "/Iconv not yet supported|Unknown charset/" >/dev/null && CHARSET=
     fi
     if test -n "$CHARSET"; then
 	JOLIET_OPT="-j $CHARSET -J"
@@ -23,12 +23,14 @@ test_iso () {
 	JOLIET_OPT="-J"
     fi
     ISOINFO="isoinfo -R"
-    isoinfo -d -i "$1" | grep "NO Joliet" > /dev/null || ISOINFO="$ISOINFO $JOLIET_OPT"
+    isoinfo -d -i "$1" | @AWK@ "/UCS level 1|NO Joliet/" > /dev/null || ISOINFO="$ISOINFO $JOLIET_OPT"
 }
 
 mcisofs_list () {
 # left as a reminder to implement compressed image support =)
 case "$1" in
+  *.lzma) MYCAT="lzma -dc";;
+  *.xz)  MYCAT="xz -dc";;
   *.bz2) MYCAT="bzip2 -dc";;
   *.gz)  MYCAT="gzip -dc";;
   *.z)   MYCAT="gzip -dc";;
@@ -42,7 +44,7 @@ BEGIN {
   # Pattern to match 8 first fields.
   rx = "[^ 	]+[ 	]+";
   rx = "^" rx rx rx rx rx rx rx rx;
-  irx = "^\\[ *[0-9]* *[0-9]+\\]  ";
+  irx = "^\\[ *-?[0-9]* *[0-9]+\\] +";
 }
 /^$/ { next }
 /^d---------/ { next }
@@ -51,9 +53,11 @@ BEGIN {
   next;
 }
 { $11 != "" } {
-  name=$0
+  d0 = $0
+  sub("[ 	0-9]*", "", d0)
+  name=d0
   sub(rx, "", name)
-  attr=substr($0, 1, length($0)-length(name))
+  attr=substr(d0, 1, length(d0)-length(name))
   # strip inodes and extra dir entries; fix perms
   sub(irx, "", name)
   sub("^----------   0    0    0", "-r--r--r--   1 root root", attr)
