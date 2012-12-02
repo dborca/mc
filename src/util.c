@@ -657,6 +657,13 @@ convert_pattern (const char *pattern, int match_type, int do_group)
 		*d++ = '\\';
 		*d   = '.';
 		break;
+		
+	    case '|':
+		d = maybe_end_group (d, do_group, &was_wildcard);
+		*d++ = '$';
+		*d++ = '|';
+		*d   = '^';
+		break;
 
 	    default:
 		d = maybe_end_group (d, do_group, &was_wildcard);
