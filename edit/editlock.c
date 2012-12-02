@@ -69,9 +69,11 @@ static char *
 lock_build_name (void)
 {
     char host[BUF_SIZE];
-    const char *user;
+    const char *user = NULL;
+    struct passwd *pw;
 
-    user = getpwuid (getuid ())->pw_name;
+    pw = getpwuid (getuid ());
+    if (pw) user = pw->pw_name;
     if (!user) user = getenv ("USER");
     if (!user) user = getenv ("USERNAME");
     if (!user) user = getenv ("LOGNAME");
@@ -140,8 +142,7 @@ lock_get_info (const char *lockfname)
     int cnt;
     static char buf[BUF_SIZE];
 
-    if ((cnt = readlink (lockfname, buf, BUF_SIZE - 1)) == -1 || !buf
-	|| !*buf)
+    if ((cnt = readlink (lockfname, buf, BUF_SIZE - 1)) == -1 || !*buf)
 	return NULL;
     buf[cnt] = '\0';
     return buf;
