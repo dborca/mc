@@ -31,7 +31,7 @@ USA.
 # include <locale.h>
 #endif
 
-#ifdef HAVE_LANGINFO_H
+#ifdef HAVE_LANGINFO_CODESET
 # include <langinfo.h>
 #endif
 
@@ -87,7 +87,7 @@ static int utf8_enable (int mode)
 
    (void) setlocale (LC_ALL, "");
 
-#ifdef HAVE_NL_LANGINFO_CODESET
+#ifdef HAVE_LANGINFO_CODESET
    locale = nl_langinfo (CODESET);
    if ((locale != NULL) && (*locale))
      {
