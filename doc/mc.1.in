@@ -2761,6 +2761,7 @@ machine as that user, otherwise it will use your login name.
 .PP
 The
 .I options
+may specify a port, possibly followed by flags.  The flags
 are 'C' - use compression and 'rsh' use rsh instead of ssh.  If the
 .I remote-dir
 element is present, your current directory on the remote machine will be
@@ -2772,6 +2773,8 @@ Examples:
     /#sh:onlyrsh.mx:r/linux/local
     /#sh:joe@want.compression.edu:C/private
     /#sh:joe@noncompressed.ssh.edu/private
+    /#sh:joe@customport.ssh.edu:2222/private
+    /#sh:joe@example.ssh.edu:2002C/private
 .fi
 .\"NODE "  Network File System"
 .SH "  Network File System"

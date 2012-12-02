@@ -56,8 +56,8 @@ int fish_directory_timeout = 900;
 #define DO_OPEN            2
 #define DO_FREE_RESOURCE   4
 
-#define FISH_FLAG_COMPRESSED 1
-#define FISH_FLAG_RSH	     2
+#define FISH_FLAG_COMPRESSED (1 << 16)
+#define FISH_FLAG_RSH	     (2 << 16)
 
 #define OPT_FLUSH        1
 #define OPT_IGNORE_ERROR 2
@@ -213,12 +213,20 @@ fish_open_archive_int (struct vfs_class *me, struct vfs_s_super *super)
 {
     {
 	const char *argv[10];
-	const char *xsh = (SUP.flags == FISH_FLAG_RSH ? "rsh" : "ssh");
+	const int port_num = SUP.flags &  0xFFFF;
+	const int sh_flags = SUP.flags & ~0xFFFF;
+	const char *xsh = (sh_flags == FISH_FLAG_RSH ? "rsh" : "ssh");
+	char buf[8];
 	int i = 0;
 
 	argv[i++] = xsh;
-	if (SUP.flags == FISH_FLAG_COMPRESSED)
+	if (sh_flags == FISH_FLAG_COMPRESSED)
 	    argv[i++] = "-C";
+	if (port_num) {
+	    sprintf(buf, "%d", port_num);
+	    argv[i++] = "-p";
+	    argv[i++] = buf;
+	}
 	argv[i++] = "-l";
 	argv[i++] = SUP.user;
 	argv[i++] = SUP.host;
@@ -936,22 +944,30 @@ fish_fill_names (struct vfs_class *me, fill_names_f func)
     char *name;
     
     while (super){
+	char opt[8];
+	opt[1] = '\0';
+	if (SUP.flags & 0xFFFF) {
+	    sprintf(opt + 1, "%d", SUP.flags & 0xFFFF);
+	}
+
 	switch (SUP.flags & (FISH_FLAG_RSH | FISH_FLAG_COMPRESSED)) {
 	case FISH_FLAG_RSH:
-		flags = ":r";
+		strcat(opt + 1, "r");
 		break;
 	case FISH_FLAG_COMPRESSED:
-		flags = ":C";
+		strcat(opt + 1, "C");
 		break;
 	case FISH_FLAG_RSH | FISH_FLAG_COMPRESSED:
-		flags = "";
 		break;
 	default:
-		flags = "";
 		break;
 	}
 
-	name = g_strconcat ("/#sh:", SUP.user, "@", SUP.host, flags,
+	opt[0] = '\0';
+	if (opt[1] != '\0') {
+	    opt[0] = ':';
+	}
+	name = g_strconcat ("/#sh:", SUP.user, "@", SUP.host, opt,
 			    "/", SUP.cwdir, (char *) NULL);
 	(*func)(name);
 	g_free (name);
