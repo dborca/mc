@@ -113,6 +113,7 @@
 #define CK_Maximize		458
 
 #define CK_Toggle_Syntax	480
+#define CK_Toggle_Tab_TWS	481
 
 /* macro */
 #define CK_Begin_Record_Macro	501
