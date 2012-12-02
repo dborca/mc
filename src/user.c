@@ -247,6 +247,8 @@ expand_format (struct WEdit *edit_widget, char c, int quote)
 	    }
 	    break;
 	}
+    case 'e':			/* was "cooledit.error" */
+	return g_strdup("/dev/null");
     case 'n':			/* strip extension in editor */
 	if (edit_widget)
 	    return strip_ext ((*quote_func) (fname, 0));
