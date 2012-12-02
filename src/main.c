@@ -1955,12 +1955,17 @@ process_args (poptContext ctx, int c, const char *option_arg)
 #ifdef USE_NETCODE
     case 'l':
 	mc_setctl ("/#ftp:", VFS_SETCTL_LOGFILE, (void *) option_arg);
-#ifdef WITH_SMBFS
-	smbfs_set_debugf (option_arg);
-#endif				/* WITH_SMBFS */
+	break;
+
+    case 'L':
+	mc_setctl ("/#sh:", VFS_SETCTL_LOGFILE, (void *) option_arg);
 	break;
 
 #ifdef WITH_SMBFS
+    case 'S':
+	smbfs_set_debugf (option_arg);
+	break;
+
     case 'D':
 	smbfs_set_debug (atoi (option_arg));
 	break;
@@ -2025,7 +2030,11 @@ static const struct poptOption argument_table[] = {
 #ifdef USE_NETCODE
     {"ftplog", 'l', POPT_ARG_STRING, NULL, 'l',
      N_("Log ftp dialog to specified file"), NULL},
+    {"sshlog", '\0', POPT_ARG_STRING, NULL, 'L',
+     N_("Log ssh dialog to specified file"), NULL},
 #ifdef WITH_SMBFS
+    {"smblog", '\0', POPT_ARG_STRING, NULL, 'S',
+     N_("Log samba dialog to specified file"), NULL},
     {"debuglevel", 'D', POPT_ARG_STRING, NULL, 'D',
      N_("Set debug level"), NULL},
 #endif
