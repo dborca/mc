@@ -70,6 +70,7 @@
 #include "chmod.h"
 #include "chown.h"
 #include "achown.h"
+#include "selmnt.h"
 
 #ifdef WITH_SMBFS
 #include "../vfs/smbfs.h"	/* smbfs_set_debug() */
@@ -824,6 +825,8 @@ static menu_entry LeftMenu[] = {
 #endif
 #endif
     {' ', "", ' ', 0},
+    {' ', N_("&Mountpoints    F11"), 'M', select_mnt_left},
+    {' ', "", ' ', 0},
     {' ', N_("&Rescan         C-r"), 'R', reread_cmd}
 };
 
@@ -847,6 +850,8 @@ static menu_entry RightMenu[] = {
     {' ', N_("SM&B link..."), 'B', smblink_cmd},
 #endif
 #endif
+    {' ', "", ' ', 0},
+    {' ', N_("&Mountpoints    F12"), 'M', select_mnt_right},
     {' ', "", ' ', 0},
     {' ', N_("&Rescan         C-r"), 'R', reread_cmd}
 };
@@ -1267,6 +1272,9 @@ nothing (void)
 }
 
 static const key_map default_map[] = {
+    { KEY_F(11),  select_mnt_left  },
+    { KEY_F(12),  select_mnt_right },
+
     {KEY_F (19), menu_last_selected_cmd},
     {KEY_F (20), quiet_quit_cmd},
 
