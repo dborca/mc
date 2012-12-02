@@ -391,6 +391,36 @@ close_error_pipe (int error, const char *text)
 }
 
 /*
+ * strcpy is unsafe on overlapping memory areas, so define memmove-alike
+ * string function.
+ * Have sense only when:
+ *  * dest <= src
+ *   AND
+ *  * dest and str are pointers to one object (as Roland Illig pointed).
+ *
+ * We can't use str*cpy funs here:
+ * http://kerneltrap.org/mailarchive/openbsd-misc/2008/5/27/1951294
+ */
+char *
+str_move(char * dest, const char * src)
+{
+#if 1
+    char *p = dest;
+    while ((*dest++ = *src++)) {
+    }
+    return p;
+#else
+    size_t n;
+
+    assert (dest<=src);
+
+    n = strlen (src) + 1; /* + '\0' */
+
+    return memmove (dest, src, n);
+#endif
+}
+
+/*
  * Canonicalize path, and return a new path.  Do everything in place.
  * The new path differs from path in:
  *	Multiple `/'s are collapsed to a single `/'.
@@ -425,7 +455,7 @@ canonicalize_pathname (char *path)
 	if (p[0] == PATH_SEP && p[1] == PATH_SEP) {
 	    s = p + 1;
 	    while (*(++s) == PATH_SEP);
-	    strcpy (p + 1, s);
+	    str_move (p + 1, s);
 	}
 	p++;
     }
@@ -434,7 +464,7 @@ canonicalize_pathname (char *path)
     p = lpath;
     while (*p) {
 	if (p[0] == PATH_SEP && p[1] == '.' && p[2] == PATH_SEP)
-	    strcpy (p, p + 2);
+	    str_move (p, p + 2);
 	else
 	    p++;
     }
@@ -450,7 +480,7 @@ canonicalize_pathname (char *path)
 	    lpath[1] = 0;
 	    return;
 	} else {
-	    strcpy (lpath, lpath + 2);
+	    memmove(lpath, lpath + 2, p - lpath);
 	}
     }
 
@@ -496,10 +526,10 @@ canonicalize_pathname (char *path)
 	if (p[3] != 0) {
 	    if (s == lpath && *s == PATH_SEP) {
 		/* "/../foo" -> "/foo" */
-		strcpy (s + 1, p + 4);
+		str_move (s + 1, p + 4);
 	    } else {
 		/* "token/../foo" -> "foo" */
-		strcpy (s, p + 4);
+		str_move (s, p + 4);
 	    }
 	    p = (s > lpath) ? s - 1 : s;
 	    continue;
