@@ -168,6 +168,9 @@ void edit_scroll_screen_over_cursor (WEdit * edit)
     if (edit->num_widget_lines <= 0 || edit->num_widget_columns <= 0)
 	return;
 
+    edit->num_widget_columns -= EDIT_TEXT_HORIZONTAL_OFFSET;
+    edit->num_widget_lines -= EDIT_TEXT_VERTICAL_OFFSET - 1;
+
     r_extreme = EDIT_RIGHT_EXTREME;
     l_extreme = EDIT_LEFT_EXTREME;
     b_extreme = EDIT_BOTTOM_EXTREME;
@@ -204,6 +207,9 @@ void edit_scroll_screen_over_cursor (WEdit * edit)
     if (outby > 0)
 	edit_scroll_upward (edit, outby);
     edit_update_curs_row (edit);
+
+    edit->num_widget_lines += EDIT_TEXT_VERTICAL_OFFSET - 1;
+    edit->num_widget_columns += EDIT_TEXT_HORIZONTAL_OFFSET;
 }
 
 #define set_color(font)    attrset (font)
@@ -223,14 +229,14 @@ print_to_widget (WEdit *edit, long row, int start_col, int start_col_real,
 {
     unsigned int *p;
 
-    int x = start_col_real + EDIT_TEXT_HORIZONTAL_OFFSET;
+    int x = start_col_real;
     int x1 = start_col + EDIT_TEXT_HORIZONTAL_OFFSET;
     int y = row + EDIT_TEXT_VERTICAL_OFFSET;
     int cols_to_skip = abs (x);
 
     set_color (EDITOR_NORMAL_COLOR);
     edit_move (x1, y);
-    hline (' ', end_col + 1 - EDIT_TEXT_HORIZONTAL_OFFSET - x1);
+    hline (' ', end_col + 1 - start_col);
 
     edit_move (x1 + FONT_OFFSET_X, y + FONT_OFFSET_Y);
     p = line;
@@ -305,6 +311,11 @@ edit_draw_this_line (WEdit *edit, long b, long row, long start_col,
     } else if (book_mark_query_color(edit, edit->start_line + row, BOOK_MARK_FOUND_COLOR)) {
 	book_mark = BOOK_MARK_FOUND_COLOR;
     }
+
+    if (row > edit->num_widget_lines - EDIT_TEXT_VERTICAL_OFFSET) {
+	return;
+    }
+    end_col -= EDIT_TEXT_HORIZONTAL_OFFSET;
 
     edit_get_syntax_color (edit, b - 1, &color);
     q = edit_move_forward3 (edit, b, start_col - edit->start_col, 0);

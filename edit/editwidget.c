@@ -385,7 +385,7 @@ edit_callback (Widget *w, widget_msg_t msg, int parm)
 
     case WIDGET_CURSOR:
 	widget_move (&e->widget, e->curs_row + EDIT_TEXT_VERTICAL_OFFSET,
-		     e->curs_col + e->start_col);
+		     e->curs_col + e->start_col + EDIT_TEXT_HORIZONTAL_OFFSET);
 	return MSG_HANDLED;
 
     case WIDGET_DESTROY:
