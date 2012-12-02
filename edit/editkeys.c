@@ -108,6 +108,7 @@ static const edit_key_map_type common_key_map[] = {
     { ALT ('u'), CK_ExtCmd },
     { ALT ('<'), CK_Beginning_Of_Text },
     { ALT ('>'), CK_End_Of_Text },
+    { ALT ('d'), CK_Delete_Word_Right },
     { ALT (KEY_BACKSPACE), CK_Delete_Word_Left },
     { ALT ('i'), CK_Prev_Bookmark },
     { ALT ('j'), CK_Next_Bookmark },

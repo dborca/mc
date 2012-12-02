@@ -845,7 +845,7 @@ static QuickWidget fmd_widgets[] = {
     {quick_button, 14, 64, 9, FMDY, N_("&OK"), 0, B_ENTER, 0, 0, NULL},
     {quick_checkbox, 42, 64, 8, FMDY, N_("&Stable Symlinks"), 0, 0,
      0 /* &file_mask_stable_symlinks */ , 0, NULL},
-    {quick_checkbox, 31, 64, 7, FMDY, N_("&Dive into subdir if exists"), 0,
+    {quick_checkbox, 31, 64, 7, FMDY, N_("di&Ve into subdir if exists"), 0,
      0,
      0 /* &dive_into_subdirs */ , 0, NULL},
     NULL_QuickWidget
