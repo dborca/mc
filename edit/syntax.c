@@ -193,8 +193,13 @@ compare_word_to_right (WEdit *edit, long i, const char *text,
 			    break;
 		if (c == *p)
 		    break;
-		if (c == '\n')
+		if (c == '\n') {
+		    if (!*p) {
+			i--;
+			break;
+		    }
 		    return -1;
+		}
 		i++;
 	    }
 	    break;
