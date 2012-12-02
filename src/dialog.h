@@ -109,6 +109,11 @@ typedef struct Dlg_head {
     dlg_cb_fn callback;
     struct Dlg_head *parent;	/* Parent dialog */
 
+#ifdef USE_DLGSWITCH
+    /* Hacks */
+    int soft_exit;
+    int winch_pending;
+#endif
 } Dlg_head;
 
 

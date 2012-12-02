@@ -39,6 +39,10 @@
 #include "cons.saver.h"
 #include "layout.h"
 
+#ifdef USE_DLGSWITCH
+#include "dlgswitch.h"
+#endif
+
 /* If set, we execute the file command to check the file type */
 int use_file_to_check_type = 1;
 
@@ -244,6 +248,9 @@ exec_extension (const char *filename, const char *data, int *move_dir,
 	    default_hex_mode = def_hex_mode;
 	if (changed_nroff_flag && !altered_nroff_flag)
 	    default_nroff_flag = def_nroff_flag;
+#ifdef USE_DLGSWITCH
+	dlgswitch_process_pending();
+#endif
 	repaint_screen ();
     } else if (is_cd) {
 	char *q;

@@ -70,6 +70,10 @@
 #   include "../edit/edit.h"
 #endif
 
+#ifdef USE_DLGSWITCH
+#include "dlgswitch.h"
+#endif
+
 /* If set and you don't have subshell support,then C-o will give you a shell */
 int output_starts_shell = 0;
 
@@ -84,6 +88,13 @@ view_file_at_line (const char *filename, int plain_view, int internal,
     static const char *viewer = NULL;
     int move_dir = 0;
 
+#ifdef USE_DLGSWITCH
+    if (plain_view || internal) {
+	if (dlgswitch_reuse(DLG_TYPE_VIEW, NULL, filename) == 0) {
+	    return 0;
+	}
+    }
+#endif
 
     if (plain_view) {
 	int changed_hex_mode = 0;
@@ -109,6 +120,9 @@ view_file_at_line (const char *filename, int plain_view, int internal,
 	    default_nroff_flag = 1;
 	if (changed_magic_flag && !altered_magic_flag)
 	    default_magic_flag = 1;
+#ifdef USE_DLGSWITCH
+	dlgswitch_process_pending();
+#endif
 	repaint_screen ();
 	return move_dir;
     }
@@ -123,6 +137,9 @@ view_file_at_line (const char *filename, int plain_view, int internal,
 
 	if (regex_command (filename, view_entry, &move_dir) == 0) {
 	    mc_internal_viewer (NULL, filename, &move_dir, start_line);
+#ifdef USE_DLGSWITCH
+	    dlgswitch_process_pending();
+#endif
 	    repaint_screen ();
 	}
     } else {
@@ -259,6 +276,9 @@ filtered_view_cmd (void)
     mc_internal_viewer (command, "", NULL, 0);
 
     g_free (command);
+#ifdef USE_DLGSWITCH
+    dlgswitch_process_pending();
+#endif
 }
 
 void do_edit_at_line (const char *what, int start_line)
@@ -267,8 +287,16 @@ void do_edit_at_line (const char *what, int start_line)
 
 #ifdef USE_INTERNAL_EDIT
     if (use_internal_edit){
+#ifdef USE_DLGSWITCH
+	if (dlgswitch_reuse(DLG_TYPE_EDIT, NULL, what) == 0) {
+	    return;
+	}
+#endif
 	edit_file (what, start_line);
 	update_panels (UP_OPTIMIZE, UP_KEEPSEL);
+#ifdef USE_DLGSWITCH
+	dlgswitch_process_pending();
+#endif
 	repaint_screen ();
 	return;
     }

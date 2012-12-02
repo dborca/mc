@@ -43,6 +43,10 @@
 
 #include "view.h" /* for default_* externs */
 
+#ifdef USE_DLGSWITCH
+#include "dlgswitch.h"
+#endif
+
 #define MAX_ENTRIES 16
 #define MAX_ENTRY_LEN 60
 
@@ -656,6 +660,9 @@ execute_menu_command (WEdit *edit_widget, const char *commands)
     if (run_view) {
 	run_view = 0;
 	mc_internal_viewer (file_name, NULL, &run_view, 0);
+#ifdef USE_DLGSWITCH
+	dlgswitch_process_pending();
+#endif
     } else {
 	/* execute the command indirectly to allow execution even
 	 * on no-exec filesystems. */
