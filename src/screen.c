@@ -49,6 +49,7 @@
 #define WANT_WIDGETS
 #include "main.h"		/* the_menubar */
 #include "unixcompat.h"
+#include "mountlist.h"
 
 #define ELEMENTS(arr) ( sizeof(arr) / sizeof((arr)[0]) )
 
@@ -670,37 +671,6 @@ display_mini_info (WPanel *panel)
 	return;
     }
 
-    /* Status displays total marked size */
-    if (panel->marked){
-	char buffer[BUF_SMALL], b_bytes[BUF_SMALL];
-	const char *p = "  %-*s";
-	int  cols = panel->widget.cols-2;
-
-	attrset (MARKED_COLOR);
-	tty_printf  ("%*s", cols, " ");
-	widget_move (&panel->widget, llines (panel)+3, 1);
-
-	/*
-	 * This is a trick to use two ngettext() calls in one sentence.
-	 * First make "N bytes", then insert it into "X in M files".
-	 */
-	g_snprintf(b_bytes, sizeof (b_bytes),
-		   ngettext("%s byte", "%s bytes",
-			    (unsigned long)panel->total),
-		   size_trunc_sep(panel->total));
-	g_snprintf(buffer, sizeof (buffer),
-		   ngettext("%s in %d file", "%s in %d files", panel->marked),
-		   b_bytes, panel->marked);
-
-	if ((int) strlen (buffer) > cols-2){
-	    buffer [cols] = 0;
-	    p += 2;
-	} else
-	    cols -= 2;
-	tty_printf (p, cols, buffer);
-	return;
-    }
-
     /* Status resolves links and show them */
     set_colors (panel);
 
@@ -747,6 +717,46 @@ paint_dir (WPanel *panel)
 }
 
 static void
+display_total_marked_size (WPanel *panel, int y, int brief)
+{
+    /* Status displays total marked size */
+    if (panel->marked){
+	char *buf, buffer[BUF_SMALL], b_bytes[BUF_SMALL];
+	int  x = 1, cols = panel->widget.cols-2;
+	int  blen;
+
+	/*
+	 * This is a trick to use two ngettext() calls in one sentence.
+	 * First make "N bytes", then insert it into "X in M files".
+	 */
+	buf = b_bytes;
+	g_snprintf(b_bytes, sizeof (b_bytes),
+		   ngettext("%s byte", "%s bytes",
+			    (unsigned long)panel->total),
+		   size_trunc_sep(panel->total));
+	if (!brief) {
+	    buf = buffer;
+	    g_snprintf(buffer, sizeof (buffer),
+		   ngettext("%s in %d file", "%s in %d files", panel->marked),
+		   b_bytes, panel->marked);
+	}
+
+	blen = strlen(buf);
+	if (blen > cols - 2) {
+	    blen = cols - 2;
+	    buf[blen] = '\0';
+	}
+	if (!brief) {
+	    x = (panel->widget.cols - blen) / 2 - 1;
+	}
+
+	attrset (MARKED_COLOR);
+	widget_move (&panel->widget, y, x);
+	tty_printf (" %s ", buf);
+    }
+}
+
+static void
 mini_info_separator (WPanel *panel)
 {
     if (!show_mini_info)
@@ -761,6 +771,47 @@ mini_info_separator (WPanel *panel)
     hline ((slow_terminal ? '-' : ACS_HLINE) | NORMAL_COLOR,
 	   panel->widget.cols - 2);
 #endif				/* !HAVE_SLANG */
+
+    display_total_marked_size(panel, llines (panel) + 2, 0);
+}
+
+static void
+show_free_space (WPanel *panel)
+{
+    static struct my_statfs myfs_stats;
+    /* Cached working directory for displaying free space */
+    static char old_cwd[MC_MAXPATHLEN];
+
+    /* Don't try to stat non-local fs */
+    if (!vfs_file_is_local(panel->cwd)) {
+	return;
+    }
+
+    if (strcmp(old_cwd, panel->cwd) != 0) {
+	char rpath[PATH_MAX];
+
+	strcpy(old_cwd, panel->cwd);
+
+	if (mc_realpath(panel->cwd, rpath) == NULL) {
+	    return;
+	}
+
+	my_statfs(&myfs_stats, rpath);
+    }
+
+    if (myfs_stats.avail > 0 || myfs_stats.total > 0) {
+	char buffer1[6], buffer2[6], tmp[BUF_SMALL];
+	size_trunc_len(buffer1, sizeof(buffer1) - 1, myfs_stats.avail, 1);
+	size_trunc_len(buffer2, sizeof(buffer2) - 1, myfs_stats.total, 1);
+	g_snprintf(tmp, sizeof(tmp), " %s/%s (%d%%) ", buffer1, buffer2,
+		   myfs_stats.total > 0 ?
+		   (int)(100 * (double)myfs_stats.avail /
+			 myfs_stats.total) : 0);
+	widget_move(&panel->widget, panel->widget.lines - 1,
+		    panel->widget.cols - 1 - strlen(tmp));
+	attrset(NORMAL_COLOR);
+	addstr(tmp);
+    }
 }
 
 static void
@@ -843,6 +894,14 @@ show_dir (WPanel *panel)
     widget_move (&panel->widget, 0, panel->widget.cols - 3);
     addstr ("v");
 
+    if (!show_mini_info) {
+	display_total_marked_size (panel, panel->widget.lines - 1, 1);
+    }
+
+    if (free_space) {
+	show_free_space(panel);
+    }
+
     if (panel->active)
 	standend ();
 }
@@ -870,6 +929,7 @@ panel_update_contents (WPanel *panel)
     show_dir (panel);
     paint_dir (panel);
     display_mini_info (panel);
+    mini_info_separator (panel); /* yes, because of marked files */
     panel->dirty = 0;
 }
 
@@ -879,7 +939,7 @@ paint_panel (WPanel *panel)
 {
     paint_frame (panel);
     panel_update_contents (panel);
-    mini_info_separator (panel);
+    /*mini_info_separator (panel); no, because it was done above */
 }
 
 /*

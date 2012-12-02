@@ -213,6 +213,8 @@ do_view_cmd (int normal)
 	}
 	if (!do_cd (selection (current_panel)->fname, cd_exact))
 	    message (1, MSG_ERROR, _("Cannot change directory"));
+	else
+	    repaint_screen(); /* XXX too heavy? check both key and mouse click */
 
 	return;
 

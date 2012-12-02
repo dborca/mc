@@ -100,6 +100,9 @@ int message_visible = 1;
 /* Set to show current working dir in xterm window title */
 int xterm_title = 1;
 
+/* Set to show free space on device assigned to current directory */
+int free_space = 1;
+
 /* The starting line for the output of the subprogram */
 int output_start_y = 0;
 
@@ -159,6 +162,7 @@ static struct {
     int    *variable;
     WCheck *widget;
 } check_options [] = {
+    { N_("show free sp&Ace"),  &free_space,      0 },
     { N_("&Xterm window title"), &xterm_title,   0 },
     { N_("h&Intbar visible"),  &message_visible, 0 },
     { N_("&Keybar visible"),   &keybar_visible,  0 },
