@@ -35,6 +35,7 @@
 #include "main.h"
 #include "profile.h"		/* For sync_profiles */
 
+#include "view.h"		/* For the externs */
 #include "panel.h"		/* Needed for the externs */
 #include "file.h"		/* safe_delete */
 #include "layout.h"		/* For nice_rotating_dash */
@@ -52,6 +53,7 @@ static struct {
     WCheck *widget;
 } check_options [] = {
    /* other options */
+   {N_("Vie&w file position"),&mcview_remember_file_position, TOGGLE_VARIABLE, 0 },
    {N_("safe de&Lete"),       &safe_delete,       TOGGLE_VARIABLE,       0 },
    {N_("cd follows lin&Ks"),  &cd_symlinks,       TOGGLE_VARIABLE,       0 },
    {N_("L&ynx-like motion"),  &navigate_with_arrows,TOGGLE_VARIABLE,     0 },
@@ -75,7 +77,7 @@ static struct {
 };
 
 /* Make sure this corresponds to the check_options structure */
-#define OTHER_OPTIONS 12
+#define OTHER_OPTIONS 13
 #define PANEL_OPTIONS 6
 
 static WRadio *pause_radio;
