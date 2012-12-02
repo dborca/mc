@@ -982,6 +982,20 @@ get_compression_type (int fd)
 	    return COMPRESSION_BZIP2;
 	}
     }
+
+    /* Support for LZMA (only utils format with magic in header).
+     * This is the default format of LZMA utils 4.32.1 and later. */
+    if (magic[0] == 0xFF &&
+	magic[1] == 'L' && magic[2] == 'Z' && magic[3] == 'M') {
+	return COMPRESSION_LZMA;
+    }
+
+    /* XZ compression magic */
+    if (magic[0] == 0xFD &&
+	magic[1] == 0x37 && magic[2] == 0x7A && magic[3] == 0x58) {
+	return COMPRESSION_XZ;
+    }
+
     return 0;
 }
 
@@ -992,6 +1006,8 @@ decompress_extension (int type)
 	case COMPRESSION_GZIP: return "#ugz";
 	case COMPRESSION_BZIP:   return "#ubz";
 	case COMPRESSION_BZIP2:  return "#ubz2";
+	case COMPRESSION_LZMA:  return "#ulzma";
+	case COMPRESSION_XZ:  return "#uxz";
 	}
 	/* Should never reach this place */
 	fprintf (stderr, "Fatal: decompress_extension called with an unknown argument\n");

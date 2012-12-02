@@ -119,6 +119,16 @@ regex/\.t(ar\.bz2|bz|b2)$
 	Open=%cd %p#utar
 	View=%view{ascii} bzip2 -dc %f 2>/dev/null | tar tvvf -
 
+# .tar.lzma, .tlz
+regex/\.t(ar\.lzma|lz)$
+	Open=%cd %p#utar
+	View=%view{ascii} lzma -dc %f 2>/dev/null | tar tvvf -
+
+# .tar.xz, .txz
+regex/\.t(ar\.xz|xz)$
+	Open=%cd %p#utar
+	View=%view{ascii} xz -dc %f 2>/dev/null | tar tvvf -
+
 # .tar.F - used in QNX
 regex/\.tar\.F$
 	# Open=%cd %p#utar
@@ -297,6 +307,14 @@ regex/([^0-9]|^[^\.]*)\.([1-9][A-Za-z]*|[ln])\.bz$
 regex/([^0-9]|^[^\.]*)\.([1-9][A-Za-z]*|[ln])\.bz2$
 	Open=case %d/%f in */log/*|*/logs/*) bzip2 -dc %f ;; *) bzip2 -dc %f | nroff @MAN_FLAGS@ @MANDOC@ ;; esac | %var{PAGER:more}
 	View=%view{ascii,nroff} case %d/%f in */log/*|*/logs/*) bzip2 -dc %f ;; *) bzip2 -dc %f | nroff @MAN_FLAGS@ @MANDOC@ ;; esac
+
+regex/([^0-9]|^[^\.]*)\.([1-9][A-Za-z]*|[ln])\.lzma$
+	Open=case %d/%f in */log/*|*/logs/*) lzma -dc %f ;; *) lzma -dc %f | nroff @MAN_FLAGS@ @MANDOC@ ;; esac | %var{PAGER:more}
+	View=%view{ascii,nroff} case %d/%f in */log/*|*/logs/*) lzma -dc %f ;; *) lzma -dc %f | nroff @MAN_FLAGS@ @MANDOC@ ;; esac
+
+regex/([^0-9]|^[^\.]*)\.([1-9][A-Za-z]*|[ln])\.xz$
+	Open=case %d/%f in */log/*|*/logs/*) xz -dc %f ;; *) xz -dc %f | nroff @MAN_FLAGS@ @MANDOC@ ;; esac | %var{PAGER:more}
+	View=%view{ascii,nroff} case %d/%f in */log/*|*/logs/*) xz -dc %f ;; *) xz -dc %f | nroff @MAN_FLAGS@ @MANDOC@ ;; esac
 
 
 ### Images ###
@@ -541,6 +559,16 @@ type/^bzip
 type/^compress
 	Open=gzip -dc %f | %var{PAGER:more}
 	View=%view{ascii} gzip -dc %f 2>/dev/null
+
+# lzma
+type/^lzma
+	Open=lzma -dc %f | %var{PAGER:more}
+	View=%view{ascii} lzma -dc %f 2>/dev/null
+
+# xz
+type/^xz
+	Open=xz -dc %f | %var{PAGER:more}
+	View=%view{ascii} xz -dc %f 2>/dev/null
 
 
 ### Default ###
