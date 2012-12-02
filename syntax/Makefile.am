@@ -14,6 +14,7 @@ SYNTAXFILES =			\
 	fortran.syntax		\
 	html.syntax		\
 	idl.syntax		\
+	ini.syntax		\
 	java.syntax		\
 	js.syntax		\
 	latex.syntax		\
