@@ -73,6 +73,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/mc
 %{_bindir}/mcedit
 %{_bindir}/mcview
+%{_bindir}/mcdiff
 %{_bindir}/mcmfmt
 %attr(4755, vcsa, tty) %{_libexecdir}/mc/cons.saver
 %{_mandir}/man1/*

@@ -104,6 +104,13 @@ static struct colorpair color_map [] = {
 /* error dialog colors start at 38 */
     { "errdhotnormal=",  0, 0 }, /* Error dialog normal/hot */ /* 38 */
     { "errdhotfocus=",   0, 0 }, /* Error dialog focused/hot */
+
+/* diff viewer colors start at 40 */
+    { "dffadd=",  0, 0 },	/* added line */
+    { "dffchg=",  0, 0 },	/* changed line */
+    { "dffchh=",  0, 0 },	/* changed line (highlight) */
+    { "dffchd=",  0, 0 },	/* changed line (deleted) */
+    { "dffdel=",  0, 0 },	/* deleted line */
 };
 
 struct color_table_s {
@@ -167,7 +174,12 @@ static const char *default_colors =
 "editmarked=black,cyan:"
 "editwhitespace=brightblue,blue:"
 "errdhotnormal=yellow,red:"
-"errdhotfocus=yellow,lightgray";
+"errdhotfocus=yellow,lightgray:"
+"dffadd=black,green:"
+"dffchg=black,brown:"
+"dffchh=black,magenta:"
+"dffchd=lightgray,black:"
+"dffdel=lightgray,red";
 
 #ifdef HAVE_SLANG
 #   define color_value(i) color_table [i].name

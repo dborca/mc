@@ -2629,6 +2629,354 @@ Complete: show all
 is disabled, the dialog pops up only if you press
 .B Alt-Tab
 for the second time, for the first time MC just beeps.
+.\"NODE "Diff Viewer"
+.SH "Diff Viewer"
+Side-by-side diff output.
+.PP
+.B C-l
+Refresh the screen.
+.PP
+.B C-o
+Switch to the subshell and show the command screen.
+.PP
+.B C-u
+Swap the contents of the two panels.
+.PP
+.B C-r
+Redo diff.
+.I BUG:
+does not re-read files from
+.\"LINK2"
+VFS\&.
+.\"Virtual File System"
+.PP
+.B f
+Display each file full size (use
+.I C-u
+to switch between files).
+.PP
+.BR < ", " = ", " >
+Alter panel split.
+.PP
+.B s
+Display diff symbols (useful in
+.I nocolor
+mode).
+.PP
+.B l
+Display line numbers in each panel.
+.PP
+.B c
+Hide carriage returns.
+.PP
+.B h
+Toggle horizontal diff (if available).
+.PP
+.BR 2 ", " 3 ", " 4 ", " 8
+Set tabstop at desired number of spaces.
+.PP
+.B n
+Go to next hunk.
+.PP
+.B p
+Go to previous hunk.
+.PP
+.BR g ", " G
+Go to line number in left, respectively right panel.
+.PP
+.BR backspace
+Forget last search.
+.PP
+.BR F4 ", " F14
+Edit left, respectively right file.
+.PP
+.B F7
+Search in left file.
+.I BUG:
+incomplete:
+regexp/scanf style is not implemented;
+performs search only at line level.
+.PP
+.B F17
+Start search if there was no previous search expression else find next match.
+.I BUG:
+see above
+.PP
+.BR home ", " C-prev-page
+Go to first line.
+.PP
+.BR end ", " C-next-page
+Go to last line.
+.PP
+.B up
+Move one line up.
+.PP
+.B down
+Move one line down.
+.PP
+.B prev-page
+Move one page up.
+.PP
+.B next-page
+Move one page down.
+.PP
+.B left
+Move one column left.
+.PP
+.B right
+Move one column right.
+.PP
+.B C-left
+Move 8 columns left.
+.PP
+.B C-right
+Move 8 columns right.
+.PP
+.B C-a
+Move to the first column.
+.PP
+.B C-e
+Move to the last column of the shortest line.
+.PP
+.BR q ", " C-g ", " escape
+Quit.
+.\"NODE "Diff Options"
+.SH "Diff Options"
+.PP
+.B Ignore case
+Ignore changes in case; consider upper- and lower-case letters equivalent.
+.PP
+.B ignore tab Expansion
+Ignore the distinction between tabs and spaces on input.  A tab is considered
+to be equivalent to the number of spaces to the next tab stop.  `diff' assumes
+that tab stops are set every 8 print columns.
+.PP
+.B ignore Space change
+This option is stronger.  Ignore white space at line end, and consider all
+other sequences of one or more white space characters to be equivalent.
+.PP
+.B ignore all Whitespace
+This option is stronger still.  Ignore difference even if one line has
+white space where the other line has none.  "White space" characters include
+tab, newline, vertical tab, form feed, carriage return, and space; some
+locales may define additional characters to be white space.
+.PP
+.B strip trailing CR
+Treat input lines that end in carriage return followed by newline as if
+they end in plain newline.  This can be useful when comparing text that is
+imperfectly imported from many personal computer operating systems.  This
+option does not affect the way the files are displayed, only how lines are
+read, which in turn affects how they are compared.
+.PP
+.B Normal
+Run `diff' with default performance settings.
+.PP
+.B Fastest
+When the files you are comparing are large and have small groups of changes
+scattered throughout them, you can use this option to make a different
+modification to the algorithm that `diff' uses.  If the input files have a
+constant small density of changes, this option speeds up the comparisons
+without changing the output.  If not, `diff' might produce a larger set of
+differences; however, the output will still be correct.
+.PP
+.B Minimal
+Tell `diff' to use a modified algorithm that sometimes produces a smaller set
+of differences.  It can also cause `diff' to run more slowly than usual.
+.\"NODE "Binary Diff Viewer"
+.SH "Binary Diff Viewer"
+Side-by-side binary diff.
+.PP
+.B C-l
+Refresh the screen.
+.PP
+.B C-o
+Switch to the subshell and show the command screen.
+.PP
+.B C-u
+Swap the contents of the two panels.
+.PP
+.B C-r
+Redo diff.
+.PP
+.B f
+Display each file full size (use
+.I C-u
+to switch between files).
+.PP
+.BR + ", " -
+Change the number of bytes per line.
+.PP
+.B l
+Display offsets in each panel.
+.PP
+.B n
+Go to next hunk.
+.PP
+.B p
+Go to previous hunk.
+.PP
+.B F5
+Go to offset.
+.PP
+.BR backspace
+Forget last search.
+.PP
+.BR F4 ", " F14
+Edit left, respectively right file.
+.PP
+.B F7
+Search in left panel.
+.I BUG:
+incomplete:
+regexp/scanf style is not implemented.
+.PP
+.B F17
+Start search if there was no previous search expression else find next match.
+.I BUG:
+see above
+.PP
+.BR 1 ", " 2
+Lock right, respectively left file.
+.PP
+.BR home ", " C-prev-page
+Go to beginning.
+.PP
+.BR end ", " C-next-page
+Go to end.
+.PP
+.B up
+Move one line up.
+.PP
+.B down
+Move one line down.
+.PP
+.B prev-page
+Move one page up.
+.PP
+.B next-page
+Move one page down.
+.PP
+.B left
+Move one byte left.
+.PP
+.B right
+Move one byte right.
+.PP
+.B C-left
+Move 16 bytes left.
+.PP
+.B C-right
+Move 16 bytes right.
+.PP
+.B t
+Invoke text diff viewer.
+.PP
+.BR q ", " C-g ", " escape
+Quit.
+.\"NODE "Directory Diff Viewer"
+.SH "Directory Diff Viewer"
+Side-by-side directory diff.
+.PP
+.B C-l
+Refresh the screen.
+.PP
+.B C-o
+Switch to the subshell and show the command screen.
+.PP
+.B C-u
+Swap the contents of the two panels.
+.PP
+.B C-r
+Redo diff.
+.PP
+.B f
+Display each file full size (use
+.I C-u
+to switch between files).
+.PP
+.BR < ", " = ", " >
+Alter panel split.
+.PP
+.B s
+Display diff symbols (useful in
+.I nocolor
+mode).
+.PP
+.B l
+Display line numbers in each panel.
+.PP
+.B enter
+Diff items.
+.PP
+.B n
+Go to next hunk.
+.PP
+.B p
+Go to previous hunk.
+.PP
+.BR g ", " G
+Go to line number in left, respectively right panel.
+.PP
+.BR backspace
+Forget last search.
+.PP
+.BR F4 ", " F14
+Edit left, respectively right file.
+.PP
+.B F7
+Search in left panel.
+.I BUG:
+incomplete:
+regexp/scanf style is not implemented.
+.PP
+.B F17
+Start search if there was no previous search expression else find next match.
+.I BUG:
+see above
+.PP
+.BR home ", " C-prev-page
+Go to first line.
+.PP
+.BR end ", " C-next-page
+Go to last line.
+.PP
+.B up
+Move one line up.
+.PP
+.B down
+Move one line down.
+.PP
+.B prev-page
+Move one page up.
+.PP
+.B next-page
+Move one page down.
+.PP
+.B left
+Move one column left.
+.PP
+.B right
+Move one column right.
+.PP
+.B C-left
+Move 8 columns left.
+.PP
+.B C-right
+Move 8 columns right.
+.PP
+.B C-a
+Move to the first column.
+.PP
+.B C-e
+Move to the last column of the shortest line.
+.PP
+.BR q ", " C-g ", " escape
+Quit.
+.\"NODE "Directory Diff Options"
+.SH "Directory Diff Options"
+.PP
+.B Recursive
+Diff subdirectories recursively.
 .\"NODE "Virtual File System"
 .SH "Virtual File System"
 The Midnight Commander is provided with a code layer to access the file

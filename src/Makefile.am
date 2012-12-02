@@ -63,7 +63,7 @@ SRCS =	achown.c achown.h background.c background.h boxes.c boxes.h	\
 	tree.c tree.h treestore.c treestore.h tty.c tty.h user.c user.h	\
 	util.c util.h utilunix.c view.c view.h vfsdummy.h widget.c	\
 	widget.h win.c win.h wtools.c wtools.h unixcompat.h		\
-	x11conn.h x11conn.c ecs.h ecs.c
+	x11conn.h x11conn.c ecs.h ecs.c xdiff.c xdiff.h ydiff.c ydiff.h zdiff.c zdiff.h zutil.c zutil.h
 
 if CHARSET
 mc_SOURCES = $(SRCS) $(CHARSET_SRC)
@@ -88,6 +88,9 @@ install-exec-hook:
 if USE_EDIT
 	$(MAKE) install_mcedit
 endif
+if USE_DIFF
+	$(MAKE) install_mcdiff
+endif
 
 #
 # Make relative symlinks, but do the right thing if LN_S is `ln' or `cp'.
@@ -98,8 +101,14 @@ install_mcview:
 install_mcedit:
 	cd $(DESTDIR)$(bindir)/$(binprefix) && rm -f mcedit && $(LN_S) mc mcedit
 
+install_mcdiff:
+	cd $(DESTDIR)$(bindir)/$(binprefix) && rm -f mcdiff && $(LN_S) mc mcdiff
+
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/$(binprefix)/mcview
 if USE_EDIT
 	rm -f $(DESTDIR)$(bindir)/$(binprefix)/mcedit
+endif
+if USE_DIFF
+	rm -f $(DESTDIR)$(bindir)/$(binprefix)/mcdiff
 endif

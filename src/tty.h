@@ -47,6 +47,7 @@ extern void tty_setcolor(int);
 extern void tty_print_char(int);
 extern void tty_print_alt_char(int);
 extern void tty_print_string(const char *);
+extern void tty_print_nstring(const char *s, int n);
 extern void tty_print_one_vline(void);
 extern void tty_print_one_hline(void);
 extern void tty_print_vline(int top, int left, int length);

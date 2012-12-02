@@ -11,6 +11,8 @@
 i pkginfo=pkginfo
 !default 755 root bin
 l none $bindir/mcedit=mc
+l none $bindir/mcview=mc
+l none $bindir/mcdiff=mc
 f none $bindir/mc 
 d none $libdir/mc
 d none $datadir/mc

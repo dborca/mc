@@ -80,6 +80,10 @@
 #   include "../edit/edit.h"
 #endif
 
+#ifdef USE_DIFF_VIEW
+#include "zdiff.h"
+#endif
+
 #ifdef	HAVE_CHARSET
 #include "charsets.h"
 #endif				/* HAVE_CHARSET */
@@ -269,6 +273,10 @@ static const char *view_one_file = NULL;
 
 /* File name to edit if argument was supplied */
 const char *edit_one_file = NULL;
+
+/* Files to be displayed in visual diff */
+static const char *diff_1st = NULL;
+static const char *diff_2nd = NULL;
 
 /* Line to start the editor on */
 static int edit_one_file_start_line = 0;
@@ -891,6 +899,9 @@ static menu_entry CmdMenu[] = {
     {' ', N_("s&Wap panels          C-u"), 'W', swap_cmd},
     {' ', N_("switch &Panels on/off C-o"), 'P', view_other_cmd},
     {' ', N_("&Compare directories  C-x d"), 'C', compare_dirs_cmd},
+#ifdef USE_DIFF_VIEW
+    {' ', N_("&View diff files      C-x C-y"), 'V', diff_view_cmd},
+#endif
     {' ', N_("e&Xternal panelize    C-x !"), 'X', external_panelize},
     {' ', N_("show directory s&Izes"), 'I', dirsizes_cmd},
     {' ', "", ' ', 0},
@@ -1234,6 +1245,9 @@ init_labels (void)
 static const key_map ctl_x_map[] = {
     {XCTRL ('c'), quit_cmd},
     {'d', compare_dirs_cmd},
+#ifdef USE_DIFF_VIEW
+    {XCTRL ('y'), diff_view_cmd},
+#endif
 #ifdef USE_VFS
     {'a', reselect_vfs},
 #endif				/* USE_VFS */
@@ -1710,7 +1724,7 @@ prepend_cwd_on_local (const char *filename)
 static int
 mc_maybe_editor_or_viewer (void)
 {
-    if (!(view_one_file || edit_one_file))
+    if (!(view_one_file || edit_one_file || (diff_1st && diff_2nd)))
 	return 0;
 
     setup_dummy_mc ();
@@ -1724,6 +1738,11 @@ mc_maybe_editor_or_viewer (void)
 	view_file (path, 0, 1);
 	g_free (path);
     }
+#ifdef USE_DIFF_VIEW
+    else if (diff_1st && diff_2nd) {
+	view_diff_cmd (NULL, diff_1st, diff_2nd);
+    }
+#endif				/* USE_DIFF_VIEW */
 #ifdef USE_INTERNAL_EDIT
     else {
 	edit_file (edit_one_file, edit_one_file_start_line);
@@ -1903,6 +1922,7 @@ print_color_usage (void)
 	    "                 errdhotfocus\n"
 	    "   Menus:        menu, menuhot, menusel, menuhotsel\n"
 	    "   Editor:       editnormal, editbold, editmarked\n"
+	    "   Diff viewer:  dffadd, dffchg, dffchh, dffchd, dffdel\n"
 	    "   Help:         helpnormal, helpitalic, helpbold, helplink, helpslink\n"
 	    "   File types:   directory, executable, link, stalelink, device, special, core\n"
 	    "\n" "Colors:\n"
@@ -2094,6 +2114,17 @@ handle_args (int argc, char *argv[])
 	    fputs ("No arguments given to the viewer\n", stderr);
 	    exit (1);
 	}
+    } else if (!STRNCOMP (base, "mcd", 3)) {
+	if (tmp) {
+	    diff_1st = g_strdup (tmp);
+	    tmp = poptGetArg (ctx);
+	}
+	if (tmp)
+	    diff_2nd = g_strdup (tmp);
+	else {
+	    fputs ("The diff viewer needs two arguments\n", stderr);
+	    exit (1);
+	}
     } else {
 	/* sets the current dir and the other dir */
 	if (tmp) {
@@ -2191,7 +2222,7 @@ main (int argc, char *argv[])
 
 #ifdef HAVE_SUBSHELL_SUPPORT
     /* Don't use subshell when invoked as viewer or editor */
-    if (edit_one_file || view_one_file)
+    if (edit_one_file || view_one_file || (diff_1st && diff_2nd))
 	use_subshell = 0;
 
     if (use_subshell)
@@ -2284,7 +2315,7 @@ main (int argc, char *argv[])
     putchar ('\n');		/* Hack to make shell's prompt start at left of screen */
 
     if (last_wd_file && last_wd_string && !print_last_revert
-	&& !edit_one_file && !view_one_file) {
+	&& !edit_one_file && !view_one_file && !(diff_1st && diff_2nd)) {
 	int last_wd_fd =
 	    open (last_wd_file, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL,
 		  S_IRUSR | S_IWUSR);
