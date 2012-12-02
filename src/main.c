@@ -1261,6 +1261,7 @@ static const key_map ctl_x_map[] = {
     {XCTRL ('r'), copy_other_readlink},
     {'l', link_cmd},
     {'s', symlink_cmd},
+    {'v', relative_symlink_cmd},
     {XCTRL ('s'), edit_symlink_cmd},
     {'i', info_cmd_no_menu},
     {'q', quick_cmd_no_menu},

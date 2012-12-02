@@ -953,8 +953,34 @@ do_link (int symbolic_link, const char *fname)
 	char *s;
 	char *d;
 
-	/* suggest the full path for symlink */
-	s = concat_dir_and_file (current_panel->cwd, fname);
+	if (symbolic_link > 0) {
+	    /* suggest the full path for symlink */
+	    s = concat_dir_and_file (current_panel->cwd, fname);
+	} else {
+	    /* suggest relative path for symlink */
+	    int i;
+	    s = NULL;
+	    /* XXX http://mail.gnome.org/archives/mc-devel/2006-April/msg00004.html */
+	    for (i = 0; ; i++) {
+		if (other_panel->cwd[i] == '\0') {
+		    if (current_panel->cwd[i] == '\0') {
+			s = g_strdup (fname);
+		    }
+		    if (current_panel->cwd[i] == '/') {
+			s = concat_dir_and_file (current_panel->cwd + i + 1, fname);
+		    }
+		    break;
+		}
+		if (other_panel->cwd[i] != current_panel->cwd[i]) {
+		    break;
+		}
+	    }
+	    if (s == NULL) {
+		char *p = concat_dir_and_file (current_panel->cwd, fname);
+		s = diff_two_paths (other_panel->cwd, p);
+		g_free(p);
+	    }
+	}
 
 	if (get_other_type () == view_listing) {
 	    d = concat_dir_and_file (other_panel->cwd, fname);
@@ -993,6 +1019,16 @@ void symlink_cmd (void)
 
     if (filename) {
 	do_link (1, filename);
+    }
+}
+
+void relative_symlink_cmd (void)
+{
+    char *filename = NULL;
+    filename = selection (current_panel)->fname;
+
+    if (filename) {
+	do_link (-1, filename);
     }
 }
 

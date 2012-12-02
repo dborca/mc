@@ -297,6 +297,9 @@ run the link command.
 .B C-x s
 run the symbolic link command.
 .TP
+.B C-x v
+run the relative symbolic link command.
+.TP
 .B C-x i
 set the other panel display mode to information.
 .TP
