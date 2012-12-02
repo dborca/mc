@@ -159,6 +159,7 @@ struct WView {
     gboolean text_nroff_mode;	/* Nroff-style highlighting */
     gboolean text_wrap_mode;	/* Wrap text lines to fit them on the screen */
     gboolean magic_mode;	/* Preprocess the file using external programs */
+    gboolean monitor_mode;	/* Monitor mode a la "tail -f" */
 
     /* Additional editor state */
     gboolean hexedit_lownibble;	/* Are we editing the last significant nibble? */
@@ -455,6 +456,9 @@ view_growbuf_read_until (WView *view, offset_type ofs)
 	    do {
 		nread = mc_read (view->ds_vfs_pipe, p, bytesfree);
 	    } while (nread == -1 && errno == EINTR);
+	    if (nread == 0 && view->monitor_mode) {
+		return;
+	    }
 	    if (nread == -1 || nread == 0) {
 		view->growbuf_finished = TRUE;
 		(void) mc_close (view->ds_vfs_pipe);
@@ -1127,7 +1131,7 @@ view_moveto_bottom (WView *view)
     offset_type datalines, lines_up, filesize, last_offset;
 
     if (view->growbuf_in_use)
-	view_growbuf_read_until (view, OFFSETTYPE_MAX);
+	view_growbuf_read_until (view, view->monitor_mode ? view_get_filesize(view) + 1024 * 1024 : OFFSETTYPE_MAX);
 
     filesize = view_get_filesize (view);
     last_offset = offset_doz(filesize, 1);
@@ -1139,6 +1143,9 @@ view_moveto_bottom (WView *view)
 	view_move_up (view, lines_up);
 	view->hex_cursor = last_offset;
     } else {
+	if (view->monitor_mode) {
+	    /* XXX need to reset some cache? */
+	}
 	view->dpy_start = last_offset;
 	view_moveto_bol (view);
 	view_move_up (view, lines_up);
@@ -1417,6 +1424,28 @@ view_toggle_magic_mode (WView *view)
     view->dirty++;
 }
 
+static void
+view_toggle_monitor_mode (WView *view)
+{
+    char *filename, *command;
+
+    offset_type line, col;
+    view_offset_to_coord (view, &line, &col, view->dpy_start);
+
+    view->monitor_mode = !view->monitor_mode;
+    filename = g_strdup (view->filename);
+    command = g_strdup (view->command);
+
+    view_done (view);
+    view_load (view, command, filename, line + 1);
+    g_free (filename);
+    g_free (command);
+    view->dpy_bbar_dirty = TRUE;
+    view->dirty++;
+
+    set_idle_proc(view->widget.parent, view->monitor_mode);
+}
+
 /* {{{ Miscellaneous functions }}} */
 
 static void
@@ -1551,7 +1580,7 @@ view_load (WView *view, const char *command, const char *file,
 	    goto finish;
 	}
 
-	if (st.st_size == 0 || mc_lseek (fd, 0, SEEK_SET) == -1) {
+	if (view->monitor_mode || st.st_size == 0 || mc_lseek (fd, 0, SEEK_SET) == -1) {
 	    /* Must be one of those nice files that grow (/proc) */
 	    view_set_datasource_vfs_pipe (view, fd);
 	} else {
@@ -1623,6 +1652,11 @@ view_percent (WView *view, offset_type p)
 
     if (height < 1 || right < 4)
 	return;
+    if (view->monitor_mode) {
+	widget_move (view, top, right - 4);
+	tty_print_string("tail");
+	return;
+    }
     if (view_may_still_grow (view))
 	return;
     filesize = view_get_filesize (view);
@@ -3277,6 +3311,12 @@ view_handle_key (WView *view, int c)
 	view->dirty++;
 	return MSG_HANDLED;
 
+    case 'F':
+	if (!view_is_in_panel(view)) {
+	    view_toggle_monitor_mode(view);
+	}
+	return MSG_HANDLED;
+
 	/*  Use to indicate parent that we want to see the next/previous file */
 	/* Does not work in panel mode */
     case XCTRL ('f'):
@@ -3410,6 +3450,25 @@ view_dialog_callback (Dlg_head *h, dlg_msg_t msg, int parm)
     case DLG_RESIZE:
 	view_adjust_size (h);
 	return MSG_HANDLED;
+    case DLG_IDLE: {
+	int c;
+	Gpm_Event event;
+	WView *view = (WView *)find_widget_type(h, view_callback);
+	/* XXX can't handle file truncations */
+	view_moveto_bottom(view);
+	view_update(view);
+	event.x = -1;
+	c = get_event (&event, h->mouse_status == MOU_REPEAT, 0);
+	if (c != EV_NONE) {
+	    dlg_process_event (h, c, &event);
+	    if (!h->running) {
+		set_idle_proc(h, 0);
+	    }
+	} else {
+	    sleep(1);
+	}
+	return MSG_HANDLED;
+    }
 
     default:
 	return default_dlg_callback (h, msg, parm);
