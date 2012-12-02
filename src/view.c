@@ -65,6 +65,10 @@
 #include "charsets.h"
 #include "selcodepage.h"
 
+#ifdef USE_DLGSWITCH
+#include "dlgswitch.h"
+#endif
+
 /* Block size for reading files in parts */
 #define VIEW_PAGE_SIZE		((size_t) 8192)
 #define VIEW_COORD_CACHE_GRANUL	1024
@@ -3339,6 +3343,27 @@ view_dialog_callback (Dlg_head *h, dlg_msg_t msg, int parm)
 /* {{{ External interface }}} */
 
 /* Real view only */
+
+#ifdef USE_DLGSWITCH
+void
+view_finish_viewer (Dlg_head *view_dlg, WView *wview, int *move_dir_p)
+{
+    if (move_dir_p)
+	*move_dir_p = wview->move_dir;
+    destroy_dlg (view_dlg);
+    dlgswitch_remove_current();
+}
+
+void
+view_run_viewer (Dlg_head *view_dlg, WView *wview, int *move_dir_p)
+{
+    run_dlg (view_dlg);
+    if (!view_dlg->soft_exit) {
+	view_finish_viewer(view_dlg, wview, move_dir_p);
+    }
+}
+#endif
+
 int
 mc_internal_viewer (const char *command, const char *file,
 	int *move_dir_p, int start_line)
@@ -3360,6 +3385,17 @@ mc_internal_viewer (const char *command, const char *file,
     add_widget (view_dlg, bar);
     add_widget (view_dlg, wview);
 
+#ifdef USE_DLGSWITCH
+    if (move_dir_p)
+	*move_dir_p = 0;
+    succeeded = view_load (wview, command, file, start_line);
+    if (succeeded) {
+	dlgswitch_add(view_dlg, DLG_TYPE_VIEW, file, wview, move_dir_p);
+	view_run_viewer(view_dlg, wview, move_dir_p);
+    } else {
+	destroy_dlg (view_dlg);
+    }
+#else
     succeeded = view_load (wview, command, file, start_line);
     if (succeeded) {
 	run_dlg (view_dlg);
@@ -3370,6 +3406,7 @@ mc_internal_viewer (const char *command, const char *file,
 	    *move_dir_p = 0;
     }
     destroy_dlg (view_dlg);
+#endif
 
     return succeeded;
 }

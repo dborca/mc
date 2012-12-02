@@ -33,4 +33,9 @@ extern int altered_magic_flag;
 extern int altered_nroff_flag;
 extern int mcview_remember_file_position;
 
+#ifdef USE_DLGSWITCH
+void view_run_viewer (Dlg_head *view_dlg, WView *wview, int *move_dir_p);
+void view_finish_viewer (Dlg_head *view_dlg, WView *wview, int *move_dir_p);
+#endif
+
 #endif

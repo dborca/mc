@@ -45,6 +45,10 @@
 #include "../src/menu.h"	/* menubar_new() */
 #include "../src/key.h"		/* is_idle() */
 
+#ifdef USE_DLGSWITCH
+#include "../src/dlgswitch.h"
+#endif
+
 WEdit *wedit;
 struct WMenu *edit_menubar;
 
@@ -165,6 +169,35 @@ edit_dialog_callback (Dlg_head *h, dlg_msg_t msg, int parm)
     }
 }
 
+#ifdef USE_DLGSWITCH
+int
+edit_file_modified (WEdit *wedit)
+{
+    return wedit->modified;
+}
+
+void
+edit_finish_editor(void *edit_dlg, WEdit *wedit, void *edit_menubar)
+{
+    edit_done_menu (edit_menubar);		/* editmenu.c */
+    destroy_dlg (edit_dlg);
+    dlgswitch_remove_current();
+}
+
+void
+edit_run_editor(void *_edit_dlg, WEdit *_wedit, void *_edit_menubar)
+{
+    Dlg_head *edit_dlg = _edit_dlg;
+    wedit = _wedit;
+    edit_menubar = _edit_menubar;
+
+    run_dlg (edit_dlg);
+    if (!edit_dlg->soft_exit) {
+	edit_finish_editor(_edit_dlg, _wedit, _edit_menubar);
+    }
+}
+#endif
+
 int
 edit_file (const char *_file, int line)
 {
@@ -201,11 +234,16 @@ edit_file (const char *_file, int line)
     add_widget (edit_dlg, wedit);
     add_widget (edit_dlg, edit_menubar);
 
+#ifdef USE_DLGSWITCH
+    dlgswitch_add(edit_dlg, DLG_TYPE_EDIT, _file, wedit, edit_menubar);
+    edit_run_editor(edit_dlg, wedit, edit_menubar);
+#else
     run_dlg (edit_dlg);
 
     edit_done_menu (edit_menubar);		/* editmenu.c */
 
     destroy_dlg (edit_dlg);
+#endif
 
     return 1;
 }

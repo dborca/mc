@@ -563,6 +563,20 @@ if test "$GLIBC21" != yes; then
     AC_DEFINE(USE_INCLUDED_REGEX, 1, [Use the regex included here])
 fi
 
+
+dnl
+dnl Dialog switcher support.
+dnl
+AC_ARG_ENABLE([dlgswitch],
+        [  --enable-dlgswitch      Enable dialog switcher [[yes]]])
+dlgswitch_msg="no"
+if test x$enable_dlgswitch != xno; then
+	AC_DEFINE(USE_DLGSWITCH, 1, [Define to enable dialog switcher])
+	use_dlgswitch=yes
+	dlgswitch_msg="yes"
+	AC_MSG_NOTICE([enabling dialog switcher])
+fi
+
 dnl If default CFLAGS is used with gcc, add -Wall
 if test -z "$ac_env_CFLAGS_set"; then
     if test -n "$GCC"; then
@@ -595,6 +609,7 @@ AM_CONDITIONAL(USE_MCFS, [test -n "$use_mcfs"])
 AM_CONDITIONAL(INCLUDED_SLANG, [test "x$with_screen" = xmcslang])
 AM_CONDITIONAL(INCLUDED_GLIB, [test "x$with_glib0" = xyes])
 AM_CONDITIONAL(CHARSET, [test -n "$have_charset"])
+AM_CONDITIONAL(DLGSWITCH, [test -n "$use_dlgswitch"])
 AM_CONDITIONAL(CONS_SAVER, [test -n "$cons_saver"])
 
 AC_CONFIG_FILES([
@@ -664,4 +679,5 @@ Configuration:
   With subshell support:      ${subshell}
   Internal editor:            ${edit_msg}
   Support for charset:        ${charset_msg}
+  Dialog switcher:            ${dlgswitch_msg}
 "

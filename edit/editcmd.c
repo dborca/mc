@@ -65,6 +65,10 @@ struct selection {
    int len;
 };
 
+#ifdef USE_DLGSWITCH
+#include "../src/dlgswitch.h"
+#endif
+
 /* globals: */
 
 /* search and replace: */
@@ -572,6 +576,9 @@ edit_save_as_cmd (WEdit *edit)
 		}
 
 		edit_set_filename (edit, exp);
+#ifdef USE_DLGSWITCH
+		dlgswitch_update_path(edit->dir, edit->filename);
+#endif
 		g_free (exp);
 		edit->modified = 0;
 		edit->delete_file = 0;
@@ -2184,6 +2191,11 @@ edit_ok_to_exit (WEdit *edit)
 {
     if (!edit->modified)
 	return 1;
+#ifdef USE_DLGSWITCH
+    if (edit->widget.parent->soft_exit) {
+	return 1;
+    }
+#endif
 
     switch (edit_query_dialog3
 	    (_("Quit"), _(" File was modified, Save with exit? "),

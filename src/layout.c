@@ -66,6 +66,10 @@
 
 #include "setup.h"		/* For save_setup() */
 
+#ifdef USE_DLGSWITCH
+#include "dlgswitch.h"
+#endif
+
 /* Controls the display of the rotating dash on the verbose mode */
 int nice_rotating_dash = 1;
 
@@ -784,6 +788,9 @@ change_screen_size (void)
 
     /* Inform currently running dialog */
     (*current_dlg->callback) (current_dlg, DLG_RESIZE, 0);
+#ifdef USE_DLGSWITCH
+    dlgswitch_got_winch();
+#endif
 
 #ifdef RESIZABLE_MENUBAR
     menubar_arrange (the_menubar);

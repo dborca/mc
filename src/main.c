@@ -89,6 +89,10 @@
 
 #include "popt.h"
 
+#ifdef USE_DLGSWITCH
+#include "dlgswitch.h"
+#endif
+
 /* When the modes are active, left_panel, right_panel and tree_panel */
 /* Point to a proper data structure.  You should check with the functions */
 /* get_current_type and get_other_type the types of the panels before using */
@@ -892,6 +896,9 @@ static menu_entry CmdMenu[] = {
 #endif
 #ifdef WITH_BACKGROUND
     {' ', N_("&Background jobs      C-x j"), 'B', jobs_cmd},
+#endif
+#ifdef USE_DLGSWITCH
+    {' ', N_("Dialo&g switcher      M-`"), 'G', dlgswitch_select},
 #endif
     {' ', "", ' ', 0},
 #ifdef USE_EXT2FSLIB
@@ -1740,10 +1747,16 @@ do_nc (void)
 
     setup_mc ();
 
+#ifdef USE_DLGSWITCH
+    dlgswitch_add(midnight_dlg, DLG_TYPE_MC, _("Midnight Commander"));
+#endif
     setup_panels_and_run_mc ();
 
     /* Program end */
     midnight_shutdown = 1;
+#ifdef USE_DLGSWITCH
+    dlgswitch_before_exit();
+#endif
 
     /* destroy_dlg destroys even current_panel->cwd, so we have to save a copy :) */
     if (last_wd_file && vfs_current_is_local ()) {

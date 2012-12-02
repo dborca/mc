@@ -33,6 +33,10 @@
 #include "execute.h"	/* suspend_cmd() */
 #include "main.h"	/* slow_terminal */
 
+#ifdef USE_DLGSWITCH
+#include "dlgswitch.h"
+#endif
+
 #define waddc(w,y1,x1,c) move (w->y+y1, w->x+x1); addch (c)
 
 /* Primitive way to check if the the current dialog is our dialog */
@@ -647,6 +651,22 @@ dlg_key_event (Dlg_head *h, int d_key)
     /* first can dlg_callback handle the key */
     handled = (*h->callback) (h, DLG_KEY, d_key);
 
+#ifdef USE_DLGSWITCH
+    if (!handled) {
+	switch (d_key) {
+	    case ALT ('`'):
+		dlgswitch_select();
+		return;
+	    case ALT ('.'):
+		dlgswitch_goto_next();
+		return;
+	    case ALT (','):
+		dlgswitch_goto_prev();
+		return;
+	}
+    }
+#endif
+
     /* next try the hotkey */
     if (!handled)
 	handled = dlg_try_hotkey (h, d_key);
@@ -705,6 +725,13 @@ dlg_mouse_event (Dlg_head * h, Gpm_Event * event)
 /* Init the process */
 void init_dlg (Dlg_head *h)
 {
+#ifdef USE_DLGSWITCH
+    if (h->winch_pending) {
+	h->winch_pending = 0;
+	(*h->callback) (h, DLG_RESIZE, 0);
+    }
+#endif
+
     /* Initialize dialog manager and widgets */
     (*h->callback) (h, DLG_INIT, 0);
     dlg_broadcast_msg (h, WIDGET_INIT, 0);
