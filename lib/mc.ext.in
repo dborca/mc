@@ -169,6 +169,11 @@ shell/.dmg
 	Open=%cd %p#uhfs
 	View=%view{ascii} hfsplus %f list
 
+# xar
+regex/\.(xar|m?pkg)$
+	Open=%cd %p#uxar
+	View=%view{ascii} xar -tvf %f
+
 # ALZip
 regex/\.(alz|ALZ)$
 	Open=%cd %p#ualz
