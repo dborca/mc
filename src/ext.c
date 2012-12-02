@@ -400,7 +400,7 @@ regex_check_type (const char *filename, const char *ptr, int *have_type)
     }
 
     if (content_string[0]
-	&& regexp_match (ptr, content_string + content_shift, match_regex)) {
+	&& regexp_match (ptr, content_string + content_shift, match_regex, 0)) {
 	found = 1;
     }
 
@@ -524,11 +524,11 @@ regex_command (const char *filename, const char *action, int *move_dir)
 		/* Do not transform shell patterns, you can use shell/ for
 		 * that
 		 */
-		if (regexp_match (p, filename, match_regex))
+		if (regexp_match (p, filename, match_regex, 0))
 		    found = 1;
 	    } else if (!strncmp (p, "directory/", 10)) {
 		if (S_ISDIR (mystat.st_mode)
-		    && regexp_match (p + 10, filename, match_regex))
+		    && regexp_match (p + 10, filename, match_regex, 0))
 		    found = 1;
 	    } else if (!strncmp (p, "shell/", 6)) {
 		p += 6;

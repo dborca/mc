@@ -322,7 +322,7 @@ handle_dirent (dir_list *list, const char *filter, struct dirent *dp,
 	    *stale_link = 1;
     }
     if (!(S_ISDIR (buf1->st_mode) || *link_to_dir) && filter
-	&& !regexp_match (filter, dp->d_name, match_file))
+	&& !regexp_match (filter, dp->d_name, match_file, 0))
 	return 0;
 
     /* Need to grow the *list? */

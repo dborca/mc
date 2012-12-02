@@ -581,27 +581,30 @@ convert_pattern (const char *pattern, int match_type, int do_group)
 }
 
 int
-regexp_match (const char *pattern, const char *string, int match_type)
+regexp_match (const char *pattern, const char *string, int match_type, int flags)
 {
     static regex_t r;
     static char *old_pattern = NULL;
     static int old_type;
+    static int old_flags;
     int    rval;
     char *my_pattern;
 
-    if (!old_pattern || STRCOMP (old_pattern, pattern) || old_type != match_type){
+    if (!old_pattern || STRCOMP (old_pattern, pattern) || old_type != match_type || old_flags != flags){
 	if (old_pattern){
 	    regfree (&r);
 	    g_free (old_pattern);
 	    old_pattern = NULL;
 	}
 	my_pattern = convert_pattern (pattern, match_type, 0);
-	if (regcomp (&r, my_pattern, REG_EXTENDED|REG_NOSUB|MC_ARCH_FLAGS)) {
+	if (regcomp (&r, my_pattern, REG_EXTENDED|REG_NOSUB|MC_ARCH_FLAGS|flags)) {
 	    g_free (my_pattern);
 	    return -1;
 	}
-	old_pattern = my_pattern;
+	g_free (my_pattern);
+	old_pattern = g_strdup(pattern);
 	old_type = match_type;
+	old_flags = flags;
     }
     rval = !regexec (&r, string, 0, NULL, 0);
     return rval;
@@ -1537,3 +1540,80 @@ Q_ (const char *s)
     return (sep != NULL) ? sep + 1 : result;
 }
 
+char **
+str_split(const char *string, const char *delim)
+{
+    int i;
+    char *p, *tok;
+    char *line, *copy;
+    char **q, **array;
+
+    if (!string) {
+	return NULL; /* not necessarily an error */
+    }
+
+    copy = strdup(string);
+    line = strdup(string);
+    if (!copy || !line) {
+	free(copy);
+	free(line);
+	return NULL;
+    }
+
+    p = line;
+    for (tok = strtok(copy, delim), i = 0; tok; i++, tok = strtok(NULL, delim)) {
+	int len = strlen(tok) + 1;
+	memcpy(p, tok, len);
+	p += len;
+    }
+
+    free(copy);
+
+    array = malloc((i + 1) * sizeof(char *) + p - line);
+    if (array) {
+	q = array + i + 1;
+
+	tok = line;
+	for (i = 0; tok < p; i++) {
+	    array[i] = (char *)q + (tok - line);
+	    tok += strlen(tok) + 1;
+	}
+	array[i] = NULL;
+
+	memcpy(q, line, tok - line);
+    }
+
+    free(line);
+    return array;
+}
+
+char *
+str_merge(const char *const *array, int delim)
+{
+    int i, len;
+    char *p, *q;
+
+    if (!array) {
+	return NULL; /* not necessarily an error */
+    }
+
+    len = 0;
+    for (i = 0; array[i]; i++) {
+	len += strlen(array[i]) + 1;
+    }
+
+    p = malloc(len);
+    if (p) {
+	q = p;
+	for (i = 0; array[i]; i++) {
+	    strcpy(q, array[i]);
+	    q += strlen(array[i]) + 1;
+	    q[-1] = delim;
+	}
+	if (i) {
+	    q[-1] = '\0';
+	}
+    }
+
+    return p;
+}
