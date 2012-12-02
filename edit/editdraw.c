@@ -64,6 +64,17 @@ static void status_string (WEdit * edit, char *s, int w)
 {
     char byte_str[16];
 
+    int selection = '-';
+    if (edit->mark1 != edit->mark2) {
+        selection = 'C';
+        if (!column_highlighting) {
+            selection = 'B';
+            if (edit->block_indent) {
+                selection = 'I';
+            }
+        }
+    }
+
     /*
      * If we are at the end of file, print <EOF>,
      * otherwise print the current character as is (if printable),
@@ -82,7 +93,7 @@ static void status_string (WEdit * edit, char *s, int w)
     /* The field lengths just prevent the status line from shortening too much */
     g_snprintf (s, w,
 		"[%c%c%c%c] %2ld L:[%3ld+%2ld %3ld/%3ld] *(%-4ld/%4ldb)= %s",
-		edit->mark1 != edit->mark2 ? ( column_highlighting ? 'C' : 'B') : '-',
+		selection,
 		edit->modified ? 'M' : '-',
 		edit->macro_i < 0 ? '-' : 'R',
 		edit->overwrite == 0 ? '-' : 'O',
