@@ -160,6 +160,8 @@
 #define CK_Execute_Macro	852
 #define CK_Begin_End_Macro	853
 
+#define CK_Filter		999
+
 /*
    Process a block through a shell command: CK_Pipe_Block(i) executes shell_cmd[i].
    shell_cmd[i] must process the file ~/cooledit.block and output ~/cooledit.block

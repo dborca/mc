@@ -217,6 +217,12 @@ menu_sort_cmd (void)
 }
 
 static void
+menu_filter_cmd (void)
+{
+    menu_cmd (CK_Filter);
+}
+
+static void
 menu_ext_cmd (void)
 {
     menu_cmd (CK_ExtCmd);
@@ -378,7 +384,8 @@ static menu_entry CmdMenu[] =
     {' ', N_("'ispell' s&pell check    C-p"), 'P', menu_ispell_cmd},
     {' ', N_("Sor&t...                 M-t"), 'T', menu_sort_cmd},
     {' ', N_("Paste o&utput of...      M-u"), 'U', menu_ext_cmd},
-    {' ', N_("E&xternal Formatter      F19"), 'C', menu_c_form_cmd},
+    {' ', N_("Bloc&k through filter... M-x"), 'K', menu_filter_cmd},
+    {' ', N_("Exter&nal Formatter      F19"), 'N', menu_c_form_cmd},
     {' ', N_("&Mail...                    "), 'M', menu_mail_cmd}
 };
 

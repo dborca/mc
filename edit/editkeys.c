@@ -104,6 +104,7 @@ static const edit_key_map_type common_key_map[] = {
     { ALT ('L'), CK_Goto },
     { ALT ('p'), CK_Paragraph_Format },
     { ALT ('t'), CK_Sort },
+    { ALT ('x'), CK_Filter },
     { ALT ('u'), CK_ExtCmd },
     { ALT ('<'), CK_Beginning_Of_Text },
     { ALT ('>'), CK_End_Of_Text },

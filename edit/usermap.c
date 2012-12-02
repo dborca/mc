@@ -160,6 +160,7 @@ static const name_map_t command_names[] = {
     {"Delete-To-Line-Begin", CK_Delete_To_Line_Begin},
     {"Man-Page", CK_Man_Page},
     {"Sort", CK_Sort},
+    {"Filter", CK_Filter},
     {"Mail", CK_Mail},
     {"Cancel", CK_Cancel},
     {"Complete", CK_Complete},

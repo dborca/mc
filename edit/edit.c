@@ -2551,6 +2551,9 @@ edit_execute_cmd (WEdit *edit, int command, int char_for_insertion)
     case CK_Sort:
 	edit_sort_cmd (edit);
 	break;
+    case CK_Filter:
+	edit_filter_cmd (edit);
+	break;
     case CK_ExtCmd:
 	edit_ext_cmd (edit);
 	break;
