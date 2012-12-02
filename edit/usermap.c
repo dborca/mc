@@ -530,7 +530,7 @@ parse_file(config_t *cfg, const char *file, const command_t *cmd)
 	line++;
 
 	args = split_line(buf);
-	argv = (char **) args->pdata;
+	argv = (char **) &g_ptr_array_index(args, 0);
 
 	if (args->len == 0) {
 	    g_ptr_array_free(args, TRUE);
@@ -575,8 +575,8 @@ load_user_keymap(config_t *cfg, const char *file)
 	{0, 0}
     };
 
-    cfg->keymap = g_array_new(TRUE, FALSE, sizeof(edit_key_map_type));
-    cfg->ext_keymap = g_array_new(TRUE, FALSE, sizeof(edit_key_map_type));
+    cfg->keymap = g_array_new(FALSE, FALSE, sizeof(edit_key_map_type));
+    cfg->ext_keymap = g_array_new(FALSE, FALSE, sizeof(edit_key_map_type));
 
     if (!parse_file(cfg, file, cmd)) {
 	return FALSE;
@@ -592,6 +592,7 @@ edit_load_user_map(WEdit *edit)
     config_t new_cfg;
     char *file;
     struct stat s;
+    edit_key_map_type zero = { 0, 0 };
 
     if (edit_key_emulation != EDIT_KEY_EMULATION_USER)
 	return TRUE;
@@ -620,6 +621,9 @@ edit_load_user_map(WEdit *edit)
 	    cfg = new_cfg;
 	}
     }
+
+    g_array_append_val(cfg.keymap, zero);
+    g_array_append_val(cfg.ext_keymap, zero);
 
     edit->user_map = (edit_key_map_type *) cfg.keymap->data;
     edit->ext_map = (edit_key_map_type *) cfg.ext_keymap->data;

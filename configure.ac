@@ -27,6 +27,9 @@ dnl Keep this check close to the beginning, so that the users
 dnl without any glib won't have their time wasted by other checks.
 dnl
 
+AC_ARG_WITH(glib0, 
+	[  --with-glib0             Force using fake glib [[no]]])
+
 AC_ARG_WITH(glib12, 
 	[  --with-glib12            Force using glib 1.2.x [[no]]])
 
@@ -34,6 +37,7 @@ AC_ARG_WITH([glib_static],
 	    [  --with-glib-static       Link glib statically [[no]]])
 
 glib_found=no
+if test "x$with_glib0" != "xyes"; then
 if test "x$with_glib12" != "xyes"; then
 	PKG_CHECK_MODULES(GLIB, [glib-2.0], [glib_found=yes], [:])
 fi
@@ -73,6 +77,22 @@ fi
 if test "x$gmodule_found" = "xyes" ; then
 	dnl Check if the gmodule functionality supported on this system.
 	AC_G_MODULE_SUPPORTED
+fi
+else
+	GLIB_CFLAGS="-I\$(top_srcdir)/slib"
+	GMODULE_CFLAGS="-I\$(top_srcdir)/slib"
+	GLIB_LIBS="-L\$(top_srcdir)/slib -lslib"
+	AC_CHECK_LIB(c, dlopen, GMODULE_LIBS="$GLIB_LIBS",
+		[AC_CHECK_LIB(dl, dlopen, GMODULE_LIBS="$GLIB_LIBS -ldl")])
+	AC_CHECK_FUNCS([strncasecmp vasprintf])
+
+	dnl Check if the gmodule functionality supported on this system.
+	dnl AC_G_MODULE_SUPPORTED
+	mc_cv_g_module_supported=yes
+	AC_DEFINE(HAVE_GMODULE, 1, [Define if gmodule functionality is supported])
+
+	dnl Used in src/glibcompat.c
+	AC_CHECK_FUNCS([strlcpy])
 fi
 
 AC_HEADER_MAJOR
@@ -572,6 +592,7 @@ AM_CONDITIONAL(USE_UNDEL_FS, [test -n "$use_undelfs"])
 AM_CONDITIONAL(USE_SAMBA_FS, [test -n "$use_smbfs"])
 AM_CONDITIONAL(USE_MCFS, [test -n "$use_mcfs"])
 AM_CONDITIONAL(INCLUDED_SLANG, [test "x$with_screen" = xmcslang])
+AM_CONDITIONAL(INCLUDED_GLIB, [test "x$with_glib0" = xyes])
 AM_CONDITIONAL(CHARSET, [test -n "$have_charset"])
 AM_CONDITIONAL(CONS_SAVER, [test -n "$cons_saver"])
 
@@ -587,6 +608,7 @@ vfs/extfs/Makefile
 lib/Makefile
 src/Makefile
 slang/Makefile 
+slib/Makefile
 edit/Makefile 
 syntax/Makefile
 m4/Makefile

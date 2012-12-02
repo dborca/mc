@@ -103,7 +103,7 @@ char *option_syntax_type = NULL;
 
 #define syntax_g_free(x) do {g_free(x); (x)=0;} while (0)
 
-static gint
+static void
 mc_defines_destroy (gpointer key, gpointer value, gpointer data)
 {
     char **values = value;
@@ -114,27 +114,25 @@ mc_defines_destroy (gpointer key, gpointer value, gpointer data)
     while (*values)
 	g_free (*values++);
     g_free (value);
-
-    return FALSE;
 }
 
 /* Completely destroys the defines tree */
 static inline void
-destroy_defines (GTree **defines)
+destroy_defines (GHashTable **defines)
 {
-    g_tree_traverse (*defines, mc_defines_destroy, G_POST_ORDER, NULL);
-    g_tree_destroy (*defines);
+    g_hash_table_foreach (*defines, mc_defines_destroy, NULL);
+    g_hash_table_destroy (*defines);
     *defines = 0;
 }
 
 static void
-subst_defines (GTree *defines, char **argv, char **argv_end)
+subst_defines (GHashTable *defines, char **argv, char **argv_end)
 {
     char **t, **p;
     int argc;
 
     while (*argv && argv < argv_end) {
-	if ((t = g_tree_lookup (defines, *argv))) {
+	if ((t = g_hash_table_lookup (defines, *argv))) {
 	    int count = 0;
 
 	    /* Count argv array members */
@@ -504,8 +502,11 @@ void edit_get_syntax_color (WEdit * edit, long byte_index, int *color)
  */
 static int read_one_line (char **line, FILE * f)
 {
-    GString *p = g_string_new ("");
+    char *p;
+    int i = 0, len = 256;
     int c, r = 0;
+
+    p = g_malloc(len);
 
     for (;;) {
 	c = fgetc (f);
@@ -529,13 +530,18 @@ static int read_one_line (char **line, FILE * f)
 	if (c == '\n')
 	    break;
 
-	g_string_append_c (p, c);
+	if (i >= len - 1) {
+	    char *q = g_realloc (p, len * 2);
+	    p = q;
+	    len *= 2;
+	}
+	p[i++] = c;
     }
     if (r != 0) {
-	*line = p->str;
-	g_string_free (p, FALSE);
+	p[i] = 0;
+	*line = p;
     } else {
-	g_string_free (p, TRUE);
+	g_free (p);
     }
     return r;
 }
@@ -711,7 +717,7 @@ edit_read_syntax_rules (WEdit *edit, FILE *f, char **args, int args_size)
     r = edit->rules = g_malloc0 (alloc_contexts * sizeof (struct context_rule *));
 
     if (!edit->defines)
-	edit->defines = g_tree_new ((GCompareFunc) strcmp);
+	edit->defines = g_hash_table_new (g_str_hash, g_str_equal);
 
     for (;;) {
 	char **a;
@@ -906,13 +912,13 @@ edit_read_syntax_rules (WEdit *edit, FILE *f, char **args, int args_size)
 
 	    if (argc < 3)
 		break_a;
-	    if ((argv = g_tree_lookup (edit->defines, key))) {
+	    if ((argv = g_hash_table_lookup (edit->defines, key))) {
 		mc_defines_destroy (NULL, argv, NULL);
 	    } else {
 		key = g_strdup (key);
 	    }
 	    argv = g_new (char *, argc - 1);
-	    g_tree_insert (edit->defines, key, argv);
+	    g_hash_table_insert (edit->defines, key, argv);
 	    while (*a) {
 		*argv++ = g_strdup (*a++);
 	    };

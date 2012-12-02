@@ -1234,14 +1234,18 @@ edit_replace_prompt (WEdit * edit, char *replace_text, int xpos, int ypos)
 	 0, 0, 0, 0, 0},
 	 NULL_QuickWidget};
 
-    GString *label_text = g_string_new (_(" Replace with: "));
+    char *label_text = _(" Replace with: ");
     if (*replace_text) {
-        size_t label_len;
-	label_len = label_text->len;
-        g_string_append (label_text, replace_text);
-        convert_to_display (label_text->str + label_len);
+        size_t label_len = strlen(label_text);
+	char *p = g_malloc(label_len + strlen(replace_text) + 1);
+	strcpy(p, label_text);
+	strcpy(p + label_len, replace_text);
+        convert_to_display (p + label_len);
+	label_text = p;
+    } else {
+	label_text = g_strdup(label_text);
     }
-    quick_widgets[5].text = label_text->str;
+    quick_widgets[5].text = label_text;
 
     {
 	int retval;
@@ -1260,7 +1264,7 @@ edit_replace_prompt (WEdit * edit, char *replace_text, int xpos, int ypos)
 
 	Quick_input.ypos = ypos;
 	retval = quick_dialog (&Quick_input);
-	g_string_free (label_text, TRUE);
+	g_free (label_text);
 	return retval;
     }
 }

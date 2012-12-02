@@ -58,12 +58,13 @@ static struct vfs_class *current_vfs;
 static char *current_dir;
 
 struct vfs_openfile {
+    struct vfs_openfile *next;
     int handle;
     struct vfs_class *vclass;
     void *fsinfo;
 };
 
-static GSList *vfs_openfiles;
+static struct vfs_openfile *vfs_openfiles;
 #define VFS_FIRST_HANDLE 100
 
 static struct vfs_class *localfs_class;
@@ -79,7 +80,8 @@ vfs_new_handle (struct vfs_class *vclass, void *fsinfo)
     h->handle = vfs_handle_counter++;
     h->fsinfo = fsinfo;
     h->vclass = vclass;
-    vfs_openfiles = g_slist_prepend (vfs_openfiles, h);
+    h->next = vfs_openfiles;
+    vfs_openfiles = h;
     return h->handle;
 }
 
@@ -96,45 +98,49 @@ vfs_cmp_handle (gconstpointer a, gconstpointer b)
 static inline struct vfs_class *
 vfs_op (int handle)
 {
-    GSList *l;
     struct vfs_openfile *h;
 
-    l = g_slist_find_custom (vfs_openfiles, (void *) (long) handle,
-			     vfs_cmp_handle);
-    if (!l)
-	return NULL;
-    h = (struct vfs_openfile *) l->data;
-    if (!h)
-	return NULL;
-    return h->vclass;
+    for (h = vfs_openfiles; h != NULL; h = h->next) {
+	if (vfs_cmp_handle(h, (void *) (long) handle) == 0) {
+	    return h->vclass;
+	}
+    }
+
+    return NULL;
 }
 
 /* Find private file data by file handle */
 static inline void *
 vfs_info (int handle)
 {
-    GSList *l;
     struct vfs_openfile *h;
 
-    l = g_slist_find_custom (vfs_openfiles, (void *) (long) handle,
-			     vfs_cmp_handle);
-    if (!l)
-	return NULL;
-    h = (struct vfs_openfile *) l->data;
-    if (!h)
-	return NULL;
-    return h->fsinfo;
+    for (h = vfs_openfiles; h != NULL; h = h->next) {
+	if (vfs_cmp_handle(h, (void *) (long) handle) == 0) {
+	    return h->fsinfo;
+	}
+    }
+
+    return NULL;
 }
 
 /* Free open file data for given file handle */
 static inline void
 vfs_free_handle (int handle)
 {
-    GSList *l;
+    struct vfs_openfile *h, *p;
 
-    l = g_slist_find_custom (vfs_openfiles, (void *) (long) handle,
-			     vfs_cmp_handle);
-    vfs_openfiles = g_slist_delete_link (vfs_openfiles, l);
+    for (p = NULL, h = vfs_openfiles; h != NULL; p = h, h = h->next) {
+	if (vfs_cmp_handle(h, (void *) (long) handle) == 0) {
+	    if (p != NULL) {
+		p->next = h->next;
+	    } else {
+		vfs_openfiles = h->next;
+	    }
+	    g_free(h);
+	    break;
+	}
+    }
 }
 
 static struct vfs_class *vfs_list;
@@ -909,7 +915,11 @@ vfs_shut (void)
 	if (vfs->done)
 	    (*vfs->done) (vfs);
 
-    g_slist_free (vfs_openfiles);
+    while (vfs_openfiles != NULL) {
+	struct vfs_openfile *h = vfs_openfiles;
+	vfs_openfiles = vfs_openfiles->next;
+	g_free(h);
+    }
 }
 
 /*

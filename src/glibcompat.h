@@ -18,7 +18,7 @@
 #ifndef MC_GLIBCOMPAT_H
 #define MC_GLIBCOMPAT_H
 
-#if GLIB_MAJOR_VERSION < 2
+#if GLIB_MAJOR_VERSION && GLIB_MAJOR_VERSION < 2
 
 gsize g_strlcat (gchar *dest, const gchar *src, gsize dest_size);
 gsize g_strlcpy (gchar *dest, const gchar *src, gsize dest_size);
