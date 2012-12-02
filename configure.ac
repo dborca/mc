@@ -3,20 +3,18 @@ dnl Configure.in file for the Midnight Commander
 dnl
 
 AC_INIT([GNU Midnight Commander], [], [mc-devel@gnome.org])
-AC_PREREQ(2.54)
+AC_PREREQ(2.60)
 m4_pattern_forbid(MC_)
 AC_CONFIG_SRCDIR(src/main.c)
 AC_CONFIG_AUX_DIR(config)
-AM_INIT_AUTOMAKE(mc, 4.6.2-pre1)
+AM_INIT_AUTOMAKE(mc, 4.6.3a)
 
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
 
 AC_CANONICAL_HOST
 
-AC_GNU_SOURCE
-AC_AIX
-AC_MINIX
+AC_USE_SYSTEM_EXTENSIONS
 AC_ISC_POSIX
 
 AC_PROG_CC_STDC
@@ -242,8 +240,11 @@ dnl
 dnl Missing typedefs and replacements
 dnl 
 
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(long long)
 AC_TYPE_MODE_T
-AC_CHECK_TYPE(off_t, long)
+AC_TYPE_OFF_T
+AC_CHECK_SIZEOF(off_t)
 AC_TYPE_PID_T
 AC_TYPE_UID_T
 AC_CHECK_TYPE(nlink_t, unsigned int)
