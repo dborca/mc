@@ -41,6 +41,7 @@ void history_cmd (void);
 void tree_cmd (void);
 void link_cmd (void);
 void symlink_cmd (void);
+void relative_symlink_cmd (void);
 void edit_symlink_cmd (void);
 void reverse_selection_cmd (void);
 void unselect_cmd (void);
