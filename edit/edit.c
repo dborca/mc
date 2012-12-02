@@ -2524,6 +2524,13 @@ edit_execute_cmd (WEdit *edit, int command, int char_for_insertion)
 	edit_block_move_cmd (edit);
 	break;
 
+    case CK_Block_ToLower:
+	edit_block_tolower_cmd (edit);
+	break;
+    case CK_Block_ToUpper:
+	edit_block_toupper_cmd (edit);
+	break;
+
     case CK_XStore:
 	edit_copy_to_X_buf_cmd (edit);
 	break;

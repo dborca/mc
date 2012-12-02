@@ -1210,6 +1210,48 @@ int edit_block_delete_cmd (WEdit * edit)
     return edit_block_delete (edit);
 }
 
+void
+edit_block_tolower_cmd (WEdit *edit)
+{
+    long start, end;
+    if (eval_marks(edit, &start, &end)) {
+	return;
+    }
+    edit_cursor_move(edit, start - edit->curs1);
+    for (; start < end; start++) {
+	int c = edit_get_byte(edit, edit->curs1);
+	int l = tolower(c);
+	if (l == c) {
+	    edit_cursor_move(edit, 1);
+	    continue;
+	}
+	edit_insert(edit, l);
+	edit_delete(edit);
+    }
+    edit->force |= REDRAW_PAGE;
+}
+
+void
+edit_block_toupper_cmd (WEdit *edit)
+{
+    long start, end;
+    if (eval_marks(edit, &start, &end)) {
+	return;
+    }
+    edit_cursor_move(edit, start - edit->curs1);
+    for (; start < end; start++) {
+	int c = edit_get_byte(edit, edit->curs1);
+	int u = toupper(c);
+	if (u == c) {
+	    edit_cursor_move(edit, 1);
+	    continue;
+	}
+	edit_insert(edit, u);
+	edit_delete(edit);
+    }
+    edit->force |= REDRAW_PAGE;
+}
+
 
 #define INPUT_INDEX 9
 #define SEARCH_DLG_WIDTH 58

@@ -157,6 +157,18 @@ menu_cut_cmd (void)
 }
 
 static void
+menu_block_lower_cmd (void)
+{
+    menu_cmd (CK_Block_ToLower);
+}
+
+static void
+menu_block_upper_cmd (void)
+{
+    menu_cmd (CK_Block_ToUpper);
+}
+
+static void
 menu_search_cmd (void)
 {
     menu_cmd (CK_Find);
@@ -346,6 +358,9 @@ static menu_entry EditMenu[] =
     {' ', N_("&Copy              F5"), 'C', menu_copy_cmd},
     {' ', N_("&Move              F6"), 'M', menu_move_cmd},
     {' ', N_("&Delete            F8"), 'D', menu_delete_cmd},
+    {' ', "", ' ', 0},
+    {' ', N_("Block To&Lower"),        'L', menu_block_lower_cmd},
+    {' ', N_("Block ToU&pper"),        'P', menu_block_upper_cmd},
     {' ', "", ' ', 0},
     {' ', N_("&Undo             C-u"), 'U', menu_undo_cmd},
     {' ', "", ' ', 0},

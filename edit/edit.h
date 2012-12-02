@@ -150,6 +150,8 @@ void edit_find_bracket (WEdit * edit);
 void edit_block_copy_cmd (WEdit * edit);
 void edit_block_move_cmd (WEdit * edit);
 int edit_block_delete_cmd (WEdit * edit);
+void edit_block_tolower_cmd (WEdit *edit);
+void edit_block_toupper_cmd (WEdit *edit);
 void edit_delete_line (WEdit * edit);
 
 int edit_delete (WEdit * edit);
