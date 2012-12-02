@@ -764,6 +764,42 @@ mini_info_separator (WPanel *panel)
 }
 
 static void
+panel_scrollbar (WPanel *p)
+{
+    int line, n = llines(p);
+
+    if (p->count <= n || slow_terminal) {
+	return;
+    }
+
+    line = 2 + n * p->selected / p->count;
+#if 0
+    /* Are we at the top? */
+    if (p->selected) {
+	widget_move (&p->widget, 1, p->widget.cols - 1);
+	addch ('^');
+    }
+    /* Are we at the bottom? */
+    if (p->selected != p->count - 1) {
+	widget_move (&p->widget, n + 2, p->widget.cols - 1);
+	addch ('v');
+    }
+{
+    int i;
+    for (i = 2; i < n + 2; i++) {
+	if (i != line) {
+	    widget_move (&p->widget, i, p->widget.cols - 1);
+	    addch (0xB0);	/* 0xB0, 0xB1, 0xB2, 0xDB */
+	}
+    }
+}
+#endif
+    /* Now draw the nice relative pointer */
+    widget_move (&p->widget, line, p->widget.cols - 1);
+    addch ('*');		/* REVERSE, MARKED_COLOR: 0xF9 */
+}
+
+static void
 show_dir (WPanel *panel)
 {
     char *tmp;
@@ -783,8 +819,10 @@ show_dir (WPanel *panel)
     }
 #endif				/* HAVE_SLANG */
 
-    if (panel->active)
+    if (panel->active) {
+	panel_scrollbar (panel);
 	attrset (REVERSE_COLOR);
+    }
 
     widget_move (&panel->widget, 0, 3);
     addch (' ');
