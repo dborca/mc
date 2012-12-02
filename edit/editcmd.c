@@ -2440,39 +2440,52 @@ edit_insert_file_cmd (WEdit *edit)
     return 0;
 }
 
-/* sorts a block, returns -1 on system fail, 1 on cancel and 0 on success */
-int edit_sort_cmd (WEdit * edit)
+/* filter block, returns -1 on system fail, 1 on cancel and 0 on success */
+static int edit_filter_ex (WEdit * edit,
+	const char *filter,
+	const char *pipein,
+	const char *title1,
+	const char *title2,
+	const char *instr1,
+	const char *title3,
+	const char *error1,
+	char **old)
 {
-    static char *old = 0;
     char *exp;
     long start_mark, end_mark;
     int e;
+    const char *block_file;
+    FILE *fd;
 
     if (eval_marks (edit, &start_mark, &end_mark)) {
-	edit_error_dialog (_(" Sort block "), _(" You must first highlight a block of text. "));
+	edit_error_dialog (title1, _(" You must first highlight a block of text. "));
 	return 0;
     }
-    edit_save_block (edit, catstrs (home_dir, PATH_SEP_STR BLOCK_FILE, (char *) NULL), start_mark, end_mark);
+    block_file = catstrs (home_dir, PATH_SEP_STR BLOCK_FILE, (char *) NULL);
 
-    exp = input_dialog (_(" Run Sort "),
-	_(" Enter sort options (see manpage) separated by whitespace: "),
-	(old != NULL) ? old : "");
+    exp = input_dialog (title2,
+	instr1,
+	(*old != NULL) ? *old : "");
 
     if (!exp)
 	return 1;
-    g_free (old);
-    old = exp;
+    g_free (*old);
+    *old = exp;
 
-    e = system (catstrs (" sort ", exp, " ", home_dir, PATH_SEP_STR BLOCK_FILE, " > ", home_dir, PATH_SEP_STR TEMP_FILE, (char *) NULL));
+    edit_save_block (edit, block_file, start_mark, end_mark);
+    e = system (catstrs (filter, exp, pipein, block_file, " > ", home_dir, PATH_SEP_STR TEMP_FILE, (char *) NULL));
+    if ((fd = fopen(block_file, "w"))) {
+	fclose(fd);
+    }
     if (e) {
 	if (e == -1 || e == 127) {
-	    edit_error_dialog (_(" Sort "),
+	    edit_error_dialog (title3,
 	    get_sys_error (_(" Cannot execute sort command ")));
 	} else {
 	    char q[8];
 	    sprintf (q, "%d ", e);
-	    edit_error_dialog (_(" Sort "),
-	    catstrs (_(" Sort returned non-zero: "), q, (char *) NULL));
+	    edit_error_dialog (title3,
+	    catstrs (error1, q, (char *) NULL));
 	}
 	return -1;
     }
@@ -2483,6 +2496,34 @@ int edit_sort_cmd (WEdit * edit)
 	return 1;
     edit_insert_file (edit, catstrs (home_dir, PATH_SEP_STR TEMP_FILE, (char *) NULL));
     return 0;
+}
+
+/* sorts a block, returns -1 on system fail, 1 on cancel and 0 on success */
+int edit_sort_cmd (WEdit * edit)
+{
+    static char *old = 0;
+    return edit_filter_ex (edit,
+	" sort ", " ",
+	_(" Sort block "),
+	_(" Run Sort "),
+	_(" Enter sort options (see manpage) separated by whitespace: "),
+	_(" Sort "),
+	_(" Sort returned non-zero: "),
+	&old);
+}
+
+/* filter block, returns -1 on system fail, 1 on cancel and 0 on success */
+int edit_filter_cmd (WEdit * edit)
+{
+    static char *old = 0;
+    return edit_filter_ex (edit,
+	" ", " < ",
+	_(" Process block "),
+	_(" Run Filter "),
+	_(" Enter command and options separated by whitespace: "),
+	_(" Filter "),
+	_(" Filter returned non-zero: "),
+	&old);
 }
 
 /*
