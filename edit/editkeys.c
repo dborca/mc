@@ -134,6 +134,7 @@ static const edit_key_map_type common_key_map[] = {
     { KEY_F (13), CK_Column_Mark },
     { KEY_F (14), CK_Replace_Again },
     { KEY_F (15), CK_Insert_File },
+    { KEY_F (16), CK_Paragraph_Indent_Mode },
     { KEY_F (17), CK_Find_Again },
     { KEY_F (19), CK_Pipe_Block (0) },	/* C formatter */
 

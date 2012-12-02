@@ -1986,6 +1986,74 @@ static void edit_tab_cmd (WEdit * edit)
     return;
 }
 
+static inline int my_is_blank (int c)
+{
+    return c == ' ' || c == '\t';
+}
+
+void edit_backspace_tab (WEdit * edit, int whole_tabs_only)
+{
+    int i;
+    if (whole_tabs_only) {
+	int indent;
+	/* count the number of columns of indentation */
+	indent = edit_move_forward3 (edit, edit_bol (edit, edit->curs1), 0, edit->curs1);
+	for (;;) {
+	    int c;
+	    c = edit_get_byte (edit, edit->curs1 - 1);
+	    if (!isspace (c) || c == '\n')
+		break;
+	    edit_backspace (edit);
+	}
+	while (edit_move_forward3 (edit, edit_bol (edit, edit->curs1), 0, edit->curs1) <
+	       (indent - space_width * (option_fake_half_tabs ? HALF_TAB_SIZE : TAB_SIZE)))
+	    edit_tab_cmd (edit);
+	return;
+    }
+    if (option_fake_half_tabs && right_of_four_spaces (edit)) {
+	for (i = 0; i < HALF_TAB_SIZE; i++)
+	    edit_backspace (edit);
+	return;
+    }
+    edit_backspace (edit);
+}
+
+void edit_indent_left_right_paragraph (WEdit * edit, int direction)
+{
+    int lines, c;
+    long start_mark, end_mark;
+
+    if (eval_marks (edit, &start_mark, &end_mark))
+	return;
+
+    edit_push_action (edit, KEY_PRESS + edit->start_display);
+
+    lines = edit_count_lines (edit, start_mark, end_mark - 1);
+    if (direction > 0) {
+	long s;
+	for (c = 0, s = start_mark; c <= lines; s = edit_eol (edit, s) + 1, c++) {
+	    while (my_is_blank (edit_get_byte (edit, s)) && s < edit->last_byte)
+		s++;
+	    if (edit_get_byte (edit, s) == '\n')
+		continue;
+	    edit_cursor_move (edit, s - edit->curs1);
+	    edit_tab_cmd (edit);
+	    s = edit->curs1;
+	}
+    } else {
+	long s;
+	for (c = 0, s = start_mark; c <= lines; s = edit_eol (edit, s) + 1, c++) {
+	    while (my_is_blank (edit_get_byte (edit, s)) && s < edit->last_byte)
+		s++;
+	    edit_cursor_move (edit, s - edit->curs1);
+	    edit_backspace_tab (edit, 1);
+	    s = edit->curs1;
+	}
+    }
+    edit->force |= REDRAW_PAGE;
+    edit_push_action (edit, KEY_PRESS + edit->start_display);
+}
+
 static void check_and_wrap_line (WEdit * edit)
 {
     int curs, c;
@@ -2166,6 +2234,10 @@ edit_execute_cmd (WEdit *edit, int command, int char_for_insertion)
 	return;
     }
 
+    if (command != CK_Tab && command != CK_BackSpace) {
+	edit->block_indent = 0;
+    }
+
     /* An ordinary key press */
     if (char_for_insertion >= 0) {
 	if (edit->overwrite) {
@@ -2209,19 +2281,19 @@ edit_execute_cmd (WEdit *edit, int command, int char_for_insertion)
     /* basic cursor key commands */
     switch (command) {
     case CK_BackSpace:
+	if (edit->block_indent) {
+	    edit_indent_left_right_paragraph (edit, -1);
+	    break;
+	}
 	if (option_backspace_through_tabs && is_in_indent (edit)) {
 	    while (edit_get_byte (edit, edit->curs1 - 1) != '\n'
 		   && edit->curs1 > 0)
 		edit_backspace (edit);
 	    break;
 	} else {
-	    if (option_fake_half_tabs) {
-		int i;
-		if (is_in_indent (edit) && right_of_four_spaces (edit)) {
-		    for (i = 0; i < HALF_TAB_SIZE; i++)
-			edit_backspace (edit);
-		    break;
-		}
+	    if (is_in_indent (edit)) {
+		edit_backspace_tab (edit, 0);
+		break;
 	    }
 	}
 	edit_backspace (edit);
@@ -2349,6 +2421,10 @@ edit_execute_cmd (WEdit *edit, int command, int char_for_insertion)
 	break;
 
     case CK_Tab:
+	if (edit->block_indent) {
+	    edit_indent_left_right_paragraph (edit, 1);
+	    break;
+	}
 	edit_tab_cmd (edit);
 	if (option_auto_para_formatting) {
 	    format_paragraph (edit, 0);
@@ -2539,6 +2615,15 @@ edit_execute_cmd (WEdit *edit, int command, int char_for_insertion)
 	format_paragraph (edit, 1);
 	edit->force |= REDRAW_PAGE;
 	break;
+    case CK_Paragraph_Indent_Mode: {
+	long start_mark, end_mark;
+	if (eval_marks (edit, &start_mark, &end_mark))
+	    break;
+	edit->block_indent = 1;
+	edit_set_markers (edit, edit_bol (edit, start_mark), edit_eol (edit, end_mark - 1), -1, -1);
+	edit->force |= REDRAW_PAGE;
+	break;
+    }
     case CK_Delete_Macro:
 	edit_delete_macro_cmd (edit);
 	break;
