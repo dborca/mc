@@ -52,6 +52,7 @@
 struct WButtonBar {
     Widget widget;
     int    visible;		/* Is it visible? */
+    int    btn_width;
     struct {
 	char   *text;
 	enum { BBFUNC_NONE, BBFUNC_VOID, BBFUNC_PTR } tag;
@@ -2284,6 +2285,22 @@ buttonbar_call (WButtonBar *bb, int i)
 }
 
 
+static int
+buttonbar_get_button_width (void)
+{
+    int width = COLS / 10;
+    const int low_limit = 4; /* arbitrary low limit for last cell */
+    /* is the 10th cell still displayable with wider first 9 items? */
+    if ((width + 1) * (10 - 1) + low_limit <= COLS) {
+	width++;
+    }
+    if (width < 6) {
+	width = 6;
+    }
+    return width;
+}
+
+
 static cb_ret_t
 buttonbar_callback (Widget *w, widget_msg_t msg, int parm)
 {
@@ -2307,12 +2324,23 @@ buttonbar_callback (Widget *w, widget_msg_t msg, int parm)
 	widget_move (&bb->widget, 0, 0);
 	attrset (DEFAULT_COLOR);
 	tty_printf ("%-*s", bb->widget.cols, "");
-	for (i = 0; i < COLS / 8 && i < 10; i++) {
-	    widget_move (&bb->widget, 0, i * 8);
+	bb->btn_width = buttonbar_get_button_width();
+	for (i = 0; i * bb->btn_width < COLS && i < 10; i++) {
+	    int width = bb->btn_width - 2;
+	    if (i >= 9) {
+		width--;
+	    }
+	    if ((i + 1) * bb->btn_width > COLS) {
+		width -= (i + 1) * bb->btn_width - COLS;
+	    }
+	    if (width <= 0) {
+		break;
+	    }
+	    widget_move (&bb->widget, 0, i * bb->btn_width);
 	    attrset (DEFAULT_COLOR);
 	    tty_printf ("%d", i + 1);
 	    attrset (SELECTED_COLOR);
-	    tty_printf ("%-*s", ((i + 1) * 8 == COLS ? 5 : 6),
+	    tty_printf ("%-*.*s", width, width,
 		    bb->labels[i].text ? bb->labels[i].text : "");
 	    attrset (DEFAULT_COLOR);
 	}
@@ -2339,7 +2367,7 @@ buttonbar_event (Gpm_Event *event, void *data)
 	return MOU_NORMAL;
     if (event->y == 2)
 	return MOU_NORMAL;
-    button = event->x / 8;
+    button = (event->x - 1) / bb->btn_width;
     if (button < 10)
 	buttonbar_call (bb, button);
     return MOU_NORMAL;
