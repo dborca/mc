@@ -57,8 +57,10 @@
          <QPG:Add file="./vfs/extfs/uar" permissions="0755" install="/opt/share/mc/extfs/"/>
          <QPG:Add file="./vfs/extfs/uarj" permissions="0755" install="/opt/share/mc/extfs/"/>
          <QPG:Add file="./vfs/extfs/uha" permissions="0755" install="/opt/share/mc/extfs/"/>
+         <QPG:Add file="./vfs/extfs/uhfs" permissions="0755" install="/opt/share/mc/extfs/"/>
          <QPG:Add file="./vfs/extfs/ulha" permissions="0755" install="/opt/share/mc/extfs/"/>
          <QPG:Add file="./vfs/extfs/urar" permissions="0755" install="/opt/share/mc/extfs/"/>
+         <QPG:Add file="./vfs/extfs/uxar" permissions="0755" install="/opt/share/mc/extfs/"/>
          <QPG:Add file="./vfs/extfs/uzip" permissions="0755" install="/opt/share/mc/extfs/"/>
          <QPG:Add file="./vfs/extfs/uzoo" permissions="0755" install="/opt/share/mc/extfs/"/>
          <QPG:Add file="./lib/mc.charsets" permissions="0644" install="/opt/share/mc/"/>
