@@ -2413,6 +2413,18 @@ edit_execute_cmd (WEdit *edit, int command, int char_for_insertion)
 	break;
     case CK_Home:
     case CK_Home_Highlight:
+	if (edit_bol(edit, edit->curs1) == edit->curs1) {
+	    int c = edit_get_byte(edit, edit->curs1);
+	    int skip = 0;
+	    while (c == ' ' || c == '\t') {
+		skip++;
+		c = edit_get_byte(edit, edit->curs1 + skip);
+	    }
+	    if (c != '\n') {
+		edit_cursor_move(edit, skip);
+	    }
+	    break;
+	}
 	edit_cursor_to_bol (edit);
 	break;
     case CK_End:
