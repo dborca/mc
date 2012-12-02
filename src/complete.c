@@ -43,6 +43,8 @@
 
 typedef char *CompletionFunction (char *, int);
 
+static int have_escaped_input = 0;
+
 /* This flag is used in filename_completion_function */
 static int ignore_filenames = 0;
 
@@ -179,6 +181,9 @@ filename_completion_function (char *text, int state)
 	}
 	if (isdir)
 	    strcat (temp, PATH_SEP_STR);
+	if (have_escaped_input) {
+	    temp = name_quote_and_free(temp);
+	}
         return temp;
     }
 }
@@ -438,7 +443,13 @@ command_completion_function (char *text, int state)
     }
 
     if (isabsolute) {
+	if (have_escaped_input) {
+	    text = name_unquote(text, 0);
+	}
 	p = filename_completion_function (text, state);
+	if (have_escaped_input) {
+	    q_free(text);
+	}
 	if (!p)
 	    look_for_executables = 0;
 	return p;
@@ -466,6 +477,9 @@ command_completion_function (char *text, int state)
 	cur_path = path;
 	cur_word = NULL;
     case 2:			/* And looking through the $PATH */
+	if (have_escaped_input) {
+	    text = name_unquote(text, 0);
+	}
 	while (!found) {
 	    if (!cur_word) {
 		char *expanded;
@@ -486,6 +500,9 @@ command_completion_function (char *text, int state)
 		g_free (cur_word);
 		cur_word = NULL;
 	    }
+	}
+	if (have_escaped_input) {
+	    q_free(text);
 	}
     }
 
@@ -642,7 +659,7 @@ try_complete (char *text, int *start, int *end, int flags)
        be in a INPUT_COMPLETE_COMMANDS flagged Input line. */
     if (!is_cd && (flags & INPUT_COMPLETE_COMMANDS)){
         i = *start - 1;
-        while (i > -1 && (text[i] == ' ' || text[i] == '\t'))
+        while (i > -1 && (text[i] == ' ' || text[i] == '\t')) /* XXX no need for is_quoted */
             i--;
         if (i < 0)
 	    in_command_position++;
@@ -657,22 +674,24 @@ try_complete (char *text, int *start, int *end, int flags)
                 this_char = text[i];
                 prev_char = text[i - 1];
 
+		if (!is_quoted(text, i - 1)) {
                 if ((this_char == '&' && (prev_char == '<' || prev_char == '>')) ||
 	            (this_char == '|' && prev_char == '>'))
 	            in_command_position = 0;
                 else if (i > 0 && text [i-1] == '\\') /* Quoted */
 	            in_command_position = 0;
+	        }
 	    }
 	}
     }
 
     if (flags & INPUT_COMPLETE_COMMANDS)
-    	p = strrchr (word, '`');
+    	p = have_escaped_input ? strrchr_unquoted (word, '`') : strrchr (word, '`');
     if (flags & (INPUT_COMPLETE_COMMANDS | INPUT_COMPLETE_VARIABLES))
-        q = strrchr (word, '$');
+        q = have_escaped_input ? strrchr_unquoted (word, '$') : strrchr (word, '$');
     if (flags & INPUT_COMPLETE_HOSTNAMES)    
-        r = strrchr (word, '@');
-    if (q && q [1] == '(' && INPUT_COMPLETE_COMMANDS){
+        r = have_escaped_input ? strrchr_unquoted (word, '@') : strrchr (word, '@');
+    if (q && q [1] == '(' && (flags & INPUT_COMPLETE_COMMANDS)){
     	if (q > p)
     	    p = q + 1;
     	q = NULL;
@@ -713,6 +732,9 @@ try_complete (char *text, int *start, int *end, int flags)
         matches = completion_matches (word, command_completion_function);
         
     else if (!matches && (flags & INPUT_COMPLETE_FILENAMES)){
+	if (have_escaped_input) {
+	    word = name_unquote(word, 1);
+	}
     	if (is_cd)
     	    ignore_filenames = 1;
     	matches = completion_matches (word, filename_completion_function);
@@ -914,11 +936,22 @@ complete_engine (WInput *in, int what_to_do)
     	free_completions (in);
     if (!in->completions){
     	end = in->point;
+#if WANT_SMART_COMPLETE
+	if (!(in->completion_flags & INPUT_COMPLETE_COMMANDS)) {
+	    have_escaped_input = 0;
+	    start = 0;
+	} else {
+	    /* XXX we're the command-line */
+	    have_escaped_input = 1;
+#endif
         for (start = end ? end - 1 : 0; start > -1; start--)
-    	    if (strchr (" \t;|<>", in->buffer [start]))
+    	    if (strchr (" \t;|<>", in->buffer [start]) && !is_quoted(in->buffer, start))
     	        break;
     	if (start < end)
     	    start++;
+#if WANT_SMART_COMPLETE
+	}
+#endif
     	in->completions = try_complete (in->buffer, &start, &end, in->completion_flags);
     }
     if (in->completions){
