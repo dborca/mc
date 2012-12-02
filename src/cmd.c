@@ -46,6 +46,7 @@
 #include "tty.h"		/* LINES */
 #include "dialog.h"		/* Widget */
 #include "view.h"		/* mc_internal_viewer() */
+#include "zdiff.h"		/* view_diff_cmd() */
 #include "wtools.h"		/* message() */
 #include "widget.h"		/* push_history() */
 #include "key.h"		/* application_keypad_mode() */
@@ -866,6 +867,14 @@ compare_dirs_cmd (void)
 		   "listing mode to use this command "));
     }
 }
+ 
+#ifdef USE_DIFF_VIEW
+void
+diff_view_cmd (void)
+{
+    view_diff_cmd(NULL, NULL, NULL);
+}
+#endif
 
 void
 history_cmd (void)

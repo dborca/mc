@@ -166,6 +166,16 @@ tty_print_string(const char *s)
 }
 
 extern void
+tty_print_nstring(const char *s, int n)
+{
+#ifdef HAVE_SLANG
+    SLsmg_write_nstring(str_unconst(s), n);
+#else
+    addnstr(s, n);
+#endif
+}
+
+extern void
 tty_print_one_hline(void)
 {
     if (slow_terminal)

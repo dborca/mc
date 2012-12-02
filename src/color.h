@@ -85,6 +85,13 @@ extern int alarm_colors[4];
 #define ERROR_HOT_NORMAL   IF_COLOR (38, 0)
 #define ERROR_HOT_FOCUS    IF_COLOR (39, 0)
 
+/* Diff colors */
+#define DFFADD_COLOR	IF_COLOR(40, A_BOLD)
+#define DFFCHG_COLOR	IF_COLOR(41, A_UNDERLINE)
+#define DFFCHH_COLOR	IF_COLOR(42, A_UNDERLINE)
+#define DFFCHD_COLOR	IF_COLOR(43, A_REVERSE)
+#define DFFDEL_COLOR	IF_COLOR(44, A_REVERSE)
+
 #ifdef HAVE_SLANG
 #   define CTYPE const char *
 #else

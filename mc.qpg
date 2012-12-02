@@ -138,6 +138,7 @@
          <QPG:Add file="./src/mcmfmt" permissions="0755" install="/opt/bin/"/>
 	 <QPG:Add file="mcedit" install="/opt/bin/" filetype="symlink" linkto="mc"/>
  	 <QPG:Add file="mcview" install="/opt/bin/" filetype="symlink" linkto="mc"/>
+ 	 <QPG:Add file="mcdiff" install="/opt/bin/" filetype="symlink" linkto="mc"/>
       </QPG:Files>
 
       <QPG:PackageFilter>

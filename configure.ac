@@ -525,6 +525,22 @@ else
 fi
 
 
+dnl
+dnl Diff viewer support.
+dnl
+AC_ARG_WITH(diff,
+        [  --with-diff              Enable diff viewer [[yes]]])
+
+if test x$with_diff != xno; then
+	AC_DEFINE(USE_DIFF_VIEW, 1, [Define to enable diff viewer])
+	use_diff=yes
+	diff_msg="yes"
+	AC_MSG_NOTICE([using diff viewer])
+else
+	diff_msg="no"
+fi
+
+
 dnl Check if the OS is supported by the console saver.
 cons_saver=""
 case $host_os in
@@ -601,6 +617,7 @@ if test -n "$use_smbfs"; then
 fi
 
 AM_CONDITIONAL(USE_EDIT, [test -n "$use_edit"])
+AM_CONDITIONAL(USE_DIFF, [test -n "$use_diff"])
 AM_CONDITIONAL(USE_VFS, [test "x$use_vfs" = xyes])
 AM_CONDITIONAL(USE_VFS_NET, [test x"$use_net_code" = xtrue])
 AM_CONDITIONAL(USE_UNDEL_FS, [test -n "$use_undelfs"])
@@ -651,7 +668,7 @@ vfs/extfs/urar
 vfs/extfs/uzip
 vfs/extfs/uzoo
 
-doc/mc.1 doc/mcedit.1 doc/mcview.1 doc/mcserv.8
+doc/mc.1 doc/mcedit.1 doc/mcview.1 doc/mcdiff.1 doc/mcserv.8
 doc/es/mc.1 doc/es/Makefile
 doc/hu/mc.1 doc/hu/Makefile
 doc/it/mc.1 doc/it/Makefile
@@ -678,6 +695,7 @@ Configuration:
   X11 events support:         ${textmode_x11_support}
   With subshell support:      ${subshell}
   Internal editor:            ${edit_msg}
+  Diff viewer:                ${diff_msg}
   Support for charset:        ${charset_msg}
   Dialog switcher:            ${dlgswitch_msg}
 "
