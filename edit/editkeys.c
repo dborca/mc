@@ -106,6 +106,7 @@ static const edit_key_map_type common_key_map[] = {
     { ALT ('t'), CK_Sort },
     { ALT ('x'), CK_Filter },
     { ALT ('u'), CK_ExtCmd },
+    { ALT ('_'), CK_Toggle_Tab_TWS },
     { ALT ('<'), CK_Beginning_Of_Text },
     { ALT ('>'), CK_End_Of_Text },
     { ALT ('d'), CK_Delete_Word_Right },

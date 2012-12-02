@@ -371,17 +371,18 @@ edit_draw_this_line (WEdit *edit, long b, long row, long start_col,
 		    i = TAB_SIZE - ((int) col % TAB_SIZE);
 		    col += i;
 		    if (use_colors && visible_tabs) {
-			c = (*p & ~MOD_CURSOR) | MOD_WHITESPACE;
+			int mod_whitespace = (*p & MOD_MARKED) ? 0 : MOD_WHITESPACE;
+			c = (*p & ~MOD_CURSOR) | mod_whitespace;
 			if (i > 2) {
-			    *(p++) |= '<' | MOD_WHITESPACE;
+			    *(p++) |= '<' | mod_whitespace;
 			    while (--i > 1)
 				*(p++) = c | '-';
 			    *(p++) = c | '>';
 			} else if (i > 1) {
-			    *(p++) |= '<' | MOD_WHITESPACE;
+			    *(p++) |= '<' | mod_whitespace;
 			    *(p++) = c | '>';
 			} else
-			    *(p++) |= '>' | MOD_WHITESPACE;
+			    *(p++) |= '>' | mod_whitespace;
 		    } else if (use_colors && visible_tws && q >= tws) {
 			*p |= '.' | MOD_WHITESPACE;
 			c = *(p++) & ~MOD_CURSOR;

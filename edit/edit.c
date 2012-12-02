@@ -2577,6 +2577,12 @@ edit_execute_cmd (WEdit *edit, int command, int char_for_insertion)
 	    edit_load_syntax (edit, NULL, option_syntax_type);
 	edit->force |= REDRAW_PAGE;
 	break;
+    case CK_Toggle_Tab_TWS:
+	visible_tabs ^= 1;
+	visible_tws ^= 1;
+	edit->force |= REDRAW_PAGE;
+	break;
+
 
     case CK_Find:
 	edit_search_cmd (edit, 0);
