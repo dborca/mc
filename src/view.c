@@ -160,6 +160,8 @@ struct WView {
     gboolean text_wrap_mode;	/* Wrap text lines to fit them on the screen */
     gboolean magic_mode;	/* Preprocess the file using external programs */
     gboolean monitor_mode;	/* Monitor mode a la "tail -f" */
+    gboolean strings_mode;	/* Strings highlighting */
+    int string_length;
 
     /* Additional editor state */
     gboolean hexedit_lownibble;	/* Are we editing the last significant nibble? */
@@ -1975,6 +1977,40 @@ view_display_hex (WView *view)
     view->dpy_end = from;
 }
 
+static int
+is_string_char (int c)
+{
+    if (c > 0) {
+	if (c >= 'a' && c <= 'z') {
+	    return 1;
+	}
+	if (c >= 'A' && c <= 'Z') {
+	    return 1;
+	}
+	if (c >= '0' && c <= '9') {
+	    return 1;
+	}
+	return (strchr("#$%&\'(),-./:<>@[]_", c) != NULL);
+    }
+    return 0;
+}
+
+
+static int
+get_string_length(WView * view, offset_type from)
+{
+    int len = 1;
+    for (;;) {
+	int c = get_byte_indexed (view, from, len);
+	if (!is_string_char(c) && (c != ' ' || len < 1)) {
+	    break;
+	}
+	len++;
+    }
+    return len;
+}
+
+
 static void
 view_display_text (WView * view)
 {
@@ -2026,6 +2062,19 @@ view_display_text (WView * view)
 		else
 		    tty_setcolor (MARKED_COLOR);
 		continue;
+	    }
+	}
+
+	if (view->strings_mode) {
+	    if (view->string_length) {
+		view->string_length--;
+		tty_setcolor (VIEW_UNDERLINED_COLOR/*MARKED_COLOR*/);
+	    } else if (is_string_char(c)) {
+		int len = get_string_length(view, from);
+		if (len >= 3) {
+		    view->string_length = len - 1;
+		    tty_setcolor (VIEW_UNDERLINED_COLOR/*MARKED_COLOR*/);
+		}
 	    }
 	}
 
@@ -2112,6 +2161,7 @@ view_update (WView *view)
 	buttonbar_redraw (view->widget.parent);
     }
 
+    view->string_length = 0;
     if (view->dirty > dirt_limit) {
 	/* Too many updates skipped -> force a update */
 	display (view);
@@ -3165,6 +3215,15 @@ view_toggle_ruler_cmd (WView *view)
     view->dirty++;
 }
 
+static void
+view_toggle_strings_cmd (WView *view)
+{
+    view->strings_mode ^= TRUE;
+    /* Had a refresh here */
+    view->dirty++;
+    view_update (view);
+}
+
 /* {{{ Event handling }}} */
 
 static void view_cmk_move_up (void *w, int n) {
@@ -3247,6 +3306,10 @@ view_handle_key (WView *view, int c)
 	/* toggle ruler */
     case ALT ('r'):
 	view_toggle_ruler_cmd (view);
+	return MSG_HANDLED;
+
+    case KEY_F (19):
+	view_toggle_strings_cmd (view);
 	return MSG_HANDLED;
 
     case 'h':
@@ -3655,6 +3718,8 @@ view_new (int y, int x, int cols, int lines, int is_panel)
     view->text_nroff_mode = FALSE;
     view->text_wrap_mode = FALSE;
     view->magic_mode = FALSE;
+    view->strings_mode = FALSE;
+    view->string_length = 0;
 
     view->hexedit_lownibble = FALSE;
     view->coord_cache       = NULL;
