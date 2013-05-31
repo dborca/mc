@@ -255,6 +255,10 @@ type/^ELF
 	#Open=%var{PAGER:more} %f
 	View=%view{ascii} file %f && nm %f
 
+type/^Mach-O
+	#Open=%var{PAGER:more} %f
+	View=%view{ascii} file %f && nm %f
+
 # Asm
 shell/.s
 	Open=%var{EDITOR:vi} %f
