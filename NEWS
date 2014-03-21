@@ -38,6 +38,7 @@ Version 4.6.3b.
 	- Added mountpoint selector: F11 for left panel, F12 for right panel.
 	- Added simple panel scrollbar.
 	- Added relative symlink (C-x v).
+	- Added Skip All to panel operations.
 	- Added support for .xz and .lzma archives.
 	- Added geeqie as alternate image viewer in mc.ext.
 	- Common search history in Editor, Viewer, Diff Viewer and Find File.

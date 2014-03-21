@@ -2100,19 +2100,22 @@ real_do_file_error (FileOpContext *ctx, enum OperationMode mode, const char *err
 
     msg = mode == Foreground ? MSG_ERROR : _(" Background process error ");
     result =
-	query_dialog (msg, error, D_ERROR, 3, _("&Skip"), _("&Retry"),
+	query_dialog (msg, error, D_ERROR, 4, _("&Skip"), _("Skip A&ll"), _("&Retry"),
 		      _("&Abort"));
 
     switch (result) {
+    case 1:
+	ctx->skip_all = 1;
+	/* FALLTHRU */
     case 0:
 	do_refresh ();
 	return FILE_SKIP;
 
-    case 1:
+    case 2:
 	do_refresh ();
 	return FILE_RETRY;
 
-    case 2:
+    case 3:
     default:
 	return FILE_ABORT;
     }
@@ -2122,6 +2125,11 @@ real_do_file_error (FileOpContext *ctx, enum OperationMode mode, const char *err
 int
 file_error (FileOpContext *ctx, const char *format, const char *file)
 {
+    if (ctx->skip_all) {
+	/*do_refresh();*/
+	return FILE_SKIP;
+    }
+
     g_snprintf (cmd_buf, sizeof (cmd_buf), format,
 		path_trunc (file, 30), unix_error_string (errno));
 
@@ -2134,6 +2142,11 @@ files_error (FileOpContext *ctx, const char *format, const char *file1, const ch
 {
     char nfile1[16];
     char nfile2[16];
+
+    if (ctx->skip_all) {
+	/*do_refresh();*/
+	return FILE_SKIP;
+    }
 
     strcpy (nfile1, path_trunc (file1, 15));
     strcpy (nfile2, path_trunc (file2, 15));

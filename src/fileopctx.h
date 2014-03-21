@@ -54,6 +54,9 @@ typedef struct FileOpContext {
 	/* Result from the recursive query */
 	int recursive_result;
 
+	/* Skip all */
+	int skip_all;
+
 	/* Whether to do a reget */
 	off_t do_reget;
 

@@ -187,6 +187,7 @@ file_op_context_create_ui (FileOpContext *ctx, int with_eta)
     fifteen = "";
 
     ctx->recursive_result = 0;
+    ctx->skip_all = 0;
 
     ui->replace_result = 0;
     ui->showing_eta = with_eta;
