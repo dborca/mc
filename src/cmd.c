@@ -506,13 +506,52 @@ select_unselect_cmd (const char *title, int cmd)
     int c;
     int dirflag = 0;
 
-    reg_exp = input_dialog (title, "", easy_patterns ? "*" : ".");
+#define SELECT_DLG_HEIGHT 8
+#define SELECT_DLG_WIDTH 58
+
+    static int select_case = 0;
+    static char *last_select_string = NULL;
+
+    int reflags = REG_ICASE;
+    int tselect_case = select_case;
+
+    static QuickWidget quick_widgets[] = {
+	{quick_button,   6,  10,               5, SELECT_DLG_HEIGHT, N_("&Cancel"),         0,  B_CANCEL, 0, 0, NULL},
+	{quick_button,   2,  10,               5, SELECT_DLG_HEIGHT, N_("&OK"),             0,  B_ENTER,  0, 0, NULL},
+	{quick_checkbox, 4,  SELECT_DLG_WIDTH, 4, SELECT_DLG_HEIGHT, N_("case &Sensitive"), 0,  0,        0, 0, NULL},
+	{quick_input,    3,  SELECT_DLG_WIDTH, 3, SELECT_DLG_HEIGHT, "",                    52, 0,        0, 0, NULL},
+	{quick_label,    2,  SELECT_DLG_WIDTH, 2, SELECT_DLG_HEIGHT, "",                    0,  0,        0, 0, NULL},
+	NULL_QuickWidget
+    };
+    static QuickDialog Quick_input = {
+	SELECT_DLG_WIDTH, SELECT_DLG_HEIGHT, -1, 0, NULL, "", quick_widgets, 0
+    };
+
+    /* XXX I should have used INPUT_LAST_TEXT, but I want to fill in something */
+    Quick_input.title = title;
+    quick_widgets[2].result = &tselect_case;
+    quick_widgets[3].str_result = &reg_exp;
+    quick_widgets[3].text = last_select_string ? last_select_string : (easy_patterns ? "*" : ".");
+    quick_widgets[3].histname = title;
+
+    reg_exp = NULL;
+    if (quick_dialog (&Quick_input) == B_CANCEL)
+	return;
+
+    select_case = tselect_case;
+
     if (!reg_exp)
 	return;
     if (!*reg_exp) {
 	g_free (reg_exp);
 	return;
     }
+
+    if (select_case) {
+	reflags &= ~REG_ICASE;
+    }
+    g_free (last_select_string);
+    last_select_string = g_strdup(reg_exp);
 
     reg_exp_t = reg_exp;
 
@@ -537,7 +576,7 @@ select_unselect_cmd (const char *title, int cmd)
 		continue;
 	}
 	c = regexp_match (reg_exp_t, current_panel->dir.list[i].fname,
-			  match_file, 0);
+			  match_file, reflags);
 	if (c == -1) {
 	    message (1, MSG_ERROR, _("  Malformed regular expression  "));
 	    g_free (reg_exp);
