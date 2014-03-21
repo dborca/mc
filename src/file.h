@@ -23,7 +23,7 @@ extern int file_op_compute_totals;
 /* Error reporting routines */
 
 /* Report error with one file */
-int file_error (const char *format, const char *file);
+int file_error (FileOpContext *ctx, const char *format, const char *file);
 
 /* Query routines */
 

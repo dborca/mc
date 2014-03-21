@@ -126,12 +126,12 @@ const char *op_names[3] = {
 static int query_replace (FileOpContext * ctx, const char *destname,
 			  struct stat *_s_stat, struct stat *_d_stat);
 static int query_recursive (FileOpContext * ctx, const char *s);
-static int do_file_error (const char *str);
+static int do_file_error (FileOpContext *ctx, const char *str);
 static int erase_dir_iff_empty (FileOpContext *ctx, const char *s);
 static int erase_file (FileOpContext *ctx, const char *s,
 		       off_t *progress_count, double *progress_bytes,
 		       int is_toplevel_file);
-static int files_error (const char *format, const char *file1,
+static int files_error (FileOpContext *ctx, const char *format, const char *file1,
 			const char *file2);
 
 
@@ -355,7 +355,7 @@ make_symlink (FileOpContext *ctx, const char *src_path, const char *dst_path)
     len = mc_readlink (src_path, link_target, MC_MAXPATHLEN - 1);
     if (len < 0) {
 	return_status =
-	    file_error (_(" Cannot read source link \"%s\" \n %s "),
+	    file_error (ctx, _(" Cannot read source link \"%s\" \n %s "),
 			src_path);
 	if (return_status == FILE_RETRY)
 	    goto retry_src_readlink;
@@ -415,7 +415,7 @@ make_symlink (FileOpContext *ctx, const char *src_path, const char *dst_path)
 		return FILE_CONT;
     }
     return_status =
-	file_error (_(" Cannot create target symlink \"%s\" \n %s "),
+	file_error (ctx, _(" Cannot create target symlink \"%s\" \n %s "),
 		    dst_path);
     if (return_status == FILE_RETRY)
 	goto retry_dst_symlink;
@@ -488,7 +488,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
     while (mc_stat (dst_path, &sb2) == 0) {
 	if (S_ISDIR (sb2.st_mode)) {
 	    return_status =
-		file_error (_(" Cannot overwrite directory \"%s\" \n %s "),
+		file_error (ctx, _(" Cannot overwrite directory \"%s\" \n %s "),
 			    dst_path);
 	    if (return_status == FILE_RETRY)
 		continue;
@@ -500,7 +500,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
 
     while ((*ctx->stat_func) (src_path, &sb)) {
 	return_status =
-	    file_error (_(" Cannot stat source file \"%s\" \n %s "),
+	    file_error (ctx, _(" Cannot stat source file \"%s\" \n %s "),
 			src_path);
 	if (return_status != FILE_RETRY)
 	    return return_status;
@@ -544,7 +544,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
 		S_ISSOCK (sb.st_mode)) {
 	    while (mc_mknod (dst_path, sb.st_mode & ctx->umask_kill,
 		    sb.st_rdev) < 0) {
-		return_status = file_error (
+		return_status = file_error (ctx,
 		    _(" Cannot create special file \"%s\" \n %s "), dst_path);
 		if (return_status == FILE_RETRY)
 		    continue;
@@ -554,7 +554,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
 
 	    while (ctx->preserve_uidgid
 		   && mc_chown (dst_path, sb.st_uid, sb.st_gid)) {
-		temp_status = file_error (
+		temp_status = file_error (ctx,
 			_(" Cannot chown target file \"%s\" \n %s "), dst_path);
 		if (temp_status == FILE_RETRY)
 		    continue;
@@ -562,7 +562,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
 	    }
 	    while (ctx->preserve &&
 		   mc_chmod (dst_path, sb.st_mode & ctx->umask_kill)) {
-		temp_status = file_error (
+		temp_status = file_error (ctx,
 			_(" Cannot chmod target file \"%s\" \n %s "), dst_path);
 		if (temp_status == FILE_RETRY)
 		    continue;
@@ -575,7 +575,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
     gettimeofday (&tv_transfer_start, (struct timezone *) NULL);
 
     while ((src_desc = mc_open (src_path, O_RDONLY | O_LINEAR)) < 0) {
-	return_status = file_error (
+	return_status = file_error (ctx,
 		_(" Cannot open source file \"%s\" \n %s "), src_path);
 	if (return_status == FILE_RETRY)
 	    continue;
@@ -592,7 +592,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
     }
 
     while (mc_fstat (src_desc, &sb)) {
-	return_status = file_error (
+	return_status = file_error (ctx,
 		_(" Cannot fstat source file \"%s\" \n %s "), src_path);
 	if (return_status == FILE_RETRY)
 	    continue;
@@ -612,7 +612,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
 
     while ((dest_desc = mc_open (dst_path, O_WRONLY | (ctx->do_append ?
     	    O_APPEND : (O_CREAT | O_TRUNC)), 0600)) < 0) {
-	return_status = file_error (
+	return_status = file_error (ctx,
 		_(" Cannot create target file \"%s\" \n %s "), dst_path);
 	if (return_status == FILE_RETRY)
 	    continue;
@@ -626,7 +626,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
 
     /* Find out the optimal buffer size.  */
     while (mc_fstat (dest_desc, &sb)) {
-	return_status = file_error (
+	return_status = file_error (ctx,
 		_(" Cannot fstat target file \"%s\" \n %s "), dst_path);
 	if (return_status == FILE_RETRY)
 	    continue;
@@ -658,7 +658,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
 		n_read = -1;
 	    else
 		while ((n_read = mc_read (src_desc, buf, buf_size)) < 0) {
-		    return_status = file_error (
+		    return_status = file_error (ctx,
 			_(" Cannot read source file \"%s\" \n %s "), src_path);
 		    if (return_status == FILE_RETRY)
 			continue;
@@ -690,7 +690,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
 			continue;
 		    }
 		    return_status =
-			file_error (_(" Cannot write target file \"%s\" \n %s "),
+			file_error (ctx, _(" Cannot write target file \"%s\" \n %s "),
 				dst_path);
 		    if (return_status != FILE_RETRY)
 			goto ret;
@@ -751,7 +751,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
     g_free (buf);
 
     while (src_desc != -1 && mc_close (src_desc) < 0) {
-	temp_status = file_error (
+	temp_status = file_error (ctx,
 		_(" Cannot close source file \"%s\" \n %s "), src_path);
 	if (temp_status == FILE_RETRY)
 	    continue;
@@ -761,7 +761,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
     }
 
     while (dest_desc != -1 && mc_close (dest_desc) < 0) {
-	temp_status = file_error (
+	temp_status = file_error (ctx,
 		_(" Cannot close target file \"%s\" \n %s "), dst_path);
 	if (temp_status == FILE_RETRY)
 	    continue;
@@ -781,7 +781,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
 	/* Copy has succeeded */
 	if (!appending && ctx->preserve_uidgid) {
 	    while (mc_chown (dst_path, src_uid, src_gid)) {
-		temp_status = file_error (
+		temp_status = file_error (ctx,
 			_(" Cannot chown target file \"%s\" \n %s "), dst_path);
 		if (temp_status == FILE_RETRY)
 		    continue;
@@ -792,7 +792,7 @@ copy_file_file (FileOpContext *ctx, const char *src_path, const char *dst_path,
 
 	if (!appending) {
 	    while (mc_chmod (dst_path, (src_mode & ctx->umask_kill))) {
-		temp_status = file_error (
+		temp_status = file_error (ctx,
 			_(" Cannot chmod target file \"%s\" \n %s "), dst_path);
 		if (temp_status != FILE_RETRY) {
 		    return_status = temp_status;
@@ -834,7 +834,7 @@ copy_dir_dir (FileOpContext *ctx, const char *s, const char *d, int toplevel,
   retry_src_stat:
     if ((*ctx->stat_func) (s, &cbuf)) {
 	return_status =
-	    file_error (_(" Cannot stat source directory \"%s\" \n %s "), s);
+	    file_error (ctx, _(" Cannot stat source directory \"%s\" \n %s "), s);
 	if (return_status == FILE_RETRY)
 	    goto retry_src_stat;
 	return return_status;
@@ -859,7 +859,7 @@ copy_dir_dir (FileOpContext *ctx, const char *s, const char *d, int toplevel,
 
     if (!S_ISDIR (cbuf.st_mode)) {
 	return_status =
-	    file_error (_(" Source \"%s\" is not a directory \n %s "), s);
+	    file_error (ctx, _(" Source \"%s\" is not a directory \n %s "), s);
 	if (return_status == FILE_RETRY)
 	    goto retry_src_stat;
 	return return_status;
@@ -901,7 +901,7 @@ copy_dir_dir (FileOpContext *ctx, const char *s, const char *d, int toplevel,
 	 * or ( /bla doesn't exist )       /tmp/\* to /bla     ->  /bla/\*
 	 */
 	if (!S_ISDIR (buf.st_mode)) {
-	    return_status = file_error(
+	    return_status = file_error(ctx,
 		_(" Destination \"%s\" must be a directory \n %s "), d);
 	    if (return_status == FILE_RETRY)
 		goto retry_dst_stat;
@@ -917,7 +917,7 @@ copy_dir_dir (FileOpContext *ctx, const char *s, const char *d, int toplevel,
 	}
     }
     while (my_mkdir (dest_dir, (cbuf.st_mode & ctx->umask_kill) | S_IRWXU)) {
-	return_status = file_error (
+	return_status = file_error (ctx,
 	    _(" Cannot create target directory \"%s\" \n %s "), dest_dir);
 	if (return_status != FILE_RETRY)
 	    goto ret;
@@ -933,7 +933,7 @@ copy_dir_dir (FileOpContext *ctx, const char *s, const char *d, int toplevel,
 
     if (ctx->preserve_uidgid) {
 	while (mc_chown (dest_dir, cbuf.st_uid, cbuf.st_gid)) {
-	    return_status = file_error (
+	    return_status = file_error (ctx,
 		_(" Cannot chown target directory \"%s\" \n %s "), dest_dir);
 	    if (return_status != FILE_RETRY)
 		goto ret;
@@ -1033,7 +1033,7 @@ move_file_file (FileOpContext *ctx, const char *s, const char *d,
     while (mc_lstat (s, &src_stats) != 0) {
 	/* Source doesn't exist */
 	return_status =
-	    file_error (_(" Cannot stat file \"%s\" \n %s "), s);
+	    file_error (ctx, _(" Cannot stat file \"%s\" \n %s "), s);
 	if (return_status != FILE_RETRY)
 	    return return_status;
     }
@@ -1096,7 +1096,7 @@ move_file_file (FileOpContext *ctx, const char *s, const char *d,
 
     if (errno != EXDEV) {
 	return_status =
-	    files_error (_(" Cannot move file \"%s\" to \"%s\" \n %s "), s,
+	    files_error (ctx, _(" Cannot move file \"%s\" to \"%s\" \n %s "), s,
 			 d);
 	if (return_status == FILE_RETRY)
 	    goto retry_rename;
@@ -1122,7 +1122,7 @@ move_file_file (FileOpContext *ctx, const char *s, const char *d,
   retry_src_remove:
     if (mc_unlink (s)) {
 	return_status =
-	    file_error (_(" Cannot remove file \"%s\" \n %s "), s);
+	    file_error (ctx, _(" Cannot remove file \"%s\" \n %s "), s);
 	if (return_status == FILE_RETRY)
 	    goto retry_src_remove;
 	return return_status;
@@ -1193,12 +1193,12 @@ move_dir_dir (FileOpContext *ctx, const char *s, const char *d,
 	} else {
 	    if (S_ISDIR (destbuf.st_mode))
 		return_status =
-		    file_error (_
+		    file_error (ctx, _
 				(" Cannot overwrite directory \"%s\" %s "),
 				destdir);
 	    else
 		return_status =
-		    file_error (_(" Cannot overwrite file \"%s\" %s "),
+		    file_error (ctx, _(" Cannot overwrite file \"%s\" %s "),
 				destdir);
 	    if (return_status == FILE_RETRY)
 		goto retry_dst_stat;
@@ -1215,7 +1215,7 @@ move_dir_dir (FileOpContext *ctx, const char *s, const char *d,
 
     if (errno != EXDEV) {
 	return_status =
-	    files_error (_
+	    files_error (ctx, _
 			 (" Cannot move directory \"%s\" to \"%s\" \n %s "),
 			 s, d);
 	if (return_status == FILE_RETRY)
@@ -1283,7 +1283,7 @@ erase_file (FileOpContext *ctx, const char *s, off_t *progress_count,
 
     while (mc_unlink (s)) {
 	return_status =
-	    file_error (_(" Cannot delete file \"%s\" \n %s "), s);
+	    file_error (ctx, _(" Cannot delete file \"%s\" \n %s "), s);
 	if (return_status != FILE_RETRY)
 	    return return_status;
     }
@@ -1343,7 +1343,7 @@ recursive_erase (FileOpContext *ctx, const char *s, off_t *progress_count,
 
     while (my_rmdir (s)) {
 	return_status =
-	    file_error (_(" Cannot remove directory \"%s\" \n %s "), s);
+	    file_error (ctx, _(" Cannot remove directory \"%s\" \n %s "), s);
 	if (return_status != FILE_RETRY)
 	    return return_status;
     }
@@ -1412,7 +1412,7 @@ erase_dir (FileOpContext *ctx, const char *s, off_t *progress_count,
 
     while (my_rmdir (s) == -1) {
 	error =
-	    file_error (_(" Cannot remove directory \"%s\" \n %s "), s);
+	    file_error (ctx, _(" Cannot remove directory \"%s\" \n %s "), s);
 	if (error != FILE_RETRY)
 	    return error;
     }
@@ -1440,7 +1440,7 @@ erase_dir_iff_empty (FileOpContext *ctx, const char *s)
 
     while (my_rmdir (s)) {
 	error =
-	    file_error (_(" Cannot remove directory \"%s\" \n %s "), s);
+	    file_error (ctx, _(" Cannot remove directory \"%s\" \n %s "), s);
 	if (error != FILE_RETRY)
 	    return error;
     }
@@ -1948,7 +1948,7 @@ panel_operate (void *source_panel, FileOperation operation,
 	    dst_result = mc_stat (dest, &dst_stat);
 	    if (dst_result == 0 && !S_ISDIR (dst_stat.st_mode)) {
 		if (file_error
-		    (_(" Destination \"%s\" must be a directory \n %s "),
+		    (ctx, _(" Destination \"%s\" must be a directory \n %s "),
 		     dest) == FILE_RETRY)
 		    goto retry_many_dst_stat;
 		goto clean_up;
@@ -2093,7 +2093,7 @@ panel_operate (void *source_panel, FileOperation operation,
 /* {{{ Query/status report routines */
 
 static int
-real_do_file_error (enum OperationMode mode, const char *error)
+real_do_file_error (FileOpContext *ctx, enum OperationMode mode, const char *error)
 {
     int result;
     const char *msg;
@@ -2120,17 +2120,17 @@ real_do_file_error (enum OperationMode mode, const char *error)
 
 /* Report error with one file */
 int
-file_error (const char *format, const char *file)
+file_error (FileOpContext *ctx, const char *format, const char *file)
 {
     g_snprintf (cmd_buf, sizeof (cmd_buf), format,
 		path_trunc (file, 30), unix_error_string (errno));
 
-    return do_file_error (cmd_buf);
+    return do_file_error (ctx, cmd_buf);
 }
 
 /* Report error with two files */
 static int
-files_error (const char *format, const char *file1, const char *file2)
+files_error (FileOpContext *ctx, const char *format, const char *file1, const char *file2)
 {
     char nfile1[16];
     char nfile2[16];
@@ -2141,7 +2141,7 @@ files_error (const char *format, const char *file1, const char *file2)
     g_snprintf (cmd_buf, sizeof (cmd_buf), format, nfile1, nfile2,
 		unix_error_string (errno));
 
-    return do_file_error (cmd_buf);
+    return do_file_error (ctx, cmd_buf);
 }
 
 static int
@@ -2189,13 +2189,13 @@ real_query_recursive (FileOpContext *ctx, enum OperationMode mode, const char *s
 
 #ifdef WITH_BACKGROUND
 static int
-do_file_error (const char *str)
+do_file_error (FileOpContext *ctx, const char *str)
 {
     if (we_are_background)
-	return parent_call (real_do_file_error, NULL, 1, strlen (str),
+	return parent_call (real_do_file_error, ctx, 1, strlen (str),
 			    str);
     else
-	return real_do_file_error (Foreground, str);
+	return real_do_file_error (ctx, Foreground, str);
 }
 
 static int
@@ -2225,9 +2225,9 @@ query_replace (FileOpContext *ctx, const char *destname, struct stat *_s_stat,
 
 #else
 static int
-do_file_error (const char *str)
+do_file_error (FileOpContext *ctx, const char *str)
 {
-    return real_do_file_error (Foreground, str);
+    return real_do_file_error (ctx, Foreground, str);
 }
 
 static int
