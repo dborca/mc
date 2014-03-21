@@ -654,8 +654,8 @@ static void tree_move (WTree *tree, const char *default_dest)
 	return;
     }
     if (!S_ISDIR (buf.st_mode)){
-	file_error (_(" Destination \"%s\" must be a directory \n %s "),
-		    dest);
+	message (1, MSG_ERROR, _(" Destination \"%s\" must be a directory \n %s "),
+		    dest, unix_error_string (errno));
 	g_free (dest);
 	return;
     }
