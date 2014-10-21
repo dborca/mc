@@ -28,6 +28,7 @@ Version 4.6.3b.
 	- Fixed viewer to remember file position; new checkbox in Options.
 	- Hack to improve status bar readability.
 	- Added antiword as a filter for MS Word files in mc.ext.
+	- Added plutil as a filter for Apple binary plist in mc.ext.
 
 - Core functionality.
 	- Added --with-glib0 option to configure with included glib.

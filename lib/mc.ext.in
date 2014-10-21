@@ -517,6 +517,10 @@ regex/\.([dD][vV][iI])$
 regex/\.([Tt][Ee][Xx])$
 	Open=%var{EDITOR:vi} %f
 
+# Apple bplist
+type/^Apple\ binary\ property\ list
+	View=%view{ascii} plutil -p %f
+
 
 ### Miscellaneous ###
 
