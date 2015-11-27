@@ -244,7 +244,7 @@ button_scan_hotkey (WButton *b)
     char *cp = strchr (b->text, '&');
 
     if (cp != NULL && cp[1] != '\0') {
-	g_strlcpy (cp, cp + 1, strlen (cp));
+	memmove (cp, cp + 1, strlen (cp));
 	b->hotkey = tolower ((unsigned char) *cp);
 	b->hotpos = cp - b->text;
     }

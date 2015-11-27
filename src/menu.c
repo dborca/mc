@@ -42,7 +42,7 @@ menu_scan_hotkey (Menu *menu)
     char *cp = strchr (menu->name, '&');
 
     if (cp != NULL && cp[1] != '\0') {
-	g_strlcpy (cp, cp + 1, strlen (cp));
+	memmove (cp, cp + 1, strlen (cp));
 	menu->hotkey = tolower ((unsigned char) *cp);
     } else
 	menu->hotkey = 0;
