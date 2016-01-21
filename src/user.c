@@ -610,7 +610,7 @@ execute_menu_command (WEdit *edit_widget, const char *commands)
 		char *tmp;
 		*parameter = 0;
 		parameter = input_dialog (_(" Parameter "), prompt, "");
-		if (!parameter || !*parameter){
+		if (!parameter){
 		    /* User canceled */
 		    fclose (cmd_file);
 		    unlink (file_name);
