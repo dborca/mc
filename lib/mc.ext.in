@@ -541,6 +541,10 @@ regex/\.([dD][bB][fF])$
        Open=%view{ascii} dbview %f
        View=%view{ascii} dbview -b %f
 
+# sqlite3
+type/^SQLite 3.x database
+       View=%view{ascii} sqlite3 %f .dump
+
 # REXX script
 regex/\.(rexx?|cmd)$
        Open=rexx %f %{Enter parameters};echo "Press ENTER";read y
