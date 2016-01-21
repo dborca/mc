@@ -45,7 +45,7 @@ struct hash_table {
 static unsigned int
 direct_hash(const void *p)
 {
-    return (unsigned int)p;
+    return (long)p;
 }
 
 
