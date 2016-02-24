@@ -504,7 +504,7 @@ view_display_file (WDiff *view, int ord,
 	    if (diffs[k] & (1 << ord)) {
 		stop = 0;
 		sprintf(buf + i, "%02X ", ch & 0xFF);
-		ch = convert_to_display_c(ch);
+		ch = convert_to_display_c(ch & 0xFF);
 		if (!is_printable(ch)) {
 		    ch = '.';
 		}
@@ -1039,6 +1039,13 @@ view_handle_key (WDiff *view, int c)
 	case ESC_CHAR:
 	    view->view_quit = 1;
 	    return MSG_HANDLED;
+
+#ifdef HAVE_CHARSET
+	case XCTRL ('t'):
+	    do_select_codepage ();
+	    view_update (view);
+	    return MSG_HANDLED;
+#endif				/* HAVE_CHARSET */
     }
 
     /* Key not used */
