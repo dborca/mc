@@ -20,6 +20,7 @@ Version 4.6.3b.
 	- Fixed edit_sort_cmd to clear block file.
 	- Fixed a case where SaveAs inherited wrong read-only permissions.
 	- Fixed vertical/horizontal offsets, useful for bordering.
+	- "Compile, link and run" asks for run-time parameters.
 
 - Viewer.
 	- Added string highlighting mode (F19).
@@ -60,6 +61,7 @@ Version 4.6.3b.
 	- Changed behavior of % in command-line.  It is treated as a simple
 	  character, unless it is quoted with a backslash; in which case, it
 	  will be substituted with the usual MC macros.
+	- Prefill execute_menu_command() from history.
 
 - VFS.
 	- fish: added support for specifying port.
@@ -67,6 +69,7 @@ Version 4.6.3b.
 	- fish: fixed handling of unreadable files.
 	- extfs: fixed iso9660 to work with newer isoinfo.
 	- extfs: fixed patchfs to correctly recognize file types.
+	- extfs: added sqlite3 support.
 	- extfs: added hfsplus support.
 	- extfs: added xar support.
 
