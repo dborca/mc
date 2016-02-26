@@ -30,6 +30,7 @@
 #include "key.h"
 #include "wtools.h"
 #include "charsets.h"
+#include "selcodepage.h"
 #include "zutil.h"
 #include "ydiff.h"
 #include "xdiff.h"
