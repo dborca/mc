@@ -209,7 +209,7 @@ static void tar_free_archive (struct vfs_class *me, struct vfs_s_super *archive)
 }
 
 /* As we open one archive at a time, it is safe to have this static */
-static int current_tar_position = 0;
+static off_t current_tar_position = 0;
 
 /* Returns fd of the open tar file */
 static int

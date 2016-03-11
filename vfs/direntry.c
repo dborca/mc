@@ -848,7 +848,7 @@ vfs_s_write (void *fh, const char *buffer, int count)
     return 0;
 }
 
-static int
+static off_t
 vfs_s_lseek (void *fh, off_t offset, int whence)
 {
     off_t size = FH->ino->st.st_size;
@@ -857,7 +857,7 @@ vfs_s_lseek (void *fh, off_t offset, int whence)
         vfs_die ("cannot lseek() after linear_read!");
 
     if (FH->handle != -1){	/* If we have local file opened, we want to work with it */
-	int retval = lseek (FH->handle, offset, whence);
+	off_t retval = lseek (FH->handle, offset, whence);
 	if (retval == -1)
 	    FH->ino->super->me->verrno = errno;
 	return retval;

@@ -70,7 +70,7 @@ struct vfs_class {
     int (*rename) (struct vfs_class *me, const char *p1, const char *p2);
     int (*chdir) (struct vfs_class *me, const char *path);
     int (*ferrno) (struct vfs_class *me);
-    int (*lseek) (void *vfs_info, off_t offset, int whence);
+    off_t (*lseek) (void *vfs_info, off_t offset, int whence);
     int (*mknod) (struct vfs_class *me, const char *path, int mode, int dev);
 
     vfsid (*getid) (struct vfs_class *me, const char *path);

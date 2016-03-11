@@ -64,6 +64,7 @@ Version 4.6.3b.
 	- Prefill execute_menu_command() from history.
 
 - VFS.
+	- Fixed lseek (mcfs still broken, though).
 	- fish: added support for specifying port.
 	- fish: fixed symlinks.
 	- fish: fixed handling of unreadable files.

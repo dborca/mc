@@ -1140,7 +1140,7 @@ extfs_chdir (struct vfs_class *me, const char *path)
     return 0;
 }
 
-static int extfs_lseek (void *data, off_t offset, int whence)
+static off_t extfs_lseek (void *data, off_t offset, int whence)
 {
     struct pseudofile *file = (struct pseudofile *) data;
 

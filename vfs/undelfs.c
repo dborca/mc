@@ -648,7 +648,7 @@ undelfs_chdir(struct vfs_class *me, const char *path)
 }
 
 /* this has to stay here for now: vfs layer does not know how to emulate it */
-static int
+static off_t
 undelfs_lseek(void *vfs_info, off_t offset, int whence)
 {
     return -1;

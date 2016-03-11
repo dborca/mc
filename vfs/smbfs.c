@@ -1624,7 +1624,7 @@ smbfs_stat (struct vfs_class * me, const char *path, struct stat *buf)
 
 #define smbfs_lstat smbfs_stat	/* no symlinks on smb filesystem? */
 
-static int
+static off_t
 smbfs_lseek (void *data, off_t offset, int whence)
 {
     smbfs_handle *info = (smbfs_handle *) data;

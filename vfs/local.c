@@ -226,7 +226,7 @@ local_chdir (struct vfs_class *me, const char *path)
     return chdir (path);
 }
 
-int
+off_t
 local_lseek (void *data, off_t offset, int whence)
 {
     int fd = * (int *) data;

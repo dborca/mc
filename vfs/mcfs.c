@@ -1068,7 +1068,7 @@ mcfs_chdir (struct vfs_class *me, const char *path)
     return 0;
 }
 
-static int
+static off_t
 mcfs_lseek (void *data, off_t offset, int whence)
 {
     mcfs_handle *info = (mcfs_handle *) data;

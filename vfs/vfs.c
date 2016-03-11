@@ -633,7 +633,7 @@ vfs_get_current_dir (void)
 off_t mc_lseek (int fd, off_t offset, int whence)
 {
     struct vfs_class *vfs;
-    int result;
+    off_t result;
 
     if (fd == -1)
 	return -1;
