@@ -58,6 +58,7 @@ static struct DLG_NODE *mc_dialogs = NULL;	/* List of (background) dialogs: file
 static struct DLG_NODE *mc_cur_dlg = NULL;	/* Currently active dialog */
 static struct DLG_NODE *mc_manager = NULL;	/* File manager dialog - there can be only one */
 static int dlgswitch_pending = 0;		/* Is there any dialogs that we have to run after returning to the manager from another dialog */
+static int dlgswitch_listbox = 0;		/* We are in dlgswitch selector, no point in allowing recursion */
 
 
 static unsigned char
@@ -329,6 +330,11 @@ dlgswitch_select (void)
 	return;
     }
 
+    if (dlgswitch_listbox) {
+	return;
+    }
+    dlgswitch_listbox = 1;
+
     rows = 0;
     cols = 0;
     for (e = mc_dialogs; e != NULL; e = e->next) {
@@ -341,6 +347,7 @@ dlgswitch_select (void)
 
     listbox = create_listbox_window(cols + 2, rows, _(" Dialogs "), "[Dialog selector]");
     if (listbox == NULL) {
+	dlgswitch_listbox = 0;
 	return;
     }
     for (i = 0, e = mc_dialogs; e != NULL; e = e->next, i++) {
@@ -349,6 +356,7 @@ dlgswitch_select (void)
 	free(text);
     }
     rv = run_listbox(listbox);
+    dlgswitch_listbox = 0;
     if (rv != -1) {
 	for (i = 0, e = mc_dialogs; e != NULL; e = e->next, i++) {
 	    if (i == rv) {
@@ -366,6 +374,9 @@ dlgswitch_goto_next (void)
     struct DLG_NODE *e;
 
     if (midnight_shutdown || mc_cur_dlg == NULL) {
+	return;
+    }
+    if (dlgswitch_listbox) {
 	return;
     }
 
@@ -388,6 +399,9 @@ dlgswitch_goto_prev (void)
     struct DLG_NODE *e, *p;
 
     if (midnight_shutdown || mc_cur_dlg == NULL) {
+	return;
+    }
+    if (dlgswitch_listbox) {
 	return;
     }
 
