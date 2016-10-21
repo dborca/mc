@@ -1213,45 +1213,77 @@ int edit_block_delete_cmd (WEdit * edit)
     return edit_block_delete (edit);
 }
 
-void
-edit_block_tolower_cmd (WEdit *edit)
+static void
+edit_block_transform (WEdit *edit, int (*transform)(int))
 {
     long start, end;
     if (eval_marks(edit, &start, &end)) {
 	return;
     }
-    edit_cursor_move(edit, start - edit->curs1);
-    for (; start < end; start++) {
-	int c = edit_get_byte(edit, edit->curs1);
-	int l = tolower(c);
-	if (l == c) {
+    if (column_highlighting) {
+#if 1
+	int c1 = min (edit->column1, edit->column2);
+	int c2 = max (edit->column1, edit->column2);
+	int column = c1;
+	edit_cursor_move(edit, start - edit->curs1);
+	for (; start < end; start++, column++) {
+	    int c = edit_get_byte(edit, edit->curs1);
+	    if (c == '\n') {
+		column = -1;
+	    } else if (column >= c1 && column < c2) {
+		int l = transform(c);
+		if (l != c) {
+		    edit_insert(edit, l);
+		    edit_delete(edit);
+		    continue;
+		}
+	    }
 	    edit_cursor_move(edit, 1);
-	    continue;
 	}
-	edit_insert(edit, l);
-	edit_delete(edit);
+#else
+	int i, size;
+	unsigned char *copy_buf;
+	if (edit->mark2 < 0) {
+	    edit_mark_cmd (edit, 0);
+	}
+	copy_buf = edit_get_block (edit, start, end, &size);
+	for (i = 0; i < size; i++) {
+	    copy_buf[i] = transform(copy_buf[i]);
+	}
+	edit_push_markers (edit);
+	edit_cursor_move (edit, start - edit->curs1);
+	edit_delete_column_of_text (edit);
+	edit_cursor_move (edit, start - edit->curs1);
+	edit_insert_column_of_text (edit, copy_buf, size, abs (edit->column2 - edit->column1));
+	g_free (copy_buf);
+	edit_set_markers (edit, 0, 0, 0, 0);
+#endif
+    } else {
+	edit_cursor_move(edit, start - edit->curs1);
+	for (; start < end; start++) {
+	    int c = edit_get_byte(edit, edit->curs1);
+	    int l = transform(c);
+	    if (l != c) {
+		edit_insert(edit, l);
+		edit_delete(edit);
+		continue;
+	    }
+	    edit_cursor_move(edit, 1);
+	}
     }
+}
+
+void
+edit_block_tolower_cmd (WEdit *edit)
+{
+    edit_block_transform (edit, tolower);
     edit->force |= REDRAW_PAGE;
 }
 
 void
 edit_block_toupper_cmd (WEdit *edit)
 {
-    long start, end;
-    if (eval_marks(edit, &start, &end)) {
-	return;
-    }
-    edit_cursor_move(edit, start - edit->curs1);
-    for (; start < end; start++) {
-	int c = edit_get_byte(edit, edit->curs1);
-	int u = toupper(c);
-	if (u == c) {
-	    edit_cursor_move(edit, 1);
-	    continue;
-	}
-	edit_insert(edit, u);
-	edit_delete(edit);
-    }
+    edit_block_transform (edit, toupper);
     edit->force |= REDRAW_PAGE;
 }
 
