@@ -185,15 +185,15 @@ edit_finish_editor(void *edit_dlg, WEdit *wedit, void *edit_menubar)
 }
 
 void
-edit_run_editor(void *_edit_dlg, WEdit *_wedit, void *_edit_menubar)
+edit_run_editor(void *_edit_dlg, WEdit *_wedit, void **edit_menubar_p)
 {
     Dlg_head *edit_dlg = _edit_dlg;
     wedit = _wedit;
-    edit_menubar = _edit_menubar;
+    edit_menubar = *edit_menubar_p;
 
     run_dlg (edit_dlg);
     if (!edit_dlg->soft_exit) {
-	edit_finish_editor(_edit_dlg, _wedit, _edit_menubar);
+	edit_finish_editor(_edit_dlg, _wedit, edit_menubar);
     }
 }
 #endif
@@ -235,8 +235,8 @@ edit_file (const char *_file, int line)
     add_widget (edit_dlg, edit_menubar);
 
 #ifdef USE_DLGSWITCH
-    dlgswitch_add(edit_dlg, DLG_TYPE_EDIT, _file, wedit, edit_menubar);
-    edit_run_editor(edit_dlg, wedit, edit_menubar);
+    dlgswitch_add(edit_dlg, DLG_TYPE_EDIT, _file, wedit, &edit_menubar);
+    edit_run_editor(edit_dlg, wedit, (void **)&edit_menubar);
 #else
     run_dlg (edit_dlg);
 
