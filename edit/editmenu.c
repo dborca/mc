@@ -375,7 +375,7 @@ static menu_entry FileMenuEmacs[] =
 static menu_entry EditMenu[] =
 {
     {' ', N_("&Toggle Mark       F3"), 'T', menu_mark_cmd},
-    {' ', N_("&Mark Columns    S-F3"), 'T', menu_markcol_cmd},
+    {' ', N_("Mark Column&s    S-F3"), 'S', menu_markcol_cmd},
     {' ', "", ' ', 0},
     {' ', N_("Toggle &ins/overw Ins"), 'I', menu_ins_cmd},
     {' ', "", ' ', 0},
@@ -410,8 +410,8 @@ static menu_entry SearReplMenu[] =
 
 static menu_entry CmdMenu[] =
 {
-    {' ', N_("&Go to line...            M-l"), 'G', menu_goto_line},
-    {' ', N_("Go to matching &bracket   M-b"), 'B', menu_goto_bracket},
+    {' ', N_("&Go to line...           M-l"), 'G', menu_goto_line},
+    {' ', N_("Go to matching &bracket  M-b"), 'B', menu_goto_bracket},
     {' ', "", ' ', 0},
     {' ', N_("Insert &literal...       C-q"), 'L', menu_lit_cmd},
     {' ', "", ' ', 0},
@@ -435,8 +435,8 @@ static menu_entry CmdMenu[] =
 
 static menu_entry CmdMenuEmacs[] =
 {
-    {' ', N_("&Go to line...            M-l"), 'G', menu_goto_line},
-    {' ', N_("Go to matching &bracket   M-b"), 'B', menu_goto_bracket},
+    {' ', N_("&Go to line...           M-l"), 'G', menu_goto_line},
+    {' ', N_("Go to matching &bracket  M-b"), 'B', menu_goto_bracket},
     {' ', "", ' ', 0},
     {' ', N_("Insert &literal...       C-q"), 'L', menu_lit_cmd},
     {' ', "", ' ', 0},

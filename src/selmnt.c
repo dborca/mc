@@ -69,7 +69,7 @@ select_mnt (WPanel *p)
     }
 
     rows = 0;
-    cols = 0;
+    cols = 11;
     for (e = list; e != NULL; e = e->me_next) {
 	int len = strlen(e->me_mountdir);
 	if (cols < len) {

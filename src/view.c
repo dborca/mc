@@ -161,7 +161,7 @@ struct WView {
     gboolean magic_mode;	/* Preprocess the file using external programs */
     gboolean monitor_mode;	/* Monitor mode a la "tail -f" */
     gboolean strings_mode;	/* Strings highlighting */
-    int string_length;
+    size_t string_length;
 
     /* Additional editor state */
     gboolean hexedit_lownibble;	/* Are we editing the last significant nibble? */
@@ -1996,10 +1996,10 @@ is_string_char (int c)
 }
 
 
-static int
+static size_t
 get_string_length(WView * view, offset_type from)
 {
-    int len = 1;
+    size_t len = 1;
     for (;;) {
 	int c = get_byte_indexed (view, from, len);
 	if (!is_string_char(c) && (c != ' ' || len < 1)) {
@@ -2070,7 +2070,7 @@ view_display_text (WView * view)
 		view->string_length--;
 		tty_setcolor (VIEW_UNDERLINED_COLOR/*MARKED_COLOR*/);
 	    } else if (is_string_char(c)) {
-		int len = get_string_length(view, from);
+		size_t len = get_string_length(view, from);
 		if (len >= 3) {
 		    view->string_length = len - 1;
 		    tty_setcolor (VIEW_UNDERLINED_COLOR/*MARKED_COLOR*/);

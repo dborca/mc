@@ -38,7 +38,7 @@
 
 #ifdef USE_DIFF_VIEW
 
-#define VERTICAL_SPLIT		0
+#define VERTICAL_SPLIT		1
 
 #define REINIT_READ_LEFT	(1 << 0)
 #define REINIT_READ_RIGHT	(1 << 1)
@@ -204,17 +204,6 @@ scan_unsigned (const char **str, off_t *n)
 
 
 static int
-get_nibbles (off_t n)
-{
-    int d = 1;
-    while (n >>= 4) {
-	d++;
-    }
-    return d;
-}
-
-
-static int
 find_prev_hunk (WDiff *view)
 {
     int i;
@@ -347,38 +336,38 @@ static void
 view_compute_split (WDiff *view, int i)
 {
     view->bias += i;
-#if !VERTICAL_SPLIT
+#if VERTICAL_SPLIT
     if (view->bias < 2 - view->half1) {
 	view->bias = 2 - view->half1;
     }
     if (view->bias > view->half2 - 2) {
 	view->bias = view->half2 - 2;
     }
-#else	/* VERTICAL_SPLIT */
+#else	/* !VERTICAL_SPLIT */
     if (view->bias < 1 - view->half1) {
 	view->bias = 1 - view->half1;
     }
     if (view->bias > view->half2 - 1) {
 	view->bias = view->half2 - 1;
     }
-#endif	/* VERTICAL_SPLIT */
+#endif	/* !VERTICAL_SPLIT */
 }
 
 
 static void
 view_compute_areas (WDiff *view)
 {
-#if !VERTICAL_SPLIT
+#if VERTICAL_SPLIT
     view->size = LINES - 2;
     view->half1 = COLS / 2;
     view->half2 = COLS - view->half1;
-#else	/* VERTICAL_SPLIT */
+#else	/* !VERTICAL_SPLIT */
     int height = LINES - 3;
 
     view->size = COLS;
     view->half1 = height / 2;
     view->half2 = height - view->half1;
-#endif	/* VERTICAL_SPLIT */
+#endif	/* !VERTICAL_SPLIT */
 
     view_compute_split(view, 0);
 }
@@ -456,9 +445,9 @@ view_fini (WDiff *view)
 static int
 view_display_file (WDiff *view, int ord,
 		   int r, int c, int height, int width,
-#if VERTICAL_SPLIT
+#if !VERTICAL_SPLIT
 		   int total_height,
-#endif	/* VERTICAL_SPLIT */
+#endif	/* !VERTICAL_SPLIT */
 		   int owidth)
 {
     int i, j, k;
@@ -554,9 +543,9 @@ view_display_file (WDiff *view, int ord,
 	    break;
 	}
     }
-#if VERTICAL_SPLIT
+#if !VERTICAL_SPLIT
     height = total_height;
-#endif	/* VERTICAL_SPLIT */
+#endif	/* !VERTICAL_SPLIT */
     if (j < height) {
 	memset(buf, ' ', width);
 	buf[width] = '\0';
@@ -580,11 +569,11 @@ view_status (WDiff *view, int ord, int width, int pos)
 
     tty_setcolor(SELECTED_COLOR);
 
-#if !VERTICAL_SPLIT
+#if VERTICAL_SPLIT
     tty_gotoyx(0, pos);
-#else	/* VERTICAL_SPLIT */
+#else	/* !VERTICAL_SPLIT */
     tty_gotoyx(pos, 0);
-#endif	/* VERTICAL_SPLIT */
+#endif	/* !VERTICAL_SPLIT */
 
     filename_width = width - 22;
     if (filename_width < 8) {
@@ -624,7 +613,7 @@ view_update (WDiff *view)
     }
 
     /* XXX some more sanity checks (LINES/COLS)? */
-#if !VERTICAL_SPLIT
+#if VERTICAL_SPLIT
     if (size < 2) {
 	return;
     }
@@ -645,7 +634,7 @@ view_update (WDiff *view)
 	owidth = 4;
 #endif
     }
-#else	/* VERTICAL_SPLIT */
+#else	/* !VERTICAL_SPLIT */
 
     size1 = view->half1 + view->bias;
     size2 = view->half2 - view->bias;
@@ -665,20 +654,20 @@ view_update (WDiff *view)
 	    owidth = 8;
 	}
     }
-#endif	/* VERTICAL_SPLIT */
+#endif	/* !VERTICAL_SPLIT */
 
     if (view->new_frame) {
 	Dlg_head *h = view->widget.parent;
 
-#if !VERTICAL_SPLIT
+#if VERTICAL_SPLIT
 	min_size = size1;
 	if (size2 && size2 < size1) {
 	    min_size = size2;
 	}
 	view->nbytes = min_size - 2 - 1;
-#else	/* VERTICAL_SPLIT */
+#else	/* !VERTICAL_SPLIT */
 	view->nbytes = size - 1;
-#endif	/* VERTICAL_SPLIT */
+#endif	/* !VERTICAL_SPLIT */
 	if (owidth) {
 	    if (view->nbytes - 4 >= owidth + 1) {
 		view->nbytes -= owidth + 1;
@@ -697,11 +686,11 @@ view_update (WDiff *view)
 	    }
 	}
 	view->nbytes -= view->subtract;
-#if !VERTICAL_SPLIT
+#if VERTICAL_SPLIT
 	pbytes = view->nbytes * (size - 2);
-#else	/* VERTICAL_SPLIT */
+#else	/* !VERTICAL_SPLIT */
 	pbytes = view->nbytes * min_size;
-#endif	/* VERTICAL_SPLIT */
+#endif	/* !VERTICAL_SPLIT */
 	if (redo_diff(view, REINIT_REALLOC, pbytes) < 0) {
 	    return;
 	}
@@ -709,14 +698,14 @@ view_update (WDiff *view)
 	view->last[1] = view->offs[1];
 
 	tty_setcolor(NORMAL_COLOR);
-#if !VERTICAL_SPLIT
+#if VERTICAL_SPLIT
 	if (size1 > 1) {
 	    draw_double_box(h, 1, 0,     size, size1);
 	}
 	if (size2 > 1) {
 	    draw_double_box(h, 1, size1, size, size2);
 	}
-#endif	/* !VERTICAL_SPLIT */
+#endif	/* VERTICAL_SPLIT */
 
 	view->new_frame = 0;
     }
@@ -736,7 +725,7 @@ view_update (WDiff *view)
 	view->last[1] = view->offs[1];
     }
 
-#if !VERTICAL_SPLIT
+#if VERTICAL_SPLIT
     if (size1 > 2) {
 	view_status(view, view->ord,     size1, 0);
 	view_display_file(view, view->ord,     2,         1,         size - 2, size1 - 2,        owidth);
@@ -745,7 +734,7 @@ view_update (WDiff *view)
 	view_status(view, view->ord ^ 1, size2, size1);
 	view_display_file(view, view->ord ^ 1, 2,         size1 + 1, size - 2, size2 - 2,        owidth);
     }
-#else	/* VERTICAL_SPLIT */
+#else	/* !VERTICAL_SPLIT */
     if (size1 > 0) {
 	view_status(view, view->ord,     size, 0);
 	view_display_file(view, view->ord,     1,         0,         min_size, size,      size1, owidth);
@@ -754,7 +743,7 @@ view_update (WDiff *view)
 	view_status(view, view->ord ^ 1, size, size1 + 1);
 	view_display_file(view, view->ord ^ 1, size1 + 2, 0,         min_size, size,      size2, owidth);
     }
-#endif	/* VERTICAL_SPLIT */
+#endif	/* !VERTICAL_SPLIT */
 }
 
 

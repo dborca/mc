@@ -440,48 +440,6 @@ memmem_dumb_nocase (const unsigned char *haystack, size_t i, size_t hlen, const 
 }
 
 
-static const unsigned char *
-memmem_dumb_rev (const unsigned char *haystack, size_t i, size_t hlen, const unsigned char *needle, size_t nlen, int whole)
-{
-    while (i--) {
-	if (haystack[i] == needle[0] && i + nlen <= hlen) {
-	    size_t j;
-	    for (j = 1; j < nlen; j++) {
-		if (haystack[i + j] != needle[j]) {
-		    break;
-		}
-	    }
-	    if (j == nlen && IS_WHOLE_OR_DONT_CARE()) {
-		return haystack + i;
-	    }
-	}
-    }
-
-    return NULL;
-}
-
-
-static const unsigned char *
-memmem_dumb_rev_nocase (const unsigned char *haystack, size_t i, size_t hlen, const unsigned char *needle, size_t nlen, int whole)
-{
-    while (i--) {
-	if (toupper(haystack[i]) == toupper(needle[0]) && i + nlen <= hlen) {
-	    size_t j;
-	    for (j = 1; j < nlen; j++) {
-		if (toupper(haystack[i + j]) != toupper(needle[j])) {
-		    break;
-		}
-	    }
-	    if (j == nlen && IS_WHOLE_OR_DONT_CARE()) {
-		return haystack + i;
-	    }
-	}
-    }
-
-    return NULL;
-}
-
-
 /* stuff *********************************************************************/
 
 

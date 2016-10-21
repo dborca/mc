@@ -1679,6 +1679,7 @@ is_binary (const char *file)
 	if (buf != NULL) {
 	    size = f_read(f, buf, size);
 	    binary = (memchr(buf, 0, size) != NULL);
+	    free(buf);
 	}
 	f_close(f);
     }

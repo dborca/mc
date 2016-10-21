@@ -691,8 +691,8 @@ my_statfs (struct my_statfs *myfs_stats, const char *path)
     struct fs_usage fs_use;
     int tries = 1;
 
-#if 1 /* XXX on systems with removable disks, always force rescan */
-    temp = NULL;
+#ifndef __ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__
+    temp = NULL; /* XXX on systems with removable disks, always force rescan */
 #endif
   retry:
     while (temp){

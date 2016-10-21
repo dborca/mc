@@ -124,6 +124,7 @@ dlgswitch_add (Dlg_head *h, DLG_TYPE type, const char *name, ...)
 		    va_end(ap);
 		}
 		break;
+#ifdef USE_INTERNAL_EDIT
 	    case DLG_TYPE_EDIT:
 		e->name = name ? concat_dir_and_file(current_panel->cwd, name) : strdup("<new>");
 		if (e->name != NULL) {
@@ -134,6 +135,7 @@ dlgswitch_add (Dlg_head *h, DLG_TYPE type, const char *name, ...)
 		    va_end(ap);
 		}
 		break;
+#endif
 	    case DLG_TYPE_MC:
 		e->name = strdup(name);
 		if (e->name != NULL) {
@@ -198,12 +200,14 @@ dlgswitch_get_title_len(struct DLG_NODE *e)
 	case DLG_TYPE_VIEW:
 	    len = strlen(" View: ") + strlen(e->name);
 	    break;
+#ifdef USE_INTERNAL_EDIT
 	case DLG_TYPE_EDIT:
 	    len = strlen(" Edit: ") + strlen(e->name);
 	    if (edit_file_modified(e->u.edit_data.wedit)) {
 		len += strlen(" (*)");
 	    }
 	    break;
+#endif
 	case DLG_TYPE_MC:
 	    len = strlen(" ") + strlen(e->name);
 	    break;
@@ -226,6 +230,7 @@ dlgswitch_get_title(struct DLG_NODE *e)
 		strcat(name, e->name);
 	    }
 	    break;
+#ifdef USE_INTERNAL_EDIT
 	case DLG_TYPE_EDIT:
 	    name = malloc(strlen(" Edit: ") + strlen(e->name) + 1 + strlen(" (*)"));
 	    if (name != NULL) {
@@ -236,6 +241,7 @@ dlgswitch_get_title(struct DLG_NODE *e)
 		}
 	    }
 	    break;
+#endif
 	case DLG_TYPE_MC:
 	    name = malloc(strlen(" ") + strlen(e->name) + 1);
 	    if (name != NULL) {
@@ -265,10 +271,12 @@ dlgswitch_process_pending(void)
 	    case DLG_TYPE_VIEW:
 		view_run_viewer(mc_cur_dlg->dlg, mc_cur_dlg->u.view_data.wview, NULL); /* XXX move_dir_p may not be valid anymore */
 		break;
+#ifdef USE_INTERNAL_EDIT
 	    case DLG_TYPE_EDIT:
 		edit_run_editor(mc_cur_dlg->dlg, mc_cur_dlg->u.edit_data.wedit, mc_cur_dlg->u.edit_data.edit_menubar);
 		update_panels (UP_OPTIMIZE, UP_KEEPSEL); /* XXX a bit heavy-handed */
 		break;
+#endif
 	    case DLG_TYPE_MC:
 		/* XXX DLG_TYPE_MC can't be pending */
 	    default:
@@ -440,6 +448,7 @@ dlgswitch_before_exit (void)
 	    case DLG_TYPE_VIEW:
 		view_finish_viewer(mc_cur_dlg->dlg, mc_cur_dlg->u.view_data.wview, NULL); /* XXX move_dir_p may not be valid anymore */
 		break;
+#ifdef USE_INTERNAL_EDIT
 	    case DLG_TYPE_EDIT:
 		if (edit_file_modified(mc_cur_dlg->u.edit_data.wedit)) {
 		    dlgswitch_pending = 1;
@@ -448,6 +457,7 @@ dlgswitch_before_exit (void)
 		}
 		edit_finish_editor(mc_cur_dlg->dlg, mc_cur_dlg->u.edit_data.wedit, mc_cur_dlg->u.edit_data.edit_menubar);
 		break;
+#endif
 	    case DLG_TYPE_MC:
 	    default:
 		break;

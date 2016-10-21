@@ -1371,17 +1371,17 @@ get_modifier (void)
 
 #if defined __linux__ || (defined __CYGWIN__ && defined TIOCLINUX)
     {
-	unsigned char modifiers = 6;
+	unsigned char modifiers[8] = { 6 };
 
-	if (ioctl (0, TIOCLINUX, &modifiers) < 0)
+	if (ioctl (0, TIOCLINUX, modifiers) < 0)
 	    return 0;
 
 	/* Translate Linux modifiers into mc modifiers */
-	if (modifiers & SHIFT_PRESSED)
+	if (*modifiers & SHIFT_PRESSED)
 	    result |= KEY_M_SHIFT;
-	if (modifiers & (ALTL_PRESSED | ALTR_PRESSED))
+	if (*modifiers & (ALTL_PRESSED | ALTR_PRESSED))
 	    result |= KEY_M_ALT;
-	if (modifiers & CONTROL_PRESSED)
+	if (*modifiers & CONTROL_PRESSED)
 	    result |= KEY_M_CTRL;
     }
 #endif				/* !__linux__ */
