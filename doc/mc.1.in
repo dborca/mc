@@ -2484,6 +2484,9 @@ Toggle string highlight.
 .B F
 Toggle 'follow' mode, ala tail -f.
 .PP
+.B *
+Highlight and save block (hex mode only).
+.PP
 It's possible to instruct the file viewer how to display a file, look
 at the
 .\"LINK2"

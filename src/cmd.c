@@ -232,6 +232,9 @@ do_view_cmd (int normal)
 	    break;
 	file_idx = scan_for_file (current_panel, file_idx, dir);
     }
+
+    /* HexView Save block may create files */
+    update_panels (UP_OPTIMIZE, UP_KEEPSEL);
 }
 
 /* Run user's preferred viewer on the currently selected file */

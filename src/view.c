@@ -156,6 +156,7 @@ struct WView {
     gboolean hex_mode;		/* Hexview or Hexedit */
     gboolean hexedit_mode;	/* Hexedit */
     gboolean hexview_in_text;	/* Is the hexview cursor in the text area? */
+    offset_type hex_mark;	/* Start of selected block in Hexedit */
     gboolean text_nroff_mode;	/* Nroff-style highlighting */
     gboolean text_wrap_mode;	/* Wrap text lines to fit them on the screen */
     gboolean magic_mode;	/* Preprocess the file using external programs */
@@ -1379,6 +1380,7 @@ static void
 view_toggle_hexedit_mode (WView *view)
 {
     view->hexedit_mode = !view->hexedit_mode;
+    view->hex_mark = -1;
     view->dpy_bbar_dirty = TRUE;
     view->dirty++;
 }
@@ -1742,7 +1744,15 @@ view_display_status (WView *view)
 	    offset_type filesize;
 	    filesize = view_get_filesize (view);
 	    widget_move (view, top, left + _43);
-	    if (!view_may_still_grow (view)) {
+	    if (view->hex_mark != -1) {
+		offset_type blocksize;
+		if (view->hex_mark > view->hex_cursor) {
+		    blocksize = view->hex_mark - view->hex_cursor;
+		} else {
+		    blocksize = view->hex_cursor - view->hex_mark;
+		}
+		tty_printf (_("Block 0x%08lx"), (unsigned long) (blocksize + 1));
+	    } else if (!view_may_still_grow (view)) {
 		tty_printf (_("%s bytes"), size_trunc (filesize));
 	    } else {
 		tty_printf (_(">= %s bytes"), size_trunc (filesize));
@@ -1876,6 +1886,7 @@ view_display_hex (WView *view)
 	tty_setcolor (NORMAL_COLOR);
 
 	for (bytes = 0; bytes < view->bytes_per_line; bytes++, from++) {
+	    int in_selection;
 
 	    if ((c = get_byte (view, from)) == -1)
 		break;
@@ -1901,8 +1912,13 @@ view_display_hex (WView *view)
 		curr = curr->next;
 	    }
 
+	    in_selection = (view->hex_mark != -1 &&
+		((from >= view->hex_mark && from <= view->hex_cursor) ||
+		 (from >= view->hex_cursor && from <= view->hex_mark)));
+
 	    /* Select the color for the hex number */
 	    tty_setcolor (
+		in_selection ? MARKED_SELECTED_COLOR :
 		boldflag == MARK_NORMAL ? NORMAL_COLOR :
 		boldflag == MARK_SELECTED ? MARKED_COLOR :
 		boldflag == MARK_CHANGED ? VIEW_UNDERLINED_COLOR :
@@ -1945,6 +1961,7 @@ view_display_hex (WView *view)
 	    /* Select the color for the character; this differs from the
 	     * hex color when boldflag == MARK_CURSOR */
 	    tty_setcolor (
+		in_selection ? MARKED_SELECTED_COLOR :
 		boldflag == MARK_NORMAL ? NORMAL_COLOR :
 		boldflag == MARK_SELECTED ? MARKED_COLOR :
 		boldflag == MARK_CHANGED ? VIEW_UNDERLINED_COLOR :
@@ -2948,6 +2965,55 @@ view_moveto_addr_cmd (WView *view)
 }
 
 static void
+view_hexedit_save_block (WView *view)
+{
+    char *savename = input_expand_dialog (_(" Save As "), _(" Enter file name: "), "");
+    if (savename) {
+	int fd, error = 2;
+	offset_type start = view->hex_mark;
+	offset_type end = view->hex_cursor;
+	if (start > end) {
+	    offset_type tmp = start;
+	    start = end;
+	    end = tmp;
+	}
+	fd = mc_open (savename, O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, 0644);
+	if (fd != -1) {
+	    struct hexedit_change_node *curr = view->change_list;
+	    while (curr && curr->offset < start) {
+		curr = curr->next;
+	    }
+	    while (start <= end) {
+		byte c;
+		if (curr != NULL && start == curr->offset) {
+		    c = curr->value;
+		    curr = curr->next;
+		} else {
+		    int ch = get_byte (view, start);
+		    if (ch == -1) {
+			break;
+		    }
+		    c = ch;
+		}
+		if (mc_write (fd, &c, 1) != 1) {
+		    break;
+		}
+		start++;
+	    }
+	    error = (start != end + 1);
+	    if (mc_close(fd) == -1) {
+		error = 3;
+	    }
+	}
+	if (error) {
+	    message (D_ERROR, _(" Save file "),
+		_(" Error while saving the file: %s \n"), savename);
+	}
+	g_free (savename);
+    }
+}
+
+static void
 view_hexedit_save_changes_cmd (WView *view)
 {
     (void) view_hexedit_save_changes (view);
@@ -3275,6 +3341,16 @@ view_handle_key (WView *view, int c)
 	if (view->hexedit_mode
 	    && view_handle_editkey (view, c) == MSG_HANDLED)
 	    return MSG_HANDLED;
+
+	if (c == '*') {
+	    if (view->hex_mark == -1) {
+		view->hex_mark = view->hex_cursor;
+	    } else {
+		view_hexedit_save_block(view);
+		view->hex_mark = -1;
+	    }
+	    return MSG_HANDLED;
+	}
     }
 
     if (check_left_right_keys (view, c))
@@ -3720,6 +3796,7 @@ view_new (int y, int x, int cols, int lines, int is_panel)
     view->magic_mode = FALSE;
     view->strings_mode = FALSE;
     view->string_length = 0;
+    view->hex_mark = -1;
 
     view->hexedit_lownibble = FALSE;
     view->coord_cache       = NULL;

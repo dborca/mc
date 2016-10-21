@@ -270,6 +270,7 @@ dlgswitch_process_pending(void)
 	switch (mc_cur_dlg->type) {
 	    case DLG_TYPE_VIEW:
 		view_run_viewer(mc_cur_dlg->dlg, mc_cur_dlg->u.view_data.wview, NULL); /* XXX move_dir_p may not be valid anymore */
+		/* XXX might want to update panels here, because of hexviewer save block */
 		break;
 #ifdef USE_INTERNAL_EDIT
 	    case DLG_TYPE_EDIT:
