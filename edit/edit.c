@@ -2183,8 +2183,10 @@ void edit_execute_key_command (WEdit *edit, int command, int char_for_insertion)
 	return;
     }
     if (edit->macro_i >= 0 && edit->macro_i < MAX_MACRO_LENGTH - 1) {
-	edit->macro[edit->macro_i].command = command;
-	edit->macro[edit->macro_i++].ch = char_for_insertion;
+	if (command != CK_Execute_Macro && command != CK_Begin_End_Macro) {
+	    edit->macro[edit->macro_i].command = command;
+	    edit->macro[edit->macro_i++].ch = char_for_insertion;
+	}
     }
 /* record the beginning of a set of editing actions initiated by a key press */
     if (command != CK_Undo && command != CK_Ext_Mode)
