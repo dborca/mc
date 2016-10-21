@@ -25,6 +25,7 @@ Version 4.6.3b.
 - Viewer.
 	- Added string highlighting mode (F19).
 	- Added block save in hex mode.  Shortcut is '*'.
+	- Added little-endian word/doubleword display (F14).
 	- Added monitor mode a la "tail -f".  The shortcut is uppercase F.
 	- Uniformized UI for search in all modes, now consistent with editor.
 	- Fixed viewer to remember file position; new checkbox in Options.

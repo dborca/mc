@@ -2487,6 +2487,9 @@ Toggle 'follow' mode, ala tail -f.
 .B *
 Highlight and save block (hex mode only).
 .PP
+.B F14
+Toggle little-endian words/doublewords (hex mode only).
+.PP
 It's possible to instruct the file viewer how to display a file, look
 at the
 .\"LINK2"

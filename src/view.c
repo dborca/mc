@@ -157,6 +157,7 @@ struct WView {
     gboolean hexedit_mode;	/* Hexedit */
     gboolean hexview_in_text;	/* Is the hexview cursor in the text area? */
     offset_type hex_mark;	/* Start of selected block in Hexedit */
+    unsigned hex_le_word;	/* Show little endian words */
     gboolean text_nroff_mode;	/* Nroff-style highlighting */
     gboolean text_wrap_mode;	/* Wrap text lines to fit them on the screen */
     gboolean magic_mode;	/* Preprocess the file using external programs */
@@ -1841,13 +1842,16 @@ view_display_ruler (WView *view)
 static void
 view_display_hex (WView *view)
 {
+    const int le_mask = view->hex_le_word - 1;
+    const int le_last = view->hex_le_word - 1;
+    const screen_dimen gsize = (le_last == 0) ? 13 : (le_last == 1) ? 11 : 10;
     const screen_dimen top = view->data_area.top;
     const screen_dimen left = view->data_area.left;
     const screen_dimen height = view->data_area.height;
     const screen_dimen width = view->data_area.width;
     const int ngroups = view->bytes_per_line / 4;
     const screen_dimen text_start =
-	8 + 13 * ngroups + ((width < 80) ? 0 : (ngroups - 1 + 1));
+	8 + gsize * ngroups + ((width < 80) ? 0 : (ngroups - 1 + 1));
     /* 8 characters are used for the file offset, and every hex group
      * takes 13 characters. On ``big'' screens, the groups are separated
      * by an extra vertical line, and there is an extra space before the
@@ -1863,6 +1867,8 @@ view_display_hex (WView *view)
 
     char hex_buff[10];	/* A temporary buffer for sprintf and mvwaddstr */
     int bytes;		/* Number of bytes already printed on the line */
+    int le_bytes[8];	/* A temporary buffer for chars in little-endian mode */
+    int le_modif[8];	/* A temporary buffer for keeping track of changed chars */
 
     view_display_clean (view);
 
@@ -1888,8 +1894,27 @@ view_display_hex (WView *view)
 	for (bytes = 0; bytes < view->bytes_per_line; bytes++, from++) {
 	    int in_selection;
 
-	    if ((c = get_byte (view, from)) == -1)
-		break;
+	    int inword = le_last - 2 * (bytes & le_mask);
+	    if ((bytes & le_mask) == 0) {
+		int j;
+		/* Read byte(s) and store them in reverse order. */
+		for (j = 0; j <= le_last; j++) {
+		    le_bytes[le_last - j] = get_byte_indexed (view, from, j);
+		    le_modif[le_last - j] = 0;
+		    /* Determine the value of the current byte */
+		    if (curr != NULL && from + j == curr->offset) {
+			le_bytes[le_last - j] = curr->value;
+			le_modif[le_last - j] = 1;
+			curr = curr->next;
+		    }
+		}
+		/* byte at 'from' offset failed, end it here! */
+		if (le_bytes[le_last] == -1) {
+		    break;
+		}
+	    }
+	    from += inword;
+	    c = le_bytes[bytes & le_mask];
 
 	    /* Save the cursor position for view_place_cursor() */
 	    if (from == view->hex_cursor && !view->hexview_in_text) {
@@ -1900,17 +1925,11 @@ view_display_hex (WView *view)
 	    /* Determine the state of the current byte */
 	    boldflag =
 		  (from == view->hex_cursor) ? MARK_CURSOR
-		: (curr != NULL && from == curr->offset) ? MARK_CHANGED
+		: le_modif[bytes & le_mask] ? MARK_CHANGED
 		: (view->search_start <= from &&
 		   from < view->search_start + view->search_length
 		  ) ? MARK_SELECTED
 		: MARK_NORMAL;
-
-	    /* Determine the value of the current byte */
-	    if (curr != NULL && from == curr->offset) {
-		c = curr->value;
-		curr = curr->next;
-	    }
 
 	    in_selection = (view->hex_mark != -1 &&
 		((from >= view->hex_mark && from <= view->hex_cursor) ||
@@ -1929,18 +1948,18 @@ view_display_hex (WView *view)
 	    /* Print the hex number */
 	    widget_move (view, top + row, left + col);
 	    if (col < width) {
-		tty_print_char (hex_char[c / 16]);
+		tty_print_char ((c == -1) ? ' ' : hex_char[c / 16]);
 		col += 1;
 	    }
 	    if (col < width) {
-		tty_print_char (hex_char[c % 16]);
+		tty_print_char ((c == -1) ? ' ' : hex_char[c % 16]);
 		col += 1;
 	    }
 
 	    /* Print the separator */
 	    tty_setcolor (NORMAL_COLOR);
 	    if (bytes != view->bytes_per_line - 1) {
-	    	if (col < width) {
+	    	if (col < width && (bytes & le_mask) == le_last) {
 		    tty_print_char (' ');
 		    col += 1;
 		}
@@ -1969,21 +1988,23 @@ view_display_hex (WView *view)
 		view->hexview_in_text ? VIEW_UNDERLINED_COLOR :
 		MARKED_SELECTED_COLOR);
 
-	    c = convert_to_display_c (c);
+	    if (c == -1) c = ' '; else c = convert_to_display_c (c);
 	    if (!is_printable (c))
 		c = '.';
 
 	    /* Print corresponding character on the text side */
 	    if (text_start + bytes < width) {
-		widget_move (view, top + row, left + text_start + bytes);
+		widget_move (view, top + row, left + text_start + bytes + inword);
 		tty_print_char (c);
 	    }
 
 	    /* Save the cursor position for view_place_cursor() */
 	    if (from == view->hex_cursor && view->hexview_in_text) {
 		view->cursor_row = row;
-		view->cursor_col = text_start + bytes;
+		view->cursor_col = text_start + bytes + inword;
 	    }
+
+	    from -= inword;
 	}
     }
 
@@ -3336,6 +3357,15 @@ view_handle_key (WView *view, int c)
 	case XCTRL ('f'):
 	    view_move_right (view, 1);
 	    return MSG_HANDLED;
+
+	case KEY_F (14):
+	    view->hex_le_word *= 2;
+	    if (view->hex_le_word > 4) {
+		view->hex_le_word = 1;
+	    }
+	    view->dirty++;
+	    view_update (view);
+	    return MSG_HANDLED;
 	}
 
 	if (view->hexedit_mode
@@ -3797,6 +3827,7 @@ view_new (int y, int x, int cols, int lines, int is_panel)
     view->strings_mode = FALSE;
     view->string_length = 0;
     view->hex_mark = -1;
+    view->hex_le_word = 1;
 
     view->hexedit_lownibble = FALSE;
     view->coord_cache       = NULL;
