@@ -36,6 +36,7 @@ extern int mcview_remember_file_position;
 #ifdef USE_DLGSWITCH
 void view_run_viewer (Dlg_head *view_dlg, WView *wview, int *move_dir_p);
 void view_finish_viewer (Dlg_head *view_dlg, WView *wview, int *move_dir_p);
+int view_file_modified (WView *wview);
 #endif
 
 #endif

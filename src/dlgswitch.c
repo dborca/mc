@@ -200,6 +200,9 @@ dlgswitch_get_title_len(struct DLG_NODE *e)
     switch (e->type) {
 	case DLG_TYPE_VIEW:
 	    len = strlen(" View: ") + strlen(e->name);
+	    if (view_file_modified(e->u.view_data.wview)) {
+		len += strlen(" (*)");
+	    }
 	    break;
 #ifdef USE_INTERNAL_EDIT
 	case DLG_TYPE_EDIT:
@@ -229,6 +232,9 @@ dlgswitch_get_title(struct DLG_NODE *e)
 	    if (name != NULL) {
 		strcpy(name, " View: ");
 		strcat(name, e->name);
+		if (view_file_modified(e->u.view_data.wview)) {
+		    strcat(name, " (*)");
+		}
 	    }
 	    break;
 #ifdef USE_INTERNAL_EDIT
@@ -461,6 +467,11 @@ dlgswitch_before_exit (void)
 	e = mc_cur_dlg->next;
 	switch (mc_cur_dlg->type) {
 	    case DLG_TYPE_VIEW:
+		if (view_file_modified(mc_cur_dlg->u.view_data.wview)) {
+		    dlgswitch_pending = 1;
+		    dlgswitch_process_pending();
+		    break;
+		}
 		view_finish_viewer(mc_cur_dlg->dlg, mc_cur_dlg->u.view_data.wview, NULL); /* XXX move_dir_p may not be valid anymore */
 		break;
 #ifdef USE_INTERNAL_EDIT

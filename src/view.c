@@ -3649,6 +3649,12 @@ view_dialog_callback (Dlg_head *h, dlg_msg_t msg, int parm)
 /* Real view only */
 
 #ifdef USE_DLGSWITCH
+int
+view_file_modified (WView *wview)
+{
+    return (wview->change_list != NULL);
+}
+
 void
 view_finish_viewer (Dlg_head *view_dlg, WView *wview, int *move_dir_p)
 {
