@@ -105,16 +105,6 @@ off_t f_seek (FBUF *fs, off_t off, int whence);
 
 
 /**
- * Seek to the beginning of file, thrashing read cache.
- *
- * \param fs file structure
- *
- * \return 0 if success, non-zero on error
- */
-off_t f_reset (FBUF *fs);
-
-
-/**
  * Write bytes to file.
  *
  * \param fs file structure
@@ -129,15 +119,13 @@ ssize_t f_write (FBUF *fs, const char *buf, size_t size);
 
 
 /**
- * Truncate file to the current position.
+ * Get file name or VFS local name.
  *
  * \param fs file structure
  *
- * \return current file size on success, negative on error
- *
- * \note thrashes read cache
+ * \return file name
  */
-off_t f_trunc (FBUF *fs);
+const char *f_getname (FBUF *fs);
 
 
 /**

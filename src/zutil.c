@@ -39,6 +39,7 @@
 
 #define FILE_READ_BUF	4096
 #define FILE_FLAG_TEMP	(1 << 0)
+#define FILE_FLAG_COPY	(1 << 1)
 
 #define FILE_DIRTY(fs)	\
     do {		\
@@ -53,61 +54,8 @@ struct FBUF {
     char *buf;
     int flags;
     void *data;
+    void *name;
 };
-
-
-/**
- * Try to open a temporary file.
- *
- * \param[out] name address of a pointer to store the temporary name
- *
- * \return file descriptor on success, negative on error
- *
- * \note the name is not altered if this function fails
- * \note tries mc_tmpdir() and then current directory
- */
-static int
-open_temp (void **name)
-{
-    int fd;
-    int len;
-    char *temp;
-    const char *pattern = "mcdiffXXXXXX";
-    const char *env = mc_tmpdir();
-
-    if (env == NULL) {
-	env = "";
-    }
-
-    len = strlen(env);
-    temp = malloc(len + 1 + strlen(pattern) + 1);
-    if (temp == NULL) {
-	return -1;
-    }
-
-    if (len) {
-	strcpy(temp, env);
-	if (temp[len - 1] != PATH_SEP) {
-	    temp[len++] = PATH_SEP;
-	}
-    }
-    strcpy(temp + len, pattern);
-
-    fd = mkstemp(temp);
-    if (fd < 0) {
-	if (len) {
-	    strcpy(temp, pattern);
-	    fd = mkstemp(temp);
-	}
-	if (fd < 0) {
-	    free(temp);
-	    return -1;
-	}
-    }
-
-    *name = temp;
-    return fd;
-}
 
 
 FBUF *
@@ -134,6 +82,7 @@ f_dopen (int fd)
     FILE_DIRTY(fs);
     fs->flags = 0;
     fs->data = NULL;
+    fs->name = NULL;
 
     return fs;
 }
@@ -143,10 +92,14 @@ int
 f_free (FBUF *fs)
 {
     int rv = 0;
-    if (fs->flags & FILE_FLAG_TEMP) {
-	rv = unlink(fs->data);
-	free(fs->data);
+    if (fs->flags & FILE_FLAG_COPY) {
+	rv = mc_ungetlocalcopy(fs->name, fs->data, FALSE);
+	g_free(fs->data);
     }
+    if (fs->flags & FILE_FLAG_TEMP) {
+	rv = unlink(fs->name);
+    }
+    g_free(fs->name);
     free(fs->buf);
     free(fs);
     return rv;
@@ -164,7 +117,7 @@ f_temp (void)
 	return NULL;
     }
 
-    fd = open_temp(&fs->data);
+    fd = mc_mkstemps((char **)&fs->name, "mcdiff", NULL);
     if (fd < 0) {
 	f_free(fs);
 	return NULL;
@@ -187,7 +140,22 @@ f_open (const char *filename, int flags)
 	return NULL;
     }
 
-    fd = open(filename, flags);
+    fs->name = g_strdup(filename);
+    if (!fs->name) {
+	f_free(fs);
+	return NULL;
+    }
+
+    if (vfs_file_is_local(filename)) {
+	fd = open(filename, flags);
+    } else {
+	fd = -1;
+	fs->data = mc_getlocalcopy(filename);
+	if (fs->data) {
+	    fs->flags = FILE_FLAG_COPY;
+	    fd = open(fs->data, flags);
+	}
+    }
     if (fd < 0) {
 	f_free(fs);
 	return NULL;
@@ -295,17 +263,6 @@ f_seek (FBUF *fs, off_t off, int whence)
 }
 
 
-off_t
-f_reset (FBUF *fs)
-{
-    off_t rv = lseek(fs->fd, 0, SEEK_SET);
-    if (rv != -1) {
-	FILE_DIRTY(fs);
-    }
-    return rv;
-}
-
-
 ssize_t
 f_write (FBUF *fs, const char *buf, size_t size)
 {
@@ -317,27 +274,24 @@ f_write (FBUF *fs, const char *buf, size_t size)
 }
 
 
-off_t
-f_trunc (FBUF *fs)
+const char *
+f_getname (FBUF *fs)
 {
-    off_t off = lseek(fs->fd, 0, SEEK_CUR);
-    if (off != -1) {
-	int rv = ftruncate(fs->fd, off);
-	if (rv != 0) {
-	    off = -1;
-	} else {
-	    FILE_DIRTY(fs);
-	}
+    if (fs->flags & FILE_FLAG_COPY) {
+	return fs->data;
     }
-    return off;
+    return fs->name;
 }
 
 
 int
 f_close (FBUF *fs)
 {
-    int rv = close(fs->fd);
-    f_free(fs);
+    int rv = -1;
+    if (fs) {
+	rv = close(fs->fd);
+	f_free(fs);
+    }
     return rv;
 }
 

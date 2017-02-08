@@ -43,6 +43,7 @@
 #define REINIT_READ_LEFT	(1 << 0)
 #define REINIT_READ_RIGHT	(1 << 1)
 #define REINIT_REALLOC		(1 << 2)
+#define REINIT_OPEN		(1 << 3)
 
 #define XDIFF_IN_LEFT		(1 << 0)
 #define XDIFF_IN_RIGHT		(1 << 1)
@@ -112,6 +113,18 @@ static int
 redo_diff (WDiff *view, int flags)
 {
     size_t pbytes = view->pbytes;
+    if (flags & REINIT_OPEN) {
+	FBUF *f[2];
+	f[0] = f_open(view->file[0], O_RDONLY);
+	f[1] = f_open(view->file[1], O_RDONLY);
+	if (f[0] == NULL || f[1] == NULL) {
+	    f_close(f[0]);
+	    f_close(f[1]);
+	    return -1;
+	}
+	view->f[0] = f[0];
+	view->f[1] = f[1];
+    }
     if (flags & REINIT_REALLOC) {
 	if (pbytes > view->maxmem) {
 	    void *p = realloc(view->diffs, 3 * pbytes);
@@ -492,33 +505,27 @@ view_compute_areas (WDiff *view)
 
 
 static int
-view_init (WDiff *view, const char *file1, const char *file2, const char *label1, const char *label2)
+view_init (WDiff *view, const char *file1, const char *file2)
 {
-    FBUF *f[2];
-
-    f[0] = f_open(file1, O_RDONLY);
-    if (f[0] == NULL) {
-	return -1;
-    }
-    f[1] = f_open(file2, O_RDONLY);
-    if (f[1] == NULL) {
-	f_close(f[0]);
-	return -1;
-    }
+    int rv;
 
     view->file[0] = file1;
     view->file[1] = file2;
-    view->label[0] = label1;
-    view->label[1] = label2;
-    view->f[0] = f[0];
-    view->f[1] = f[1];
+
+    rv = redo_diff(view, REINIT_OPEN);
+    if (rv) {
+	return -1;
+    }
+
+    view->pbytes = 0;
+    view->maxmem = 0;
     view->diffs = NULL;
     view->df[0].data = NULL;
     view->df[1].data = NULL;
     view->df[0].move = 1;
     view->df[1].move = 1;
-    view->df[0].end = f_seek(f[0], 0, SEEK_END);
-    view->df[1].end = f_seek(f[1], 0, SEEK_END);
+    view->df[0].end = f_seek(view->f[0], 0, SEEK_END);
+    view->df[1].end = f_seek(view->f[1], 0, SEEK_END);
     view->max = view->df[0].end;
     if (view->max < view->df[1].end) {
 	view->max = view->df[1].end;
@@ -539,23 +546,19 @@ view_init (WDiff *view, const char *file1, const char *file2, const char *label1
 }
 
 
-static int
-view_reinit (WDiff *view)
-{
-    if (quick_dialog(&diffopt) != B_CANCEL) {
-	return redo_diff(view, REINIT_READ_LEFT | REINIT_READ_RIGHT);
-    }
-    return 0;
-}
-
-
 static void
-view_fini (WDiff *view)
+view_fini (WDiff *view, int free_mem)
 {
-    free(view->diffs);
+    if (free_mem) {
+	free(view->diffs);
+	view->diffs = NULL;
+	view->maxmem = 0;
+    }
 
     f_close(view->f[1]);
     f_close(view->f[0]);
+    view->f[0] = NULL;
+    view->f[1] = NULL;
 }
 
 
@@ -701,7 +704,7 @@ view_status (WDiff *view, int ord, int width, int pos)
 	/* abnormal, but avoid buffer overflow */
 	filename_width = sizeof(buf) - 1;
     }
-    trim(strip_home_and_password(view->label[ord]), buf, filename_width);
+    trim(strip_home_and_password(view->file[ord]), buf, filename_width);
     tty_printf("%-*s   %s%-16lX ", filename_width, buf, moves ? "0x" : "--", skip_offs);
 }
 
@@ -860,8 +863,16 @@ view_update (WDiff *view)
 static void
 view_redo (WDiff *view)
 {
-    /* XXX this is here only because of [yz]diff.  Our owidth may change unexpectedly, so don't update it here */
-    view_reinit(view);
+    int rv;
+    if (quick_dialog(&diffopt) != B_CANCEL) {
+	view_fini(view, 0);
+	mc_setctl (view->file[0], VFS_SETCTL_STALE_DATA, NULL);
+	mc_setctl (view->file[1], VFS_SETCTL_STALE_DATA, NULL);
+	rv = redo_diff(view, REINIT_OPEN | REINIT_READ_LEFT | REINIT_READ_RIGHT);
+	if (rv < 0) {
+	    view->view_quit = 1;
+	}
+    }
 }
 
 
@@ -1125,7 +1136,7 @@ view_handle_key (WDiff *view, int c)
 	    return MSG_HANDLED;
 
 	case 't':
-	    diff_view(view->file[0], view->file[1], view->label[0], view->label[1]);
+	    diff_view(view->file[0], view->file[1]);
 	    return MSG_HANDLED;
 
 	case 'q':
@@ -1225,7 +1236,7 @@ view_dialog_callback (Dlg_head *h, dlg_msg_t msg, int parm)
 
 
 int
-xdiff_view (const char *file1, const char *file2, const char *label1, const char *label2)
+xdiff_view (const char *file1, const char *file2)
 {
     int error;
     WDiff *view;
@@ -1250,7 +1261,7 @@ xdiff_view (const char *file1, const char *file2, const char *label1, const char
     add_widget(view_dlg, bar);
     add_widget(view_dlg, view);
 
-    error = view_init(view, file1, file2, label1, label2);
+    error = view_init(view, file1, file2);
 
     /* Please note that if you add another widget,
      * you have to modify view_adjust_size to
@@ -1259,7 +1270,7 @@ xdiff_view (const char *file1, const char *file2, const char *label1, const char
     if (!error) {
 	run_dlg(view_dlg);
 	view_search(view, -1);
-	view_fini(view);
+	view_fini(view, 1);
     }
     destroy_dlg(view_dlg);
 

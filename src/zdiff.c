@@ -825,27 +825,6 @@ view_init (WDiff *view, int recursive, const char *dir1, const char *dir2)
 }
 
 
-static int
-view_reinit (WDiff *view)
-{
-    int recursive = view->recursive;
-    int ndiff = view->ndiff;
-
-    diffopt_widgets[2].value = recursive;
-    diffopt_widgets[2].result = &recursive;
-
-    if (quick_dialog(&diffopt) != B_CANCEL) {
-	view->recursive = (recursive != 0) * RECURSIVE_DEPTH;
-	arr_free(&view->z, free_pair);
-	ndiff = redo_diff(view);
-	if (ndiff >= 0) {
-	    view->ndiff = ndiff;
-	}
-    }
-    return ndiff;
-}
-
-
 static void
 view_fini (WDiff *view)
 {
@@ -1089,7 +1068,24 @@ view_update (WDiff *view)
 static void
 view_redo (WDiff *view)
 {
-    if (view_reinit(view) < 0) {
+    int recursive = view->recursive;
+    int ndiff = view->ndiff;
+
+    diffopt_widgets[2].value = recursive;
+    diffopt_widgets[2].result = &recursive;
+
+    if (quick_dialog(&diffopt) != B_CANCEL) {
+	view->recursive = (recursive != 0) * RECURSIVE_DEPTH;
+	view_fini(view);
+	mc_setctl (view->dir[0], VFS_SETCTL_STALE_DATA, NULL);
+	mc_setctl (view->dir[1], VFS_SETCTL_STALE_DATA, NULL);
+	ndiff = redo_diff(view);
+	if (ndiff >= 0) {
+	    view->ndiff = ndiff;
+	}
+    }
+
+    if (ndiff < 0) {
 	view->view_quit = 1;
     } else if (view->display_numbers) {
 	int old = view->display_numbers;
@@ -1689,68 +1685,21 @@ static int
 is_binary (const char *file)
 {
     int binary = 0;
-    FBUF *f = f_open(file, O_RDONLY);
-    if (f != NULL) {
+    int fd = mc_open(file, O_RDONLY | O_BINARY);
+    if (fd >= 0) {
 	size_t size = 4096;	/* HAVE_STRUCT_STAT_ST_BLKSIZE: st->st_blksize */
 	char *buf = malloc(size);
 	if (buf != NULL) {
-	    size = f_read(f, buf, size);
+	    size = mc_read(fd, buf, size);
 	    binary = (memchr(buf, 0, size) != NULL);
 	    free(buf);
 	}
-	f_close(f);
+	mc_close(fd);
     }
     return binary;
 }
 
 
-#define GET_FILE_AND_STAMP(n)					\
-    do {							\
-	use_copy##n = 0;					\
-	real_file##n = file##n;					\
-	if (!vfs_file_is_local(file##n)) {			\
-	    real_file##n = mc_getlocalcopy(file##n);		\
-	    if (real_file##n != NULL) {				\
-		use_copy##n = 1;				\
-		if (mc_stat(real_file##n, &st##n) != 0) {	\
-		    use_copy##n = -1;				\
-		}						\
-	    }							\
-	}							\
-    } while (0)
-#define UNGET_FILE(n)						\
-    do {							\
-	if (use_copy##n) {					\
-	    int changed = 0;					\
-	    if (use_copy##n > 0) {				\
-		time_t mtime = st##n.st_mtime;			\
-		if (mc_stat(real_file##n, &st##n) == 0) {	\
-		    changed = (mtime != st##n.st_mtime);	\
-		}						\
-	    }							\
-	    mc_ungetlocalcopy(file##n, real_file##n, changed);	\
-	    g_free(real_file##n);				\
-	}							\
-    } while (0)
-#define CHECK_DIR(n)						\
-    do {							\
-	struct stat st##n;					\
-	char *real_name##n;					\
-	is_dir##n = 0;						\
-	if (vfs_file_is_local(name##n)) {			\
-	    rv = mc_stat(name##n, &st##n);			\
-	} else {						\
-	    rv = -1;						\
-	    real_name##n = mc_getlocalcopy(name##n);		\
-	    if (real_name##n != NULL) {				\
-		rv = mc_stat(real_name##n, &st##n);		\
-		mc_ungetlocalcopy(name##n, real_name##n, FALSE);\
-	    }							\
-	}							\
-	if (rv == 0) {						\
-	    is_dir##n = S_ISDIR(st##n.st_mode);			\
-	}							\
-    } while (0)
 void
 view_diff_cmd (void *obj, const char *name0, const char *name1)
 {
@@ -1763,10 +1712,17 @@ view_diff_cmd (void *obj, const char *name0, const char *name1)
 
     if (view == NULL) {
 	if (name0 != NULL && name1 != NULL) {
-	    CHECK_DIR(0);
-	    CHECK_DIR(1);
-	    file0 = g_strdup(name0);
-	    file1 = g_strdup(name1);
+	    struct stat st0, st1;
+	    rv = mc_stat(name0, &st0);
+	    if (rv == 0) {
+		rv = mc_stat(name1, &st1);
+	    }
+	    if (rv == 0) {
+		is_dir0 = S_ISDIR(st0.st_mode);
+		is_dir1 = S_ISDIR(st1.st_mode);
+		file0 = g_strdup(name0);
+		file1 = g_strdup(name1);
+	    }
 	} else {
 	    const WPanel *panel0 = current_panel;
 	    const WPanel *panel1 = other_panel;
@@ -1795,28 +1751,14 @@ view_diff_cmd (void *obj, const char *name0, const char *name1)
 
     if (rv == 0) {
 	rv = -1;
-	if (file0 != NULL && file1 != NULL) {
-	    if (is_dir0 && is_dir1) {
+	if (file0 != NULL && file1 != NULL && is_dir0 == is_dir1) {
+	    if (is_dir0) {
 		rv = zdiff_view(file0, file1);
 	    } else {
-		if (!is_dir0 && !is_dir1) {
-		    int use_copy0;
-		    int use_copy1;
-		    struct stat st0;
-		    struct stat st1;
-		    char *real_file0;
-		    char *real_file1;
-		    GET_FILE_AND_STAMP(0);
-		    GET_FILE_AND_STAMP(1);
-		    if (real_file0 != NULL && real_file1 != NULL) {
-			if (is_binary(real_file0) || is_binary(real_file1)) {
-			    rv = xdiff_view(real_file0, real_file1, file0, file1);
-			} else {
-			    rv = diff_view(real_file0, real_file1, file0, file1);
-			}
-		    }
-		    UNGET_FILE(1);
-		    UNGET_FILE(0);
+		if (is_binary(file0) || is_binary(file1)) {
+		    rv = xdiff_view(file0, file1);
+		} else {
+		    rv = diff_view(file0, file1);
 		}
 	    }
 	}

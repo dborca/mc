@@ -92,7 +92,6 @@ typedef struct {
 
     const char *args;		/* Args passed to diff */
     const char *file[2];	/* filenames */
-    const char *label[2];
     FBUF *f[2];
     ARRAY a[2];
     ARRAY **hdiff;
@@ -357,10 +356,9 @@ dff_execute (const char *args, const char *extra, const char *file1, const char 
  * \return 0 if success, otherwise non-zero
  */
 static int
-dff_reparse (int ord, const char *filename, const ARRAY *ops, DFUNC printer, void *ctx)
+dff_reparse (int ord, FBUF *f, const ARRAY *ops, DFUNC printer, void *ctx)
 {
     int i;
-    FBUF *f;
     size_t sz;
     char buf[BUFSIZ];
     int line = 0;
@@ -369,11 +367,6 @@ dff_reparse (int ord, const char *filename, const ARRAY *ops, DFUNC printer, voi
     int eff, tee;
     int add_cmd;
     int del_cmd;
-
-    f = f_open(filename, O_RDONLY);
-    if (f == NULL) {
-	return -1;
-    }
 
     ord &= 1;
     eff = ord;
@@ -406,7 +399,7 @@ dff_reparse (int ord, const char *filename, const ARRAY *ops, DFUNC printer, voi
 	    }
 	}
 	if (line != n) {
-	    goto err;
+	    return -1;
 	}
 
 	if (op->cmd == add_cmd) {
@@ -433,7 +426,7 @@ dff_reparse (int ord, const char *filename, const ARRAY *ops, DFUNC printer, voi
 		n--;
 	    }
 	    if (n) {
-		goto err;
+		return -1;
 	    }
 	}
 	if (op->cmd == 'c') {
@@ -453,7 +446,7 @@ dff_reparse (int ord, const char *filename, const ARRAY *ops, DFUNC printer, voi
 		n--;
 	    }
 	    if (n) {
-		goto err;
+		return -1;
 	    }
 	    n = op->T2 - op->T1 - (op->F2 - op->F1);
 	    while (n > 0) {
@@ -481,12 +474,7 @@ dff_reparse (int ord, const char *filename, const ARRAY *ops, DFUNC printer, voi
 	}
     }
 
-    f_close(f);
     return 0;
-
-  err:
-    f_close(f);
-    return -1;
 }
 
 
@@ -1138,7 +1126,7 @@ printer (void *ctx, int ch, int line, off_t off, size_t sz, const char *str)
 static int
 redo_diff (WDiff *view)
 {
-    FBUF *const *f = view->f;
+    FBUF *f[2], *t[2];
     ARRAY *a = view->a;
 
     PRINTER_CTX ctx;
@@ -1171,14 +1159,28 @@ redo_diff (WDiff *view)
 	strcat(extra, " -i");
     }
 
-    if (view->dsrc != DATA_SRC_MEM) {
-	f_reset(f[0]);
-	f_reset(f[1]);
+    f[0] = f_open(view->file[0], O_RDONLY);
+    f[1] = f_open(view->file[1], O_RDONLY);
+    if (f[0] == NULL || f[1] == NULL) {
+	goto err;
     }
 
-    ndiff = dff_execute(view->args, extra, view->file[0], view->file[1], &ops);
+    ndiff = dff_execute(view->args, extra, f_getname(f[0]), f_getname(f[1]), &ops);
     if (ndiff < 0) {
-	return -1;
+	goto err;
+    }
+
+    t[0] = NULL;
+    t[1] = NULL;
+    if (view->dsrc == DATA_SRC_TMP) {
+	t[0] = f_temp();
+	t[1] = f_temp();
+	if (t[0] == NULL || t[1] == NULL) {
+	    f_close(t[0]);
+	    f_close(t[1]);
+	    arr_free(&ops, NULL);
+	    goto err;
+	}
     }
 
     ctx.dsrc = view->dsrc;
@@ -1187,34 +1189,47 @@ redo_diff (WDiff *view)
 
     arr_init(&a[0], sizeof(DIFFLN), 256);
     ctx.a = &a[0];
-    ctx.f = f[0];
+    ctx.f = t[0];
     ctx.other = NULL;
-    rv |= dff_reparse(0, view->file[0], &ops, printer, &ctx);
+    rv |= dff_reparse(0, f[0], &ops, printer, &ctx);
 
     arr_init(&a[1], sizeof(DIFFLN), 256);
     ctx.a = &a[1];
-    ctx.f = f[1];
+    ctx.f = t[1];
     ctx.other = &a[0]; /* XXX set this to NULL to disable borrow */
-    rv |= dff_reparse(1, view->file[1], &ops, printer, &ctx);
+    rv |= dff_reparse(1, f[1], &ops, printer, &ctx);
 
     arr_free(&ops, NULL);
+
+    if (view->dsrc != DATA_SRC_ORG) {
+	f_close(f[0]);
+	f_close(f[1]);
+	f[0] = NULL;
+	f[1] = NULL;
+    }
+    if (view->dsrc == DATA_SRC_TMP) {
+	f[0] = t[0];
+	f[1] = t[1];
+    }
 
     if (rv || a[0].error || a[1].error || a[0].len != a[1].len) {
 	arr_free(&a[0], cc_free_elt);
 	arr_free(&a[1], cc_free_elt);
-	return -1;
-    }
-
-    if (view->dsrc == DATA_SRC_TMP) {
-	f_trunc(f[0]);
-	f_trunc(f[1]);
+	goto err;
     }
 
     if (view->dsrc == DATA_SRC_MEM && HDIFF_ENABLE) {
 	view->hdiff = calloc(a[0].len, sizeof(ARRAY *));
     }
 
+    view->f[0] = f[0];
+    view->f[1] = f[1];
     return ndiff;
+
+err:
+    f_close(f[0]);
+    f_close(f[1]);
+    return -1;
 }
 
 
@@ -1388,50 +1403,19 @@ view_compute_areas (WDiff *view)
 
 
 static int
-view_init (WDiff *view, const char *args, const char *file1, const char *file2, const char *label1, const char *label2, DSRC dsrc)
+view_init (WDiff *view, const char *args, const char *file1, const char *file2, DSRC dsrc)
 {
     int ndiff;
-    FBUF *f[2];
-
-    f[0] = NULL;
-    f[1] = NULL;
-
-    if (dsrc == DATA_SRC_TMP) {
-	f[0] = f_temp();
-	if (f[0] == NULL) {
-	    goto err_2;
-	}
-	f[1] = f_temp();
-	if (f[1] == NULL) {
-	    f_close(f[0]);
-	    goto err_2;
-	}
-    }
-    if (dsrc == DATA_SRC_ORG) {
-	f[0] = f_open(file1, O_RDONLY);
-	if (f[0] == NULL) {
-	    goto err_2;
-	}
-	f[1] = f_open(file2, O_RDONLY);
-	if (f[1] == NULL) {
-	    f_close(f[0]);
-	    goto err_2;
-	}
-    }
 
     view->args = args;
     view->file[0] = file1;
     view->file[1] = file2;
-    view->label[0] = label1;
-    view->label[1] = label2;
-    view->f[0] = f[0];
-    view->f[1] = f[1];
     view->hdiff = NULL;
     view->dsrc = dsrc;
 
     ndiff = redo_diff(view);
     if (ndiff < 0) {
-	goto err_3;
+	return -1;
     }
 
     view->ndiff = ndiff;
@@ -1460,51 +1444,16 @@ view_init (WDiff *view, const char *args, const char *file1, const char *file2, 
 
     view_compute_areas(view);
     return 0;
-
-  err_3:
-    if (dsrc != DATA_SRC_MEM) {
-	f_close(f[1]);
-	f_close(f[0]);
-    }
-  err_2:
-    return -1;
-}
-
-
-static int
-view_reinit (WDiff *view)
-{
-    int ndiff = view->ndiff;
-
-    diffopt_widgets[2].value = view->opt.quality;
-    diffopt_widgets[2].result = &view->opt.quality;
-    diffopt_widgets[3].result = &view->opt.strip_trailing_cr;
-    diffopt_widgets[4].result = &view->opt.ignore_all_space;
-    diffopt_widgets[5].result = &view->opt.ignore_space_change;
-    diffopt_widgets[6].result = &view->opt.ignore_tab_expansion;
-    diffopt_widgets[7].result = &view->opt.ignore_case;
-
-    if (quick_dialog(&diffopt) != B_CANCEL) {
-	destroy_hdiff(view);
-	arr_free(&view->a[1], cc_free_elt);
-	arr_free(&view->a[0], cc_free_elt);
-	ndiff = redo_diff(view);
-	if (ndiff >= 0) {
-	    view->ndiff = ndiff;
-	}
-    }
-    return ndiff;
 }
 
 
 static void
 view_fini (WDiff *view)
 {
-    if (view->dsrc != DATA_SRC_MEM) {
-	f_close(view->f[1]);
-	f_close(view->f[0]);
-    }
-
+    f_close(view->f[1]);
+    f_close(view->f[0]);
+    view->f[0] = NULL;
+    view->f[1] = NULL;
     destroy_hdiff(view);
     arr_free(&view->a[1], cc_free_elt);
     arr_free(&view->a[0], cc_free_elt);
@@ -1671,7 +1620,7 @@ view_status (const WDiff *view, int ord, int width, int c)
 	/* abnormal, but avoid buffer overflow */
 	filename_width = sizeof(buf) - 1;
     }
-    trim(strip_home_and_password(view->label[ord]), buf, filename_width);
+    trim(strip_home_and_password(view->file[ord]), buf, filename_width);
     if (ord == 0) {
 	tty_printf("%-*s %6d+%-4d Col %-4d ", filename_width, buf, linenum, lineofs, skip_cols);
     } else {
@@ -1758,7 +1707,27 @@ view_update (WDiff *view)
 static void
 view_redo (WDiff *view)
 {
-    if (view_reinit(view) < 0) {
+    int ndiff = view->ndiff;
+
+    diffopt_widgets[2].value = view->opt.quality;
+    diffopt_widgets[2].result = &view->opt.quality;
+    diffopt_widgets[3].result = &view->opt.strip_trailing_cr;
+    diffopt_widgets[4].result = &view->opt.ignore_all_space;
+    diffopt_widgets[5].result = &view->opt.ignore_space_change;
+    diffopt_widgets[6].result = &view->opt.ignore_tab_expansion;
+    diffopt_widgets[7].result = &view->opt.ignore_case;
+
+    if (quick_dialog(&diffopt) != B_CANCEL) {
+	view_fini(view);
+	mc_setctl (view->file[0], VFS_SETCTL_STALE_DATA, NULL);
+	mc_setctl (view->file[1], VFS_SETCTL_STALE_DATA, NULL);
+	ndiff = redo_diff(view);
+	if (ndiff >= 0) {
+	    view->ndiff = ndiff;
+	}
+    }
+
+    if (ndiff < 0) {
 	view->view_quit = 1;
     } else if (view->display_numbers) {
 	int old = view->display_numbers;
@@ -2218,7 +2187,7 @@ view_handle_key (WDiff *view, int c)
 	    return MSG_HANDLED;
 
 	case 'x':
-	    xdiff_view(view->file[0], view->file[1], view->label[0], view->label[1]);
+	    xdiff_view(view->file[0], view->file[1]);
 	    return MSG_HANDLED;
 
 	case 'q':
@@ -2315,7 +2284,7 @@ view_dialog_callback (Dlg_head *h, dlg_msg_t msg, int parm)
 
 
 int
-diff_view (const char *file1, const char *file2, const char *label1, const char *label2)
+diff_view (const char *file1, const char *file2)
 {
     int error;
     WDiff *view;
@@ -2340,7 +2309,7 @@ diff_view (const char *file1, const char *file2, const char *label1, const char 
     add_widget(view_dlg, bar);
     add_widget(view_dlg, view);
 
-    error = view_init(view, "-a", file1, file2, label1, label2, DATA_SRC_MEM);
+    error = view_init(view, "-a", file1, file2, DATA_SRC_MEM);
 
     /* Please note that if you add another widget,
      * you have to modify view_adjust_size to
