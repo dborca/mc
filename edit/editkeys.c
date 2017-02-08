@@ -49,7 +49,7 @@
  * when the key is assigned to more than one command.
  */
 static const edit_key_map_type cooledit_key_map[] = {
-    { ALT ('b'), CK_Match_Bracket },
+    { ALT ('r'), CK_Match_Bracket },
     { ALT ('m'), CK_Mail },
     { XCTRL ('f'), CK_Save_Block },
     { XCTRL ('n'), CK_New },

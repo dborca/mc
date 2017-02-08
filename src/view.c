@@ -3072,7 +3072,7 @@ normal_search_cmd (WView *view, int want_regexp, int want_backwards)
 	{quick_button, 2, 10, 7, SEARCH_DLG_HEIGHT, N_("&OK"), 0, B_ENTER,
 	 0, 0, NULL},
 	{quick_checkbox, 33, SEARCH_DLG_WIDTH, 4, SEARCH_DLG_HEIGHT,
-	 N_("&Backwards"), 0, 0,
+	 N_("Backwards/&Up"), 0, 0,
 	 0, 0, NULL},
 	{quick_checkbox, 4, SEARCH_DLG_WIDTH, 6, SEARCH_DLG_HEIGHT,
 	 N_("&Regular expression"), 0, 0,

@@ -145,7 +145,7 @@ static QuickDialog diffopt = {
 static QuickWidget search_widgets[] = {
     { quick_button,    6,               10, 7, SEARCH_DLG_HEIGHT, N_("&Cancel"),                0, B_CANCEL, NULL, NULL, NULL },
     { quick_button,    2,               10, 7, SEARCH_DLG_HEIGHT, N_("&OK"),                    0, B_ENTER,  NULL, NULL, NULL },
-    { quick_checkbox, 33, SEARCH_DLG_WIDTH, 4, SEARCH_DLG_HEIGHT, N_("&Backwards"),             0, 0,        NULL, NULL, NULL },
+    { quick_checkbox, 33, SEARCH_DLG_WIDTH, 4, SEARCH_DLG_HEIGHT, N_("Backwards/&Up"),          0, 0,        NULL, NULL, NULL },
     { quick_checkbox,  4, SEARCH_DLG_WIDTH, 6, SEARCH_DLG_HEIGHT, N_("&Regular expression"),    0, 0,        NULL, NULL, NULL },
     { quick_checkbox,  4, SEARCH_DLG_WIDTH, 5, SEARCH_DLG_HEIGHT, N_("&Whole words only"),      0, 0,        NULL, NULL, NULL },
     { quick_checkbox,  4, SEARCH_DLG_WIDTH, 4, SEARCH_DLG_HEIGHT, N_("case &Sensitive"),        0, 0,        NULL, NULL, NULL },

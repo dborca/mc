@@ -411,7 +411,7 @@ static menu_entry SearReplMenu[] =
 static menu_entry CmdMenu[] =
 {
     {' ', N_("&Go to line...           M-l"), 'G', menu_goto_line},
-    {' ', N_("Go to matching &bracket  M-b"), 'B', menu_goto_bracket},
+    {' ', N_("Go to matching &bracket  M-r"), 'B', menu_goto_bracket},
     {' ', "", ' ', 0},
     {' ', N_("Insert &literal...       C-q"), 'L', menu_lit_cmd},
     {' ', "", ' ', 0},
@@ -436,7 +436,7 @@ static menu_entry CmdMenu[] =
 static menu_entry CmdMenuEmacs[] =
 {
     {' ', N_("&Go to line...           M-l"), 'G', menu_goto_line},
-    {' ', N_("Go to matching &bracket  M-b"), 'B', menu_goto_bracket},
+    {' ', N_("Go to matching &bracket     "), 'B', menu_goto_bracket},
     {' ', "", ' ', 0},
     {' ', N_("Insert &literal...       C-q"), 'L', menu_lit_cmd},
     {' ', "", ' ', 0},
@@ -453,7 +453,7 @@ static menu_entry CmdMenuEmacs[] =
     {' ', N_("'ispell' s&pell check    M-$"), 'P', menu_ispell_cmd},
     {' ', N_("Sor&t...                 M-t"), 'T', menu_sort_cmd},
     {' ', N_("Paste o&utput of...      M-u"), 'U', menu_ext_cmd},
-    {' ', N_("E&xternal Formatter      F19"), 'C', menu_c_form_cmd},
+    {' ', N_("Exter&nal Formatter      F19"), 'N', menu_c_form_cmd},
     {' ', N_("&Mail...                    "), 'M', menu_mail_cmd}
 };
 

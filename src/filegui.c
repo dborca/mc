@@ -834,7 +834,7 @@ static QuickWidget fmd_widgets[] = {
 # define FMCB22 10
 # define FMBLFT 9
 # define FMBMID 8
-    {quick_button, 25, 64, 9, FMDY, N_("&Background"), 0, B_USER, 0, 0,
+    {quick_button, 25, 64, 9, FMDY, N_("Back&Ground"), 0, B_USER, 0, 0,
      NULL},
 #else				/* WITH_BACKGROUND */
 # define SKIP 4

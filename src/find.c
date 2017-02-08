@@ -293,7 +293,7 @@ find_parameters (char **start_dir, char **pattern, char **content)
     invert_match_cbox = check_new (14, istart, invert_match_flag, _("&Invert match"));
     add_widget (find_dlg, invert_match_cbox);
 
-    first_hit_cbox = check_new (13, istart, first_hit_only, _("&First hit only"));
+    first_hit_cbox = check_new (13, istart, first_hit_only, _("First &Match only"));
     add_widget (find_dlg, first_hit_cbox);
 
     find_regex_cbox = check_new (12, istart, find_regex_flag, _("&Regular expression"));

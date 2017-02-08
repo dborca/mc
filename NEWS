@@ -16,6 +16,7 @@ Version 4.6.3b.
 	- New menu entries and shortcuts (M-i M-j M-k) for visible bookmarks.
 	- Syntax highlighting pattern "...*" stops at '\n' without failing.
 	- Uniformized UI for search/replace.
+	- Changed Match bracket to Alt-r.
 	- Fixed regexp search.
 	- Fixed search-again not asking for string.
 	- Fixed edit_sort_cmd to clear block file.
@@ -61,6 +62,7 @@ Version 4.6.3b.
 	- Fixed %e expansion for editor scripts.
 	- Fixed copy/move dialogs to avoid stealing Alt-d.
 	- Fixed completion in command line, with escaping.
+	- Avoid Alt-f and Alt-b shortcuts near input widgets.
 	- Changed behavior of % in command-line.  It is treated as a simple
 	  character, unless it is quoted with a backslash; in which case, it
 	  will be substituted with the usual MC macros.
