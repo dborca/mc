@@ -1155,9 +1155,10 @@ move_dir_dir (FileOpContext *ctx, const char *s, const char *d,
     mc_refresh ();
 
     mc_stat (s, &sbuf);
-    if (mc_stat (d, &dbuf))
+    if (mc_stat (d, &dbuf)) {
 	destdir = g_strdup (d);	/* destination doesn't exist */
-    else if (!ctx->dive_into_subdirs) {
+	memset(&dbuf, 0, sizeof dbuf);
+    } else if (!ctx->dive_into_subdirs) {
 	destdir = g_strdup (d);
 	move_over = 1;
     } else
