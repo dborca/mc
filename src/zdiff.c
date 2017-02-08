@@ -281,9 +281,11 @@ scan_dir (ARRAY *a, const char *pre, const char *name)
 	errno = 0;
 	ent = mc_readdir(dir);
 	if (ent == NULL) {
+#if 0	/* Disabled: fish gives E_REMOTE, other vfs gives EAGAIN etc. */
 	    if (errno) {
 		rv = errno;	/* XXX should we try to continue? */
 	    }
+#endif
 	    break;
 	}
 
@@ -408,14 +410,14 @@ diff_binary (const char *p0, const char *p1, const struct stat st[2])
  * \param printer callback
  * \param ctx opaque object to be passed to callback
  *
- * \return 0 success, otherwise error
+ * \return 0 success, 1 if dir scanning failed, otherwise critical error
  */
 static int
 diff_dirs (const char *r0, const char *r1, const char *d, int recursive, const DNODE *prev, DFUNC printer, void *ctx)
 {
     char buf[2 * PATH_MAX];	/* XXX for _bufpath */
     ARRAY a[2];
-    int rv = -1;
+    int rv = 1;
     arr_init(&a[0], sizeof(char *), 256);
     arr_init(&a[1], sizeof(char *), 256);
     if (scan_dir(&a[0], r0, d) == 0 && scan_dir(&a[1], r1, d) == 0) {
@@ -548,7 +550,11 @@ diff_file (const char *r0, const char *f0, const char *r1, const char *f1, int r
 	    node.link = prev;
 	    node.st[0] = &st[0];
 	    node.st[1] = &st[1];
-	    return diff_dirs(r0, r1, f0, recursive, &node, printer, ctx);
+	    rv = diff_dirs(r0, r1, f0, recursive, &node, printer, ctx);
+	    if (rv == 1 && prev) {
+		return printer(ctx, ERR_CH, f0, f1);
+	    }
+	    return rv;
 	}
 	return printer(ctx, DIR_CH, f0, f1);
     }
