@@ -1186,26 +1186,7 @@ redo_diff (WDiff *view)
     }
 
     if (view->dsrc == DATA_SRC_MEM && HDIFF_ENABLE) {
-	view->hdiff = malloc(a[0].len * sizeof(ARRAY *));
-	if (view->hdiff != NULL) {
-	    int i;
-	    const DIFFLN *p;
-	    const DIFFLN *q;
-	    for (p = a[0].data, q = a[1].data, i = 0; i < a[0].len; i++, q++, p++) {
-		ARRAY *h = NULL;
-		if (p->line && q->line && p->ch == CHG_CH) {
-		    h = malloc(sizeof(ARRAY));
-		    if (h != NULL) {
-			int rv = hdiff_scan(p->p, p->u.len, q->p, q->u.len, HDIFF_MINCTX, h, HDIFF_DEPTH);
-			if (rv != 0) {
-			    free(h);
-			    h = NULL;
-			}
-		    }
-		}
-		view->hdiff[i] = h;
-	    }
-	}
+	view->hdiff = calloc(a[0].len, sizeof(ARRAY *));
     }
 
     return ndiff;
@@ -1571,6 +1552,21 @@ view_display_file (const WDiff *view, int ord,
 		if (i == view->last_found) {
 		    tty_setcolor(MARKED_SELECTED_COLOR);
 		} else if (view->show_hdiff) {
+		    if (HDIFF_ENABLE && view->hdiff != NULL && view->hdiff[i] == NULL) {
+			const DIFFLN *s = (DIFFLN *)view->a[0].data + i;
+			const DIFFLN *q = (DIFFLN *)view->a[1].data + i;
+			if (s->line && q->line && s->ch == CHG_CH) {
+			    ARRAY *h = malloc(sizeof(ARRAY));
+			    if (h != NULL) {
+				int rv = hdiff_scan(s->p, s->u.len, q->p, q->u.len, HDIFF_MINCTX, h, HDIFF_DEPTH);
+				if (rv != 0) {
+				    free(h);
+				    h = NULL;
+				}
+				view->hdiff[i] = h;
+			    }
+			}
+		    }
 		    if (view->hdiff != NULL && view->hdiff[i] != NULL) {
 			char att[BUFSIZ];
 			cvt_mgeta(p->p, p->u.len, buf, width, skip, tab_size, show_cr, view->hdiff[i], ord, att);
