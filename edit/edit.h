@@ -201,6 +201,7 @@ int edit_filter_cmd (WEdit * edit);
 int edit_ext_cmd (WEdit * edit);
 void edit_help_cmd (WEdit * edit);
 
+int edit_check_macro (WEdit * edit, int k);
 int edit_save_macro_cmd (WEdit * edit, struct macro macro[], int n);
 int edit_load_macro_cmd (WEdit * edit, struct macro macro[], int *n, int k);
 void edit_delete_macro_cmd (WEdit * edit);

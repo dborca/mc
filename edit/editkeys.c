@@ -278,7 +278,8 @@ edit_translate_key (WEdit *edit, long x_key, int *cmd, int *ch)
        enabled by either eg "ALT('f')" or "XCTRL('f')" or "XCTRL('a'), 'f'" */
 
     if (x_key & ALT (0)) {	/* is an alt key ? */
-	command = CK_Macro (x_key - ALT (0));
+	if (edit_check_macro (edit, x_key - ALT (0)))
+	    command = CK_Macro (x_key - ALT (0));
 	goto fin;
     }
     if (x_key < ' ') {		/* is a ctrl key ? */

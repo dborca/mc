@@ -11,6 +11,7 @@ Version 4.6.3b.
 	- Added whitespace toggle shortcut (Alt-_).
 	- Added edit_filter_cmd to filter block through any command (Alt-x).
 	- Made tabs visible through selection.
+	- Do not steal Alt-key for undefined macros.
 	- Home key toggles between start of line and start of non-whitespace.
 	- New menu entries and shortcuts (M-i M-j M-k) for visible bookmarks.
 	- Syntax highlighting pattern "...*" stops at '\n' without failing.

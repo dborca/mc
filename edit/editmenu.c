@@ -568,7 +568,7 @@ int edit_drop_hotkey_menu (WEdit * e, int key)
     int m = 0;
     switch (key) {
     case ALT ('f'):
-	if (edit_key_emulation == EDIT_KEY_EMULATION_EMACS)
+	if (edit_key_emulation == EDIT_KEY_EMULATION_EMACS) /* why bother checking? */
 	    return 0;
 	m = 0;
 	break;

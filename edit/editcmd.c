@@ -684,6 +684,16 @@ macro_exists (int k)
     return -1;
 }
 
+int edit_check_macro (WEdit * edit, int k)
+{
+    struct macro m[MAX_MACRO_LENGTH];
+    int nm;
+    if (saved_macros_loaded) {
+	return (macro_exists(k) >= 0);
+    }
+    return edit_load_macro_cmd (edit, m, &nm, k);
+}
+
 /* returns 1 on error */
 static int
 edit_delete_macro (WEdit * edit, int k)
