@@ -1,5 +1,5 @@
 .\"TOPICS "Topics:"
-.TH MC 1 "Dec 2012" "MC Version 4.6.3b" "GNU Midnight Commander"
+.TH MC 1 "Feb 2017" "MC Version 4.6.3c" "GNU Midnight Commander"
 .\"SKIP_SECTION"
 .SH "NAME"
 mc \- Visual shell for Unix-like systems.
