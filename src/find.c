@@ -207,7 +207,7 @@ find_parameters (char **start_dir, char **pattern, char **content)
     int return_value;
     char *temp_dir;
     static const char *case_label = N_("case &Sensitive");
-    static const char *recurs_label = N_("find Re&cursively");
+    static const char *recurs_label = N_("find Recursi&vely");
     static const char *fnsense_label = N_("s&ensitive filename");
 
     WCheck *recursively_cbox;

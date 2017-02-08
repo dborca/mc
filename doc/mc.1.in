@@ -2696,10 +2696,10 @@ Go to next hunk.
 .B p
 Go to previous hunk.
 .PP
-.BR g ", " G
+.BR Alt-l ", " Alt-L
 Go to line number in left, respectively right panel.
 .PP
-.BR backspace
+.BR backspace ", " del
 Forget last search.
 .PP
 .BR F4 ", " F14
@@ -2717,10 +2717,10 @@ Start search if there was no previous search expression else find next match.
 .I BUG:
 see above
 .PP
-.BR home ", " C-prev-page
+.BR home ", " C-prev-page ", " Alt-<
 Go to first line.
 .PP
-.BR end ", " C-next-page
+.BR end ", " C-next-page ", " Alt->
 Go to last line.
 .PP
 .B up
@@ -2752,6 +2752,12 @@ Move to the first column.
 .PP
 .B C-e
 Move to the last column of the shortest line.
+.PP
+.B C-t
+Select codepage.
+.PP
+.B x
+Invoke binary diff viewer.
 .PP
 .BR q ", " C-g ", " escape
 Quit.
@@ -2833,7 +2839,7 @@ Go to previous hunk.
 .B F5
 Go to offset.
 .PP
-.BR backspace
+.BR backspace ", " del
 Forget last search.
 .PP
 .BR F4 ", " F14
@@ -2853,10 +2859,10 @@ see above
 .BR 1 ", " 2
 Lock right, respectively left file.
 .PP
-.BR home ", " C-prev-page
+.BR home ", " C-prev-page ", " Alt-<
 Go to beginning.
 .PP
-.BR end ", " C-next-page
+.BR end ", " C-next-page ", " Alt->
 Go to end.
 .PP
 .B up
@@ -2882,6 +2888,9 @@ Move 16 bytes left.
 .PP
 .B C-right
 Move 16 bytes right.
+.PP
+.B C-t
+Select codepage.
 .PP
 .B t
 Invoke text diff viewer.
@@ -2929,10 +2938,10 @@ Go to next hunk.
 .B p
 Go to previous hunk.
 .PP
-.BR g ", " G
+.BR Alt-l ", " Alt-L
 Go to line number in left, respectively right panel.
 .PP
-.BR backspace
+.BR backspace ", " del
 Forget last search.
 .PP
 .BR F4 ", " F14
@@ -2949,10 +2958,10 @@ Start search if there was no previous search expression else find next match.
 .I BUG:
 see above
 .PP
-.BR home ", " C-prev-page
+.BR home ", " C-prev-page ", " Alt-<
 Go to first line.
 .PP
-.BR end ", " C-next-page
+.BR end ", " C-next-page ", " Alt->
 Go to last line.
 .PP
 .B up
@@ -2984,6 +2993,9 @@ Move to the first column.
 .PP
 .B C-e
 Move to the last column of the shortest line.
+.PP
+.B C-t
+Select codepage.
 .PP
 .BR q ", " C-g ", " escape
 Quit.

@@ -889,8 +889,6 @@ static const tree_key_map tree_keymap [] = {
     { KEY_PPAGE,  move_prevp   },
     { XCTRL('v'), move_nextp   },
     { ALT('v'),   move_prevp   },
-    { XCTRL('p'), move_up      },
-    { XCTRL('p'), move_down    },
     { XCTRL('s'), tree_start_search },
     { ALT('s'),   tree_start_search },
     { XCTRL('r'), tree_rescan_cmd },

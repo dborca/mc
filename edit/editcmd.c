@@ -1465,7 +1465,7 @@ edit_search_dialog (WEdit * edit, char **search_text)
 	 0, NULL},
 	{quick_button, 2, 10, 8, SEARCH_DLG_HEIGHT, N_("&OK"), 0, B_ENTER, 0,
 	 0, NULL},
-	{quick_checkbox, 33, SEARCH_DLG_WIDTH, 6, SEARCH_DLG_HEIGHT, N_("set boo&Kmarks"), 0, 0,
+	{quick_checkbox, 33, SEARCH_DLG_WIDTH, 6, SEARCH_DLG_HEIGHT, N_("set book&Marks"), 0, 0,
 	 0, 0, NULL},
 	{quick_checkbox, 33, SEARCH_DLG_WIDTH, 5, SEARCH_DLG_HEIGHT, N_("&In selection"), 0, 0,
 	 0, 0, NULL},

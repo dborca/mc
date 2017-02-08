@@ -947,6 +947,7 @@ view_handle_key (WDiff *view, int c)
 	    return MSG_HANDLED;
 
 	case KEY_BACKSPACE:
+	case KEY_DC:
 	    view->last_found = -1;
 	    return MSG_HANDLED;
 
@@ -963,6 +964,7 @@ view_handle_key (WDiff *view, int c)
 	    return MSG_HANDLED;
 
 	case KEY_HOME:
+	case ALT ('<'):
 	case KEY_M_CTRL | KEY_PPAGE:
 	    view->last_found = -1;
 	    if (view->move[0]) view->offs[0] = 0;
@@ -970,6 +972,7 @@ view_handle_key (WDiff *view, int c)
 	    return MSG_HANDLED;
 
 	case KEY_END:
+	case ALT ('>'):
 	case KEY_M_CTRL | KEY_NPAGE:
 	    view->last_found = -1;
 	    if (view->move[0]) view->offs[0] = view->max - 1;
@@ -1025,9 +1028,11 @@ view_handle_key (WDiff *view, int c)
 	    return MSG_HANDLED;
 
 	case 'q':
-	case XCTRL('g'):
 	case ESC_CHAR:
 	    view->view_quit = 1;
+	    return MSG_HANDLED;
+
+	case '\n':
 	    return MSG_HANDLED;
 
 #ifdef HAVE_CHARSET

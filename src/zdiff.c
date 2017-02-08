@@ -32,6 +32,7 @@
 #include "wtools.h"
 #include "panel.h"		/* Needed for current_panel and other_panel */
 #include "charsets.h"
+#include "selcodepage.h"
 #include "main.h"
 #include "zutil.h"
 #include "xdiff.h"
@@ -117,7 +118,7 @@ typedef struct {
 static QuickWidget diffopt_widgets[] = {
     { quick_button,   6,   10, 5, OPTY, N_("&Cancel"),    0, B_CANCEL, NULL, NULL, NULL },
     { quick_button,   3,   10, 5, OPTY, N_("&OK"),        0, B_ENTER,  NULL, NULL, NULL },
-    { quick_checkbox, 4, OPTX, 3, OPTY, N_("&Recursive"), 0, 0,        NULL, NULL, NULL },
+    { quick_checkbox, 4, OPTX, 3, OPTY, N_("Recursi&ve"), 0, 0,        NULL, NULL, NULL },
     NULL_QuickWidget
 };
 
@@ -1316,6 +1317,7 @@ view_goto_cmd (WDiff *view, int ord)
 	    if (newline > 0) {
 		const LNODE *p;
 		int j = 0;
+		ord ^= view->ord;
 		for (p = view->z.data; i < view->z.len; i++, p++) {
 		    if (p->name[ord] != NULL) {
 			j++;
@@ -1452,13 +1454,14 @@ view_handle_key (WDiff *view, int c)
 	    view->skip_rows = find_prev_hunk(&view->z, view->skip_rows);
 	    return MSG_HANDLED;
 
-	case 'g':
-	case 'G':
+	case ALT ('l'):
+	case ALT ('L'):
 	    view->last_found = -1;
-	    view_goto_cmd(view, (c == 'G') ^ view->ord);
+	    view_goto_cmd(view, (c == ALT ('L')));
 	    return MSG_HANDLED;
 
 	case KEY_BACKSPACE:
+	case KEY_DC:
 	    view->last_found = -1;
 	    return MSG_HANDLED;
 
@@ -1483,12 +1486,14 @@ view_handle_key (WDiff *view, int c)
 	    return MSG_HANDLED;
 
 	case KEY_HOME:
+	case ALT ('<'):
 	case KEY_M_CTRL | KEY_PPAGE:
 	    view->last_found = -1;
 	    view->skip_rows = 0;
 	    return MSG_HANDLED;
 
 	case KEY_END:
+	case ALT ('>'):
 	case KEY_M_CTRL | KEY_NPAGE:
 	    view->last_found = -1;
 	    view->skip_rows = view->z.len - 1;
@@ -1539,10 +1544,16 @@ view_handle_key (WDiff *view, int c)
 	    return MSG_HANDLED;
 
 	case 'q':
-	case XCTRL('g'):
 	case ESC_CHAR:
 	    view->view_quit = 1;
 	    return MSG_HANDLED;
+
+#ifdef HAVE_CHARSET
+	case XCTRL ('t'):
+	    do_select_codepage ();
+	    view_update (view);
+	    return MSG_HANDLED;
+#endif				/* HAVE_CHARSET */
     }
 
     /* Key not used */

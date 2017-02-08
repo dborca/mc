@@ -3297,6 +3297,10 @@ view_toggle_ruler_cmd (WView *view)
 	RULER_NONE
     };
 
+    if (view->hex_mode) {
+	return;
+    }
+
     assert ((size_t) ruler < 3);
     ruler = next[(size_t) ruler];
     view->dirty++;
@@ -3428,14 +3432,6 @@ view_handle_key (WView *view, int c)
 	view_move_down (view, 1);
 	return MSG_HANDLED;
 
-    case 'd':
-	view_move_down (view, (view->data_area.height + 1) / 2);
-	return MSG_HANDLED;
-
-    case 'u':
-	view_move_up (view, (view->data_area.height + 1) / 2);
-	return MSG_HANDLED;
-
     case 'k':
     case 'y':
 	view_move_up (view, 1);
@@ -3445,7 +3441,6 @@ view_handle_key (WView *view, int c)
 	view_move_right (view, 1);
 	return MSG_HANDLED;
 
-    case ' ':
     case 'f':
 	view_move_down (view, view->data_area.height);
 	return MSG_HANDLED;
@@ -3457,10 +3452,6 @@ view_handle_key (WView *view, int c)
 	/* Unlike Ctrl-O, run a new shell if the subshell is not running.  */
     case '!':
 	exec_shell ();
-	return MSG_HANDLED;
-
-    case 'b':
-	view_move_up (view, view->data_area.height);
 	return MSG_HANDLED;
 
     case KEY_IC:
@@ -3494,7 +3485,6 @@ view_handle_key (WView *view, int c)
 	    view->move_dir = c == XCTRL ('f') ? 1 : -1;
 	/* FALLTHROUGH */
     case 'q':
-    case XCTRL ('g'):
     case ESC_CHAR:
 	if (view_ok_to_quit (view))
 	    view->want_to_quit = TRUE;

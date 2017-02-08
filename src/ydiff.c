@@ -30,8 +30,10 @@
 #include "key.h"
 #include "wtools.h"
 #include "charsets.h"
+#include "selcodepage.h"
 #include "main.h"
 #include "zutil.h"
+#include "xdiff.h"
 #include "ydiff.h"
 
 
@@ -1959,6 +1961,7 @@ view_goto_cmd (WDiff *view, int ord)
 	    int i = 0;
 	    if (newline > 0) {
 		const DIFFLN *p;
+		ord ^= view->ord;
 		for (p = view->a[ord].data; i < view->a[ord].len; i++, p++) {
 		    if (p->line == newline) {
 			break;
@@ -2101,13 +2104,14 @@ view_handle_key (WDiff *view, int c)
 	    view->skip_rows = find_prev_hunk(&view->a[0], view->skip_rows);
 	    return MSG_HANDLED;
 
-	case 'g':
-	case 'G':
+	case ALT ('l'):
+	case ALT ('L'):
 	    view->last_found = -1;
-	    view_goto_cmd(view, (c == 'G') ^ view->ord);
+	    view_goto_cmd(view, (c == ALT ('L')));
 	    return MSG_HANDLED;
 
 	case KEY_BACKSPACE:
+	case KEY_DC:
 	    view->last_found = -1;
 	    return MSG_HANDLED;
 
@@ -2132,12 +2136,14 @@ view_handle_key (WDiff *view, int c)
 	    return MSG_HANDLED;
 
 	case KEY_HOME:
+	case ALT ('<'):
 	case KEY_M_CTRL | KEY_PPAGE:
 	    view->last_found = -1;
 	    view->skip_rows = 0;
 	    return MSG_HANDLED;
 
 	case KEY_END:
+	case ALT ('>'):
 	case KEY_M_CTRL | KEY_NPAGE:
 	    view->last_found = -1;
 	    view->skip_rows = view->a[0].len - 1;
@@ -2187,11 +2193,24 @@ view_handle_key (WDiff *view, int c)
 	    view_other_cmd();
 	    return MSG_HANDLED;
 
+	case '\n':
+	    return MSG_HANDLED;
+
+	case 'x':
+	    xdiff_view(view->file[0], view->file[1], view->label[0], view->label[1]);
+	    return MSG_HANDLED;
+
 	case 'q':
-	case XCTRL('g'):
 	case ESC_CHAR:
 	    view->view_quit = 1;
 	    return MSG_HANDLED;
+
+#ifdef HAVE_CHARSET
+	case XCTRL ('t'):
+	    do_select_codepage ();
+	    view_update (view);
+	    return MSG_HANDLED;
+#endif				/* HAVE_CHARSET */
     }
 
     /* Key not used */
