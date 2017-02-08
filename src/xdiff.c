@@ -48,23 +48,28 @@
 #define XDIFF_IN_RIGHT		(1 << 1)
 #define XDIFF_DIFFERENT		(1 << 2)
 
+struct display_file {
+    char *data;
+    size_t sz;
+    off_t offs;
+    off_t last;
+    off_t end;
+    int move;
+};
+
 typedef struct {
     Widget widget;
 
     const char *file[2];	/* filenames */
     const char *label[2];
     FBUF *f[2];
-    char *fdata, *diffs, *data[2];
-    size_t sz[2];
-    off_t offs[2];
-    off_t last[2];
-    off_t end[2];
+    char *diffs;
+    struct display_file df[2];
     off_t max;
     size_t pbytes;
     size_t maxmem;
     int nbytes;
     int owidth;
-    int move[2];
 
     int view_quit:1;		/* Quit flag */
 
@@ -104,53 +109,47 @@ static QuickDialog diffopt = {
 
 
 static int
-redo_diff (WDiff *view, int flags, size_t pbytes)
+redo_diff (WDiff *view, int flags)
 {
+    size_t pbytes = view->pbytes;
     if (flags & REINIT_REALLOC) {
 	if (pbytes > view->maxmem) {
-	    void *p = realloc(view->fdata, 3 * pbytes);
+	    void *p = realloc(view->diffs, 3 * pbytes);
 	    if (p == NULL) {
-		view->view_quit = 1;
 		return -1;
 	    }
-	    view->fdata = p;
+	    view->diffs = p;
 	    view->maxmem = pbytes;
 	}
-	view->pbytes = pbytes;
-	view->diffs = view->fdata;
-	view->data[0] = view->diffs + pbytes;
-	view->data[1] = view->data[0] + pbytes;
+	view->df[0].data = view->diffs + pbytes;
+	view->df[1].data = view->df[0].data + pbytes;
 	flags = REINIT_READ_LEFT | REINIT_READ_RIGHT;
     }
     if (flags & REINIT_READ_LEFT) {
-	f_seek(view->f[0], view->offs[0], SEEK_SET);
-	view->sz[0] = f_read(view->f[0], view->data[0], pbytes);
-	if (view->sz[0]) {
-	    if (view->sz[0] < pbytes) {
-		view->end[0] = view->offs[0] + view->sz[0];
+	f_seek(view->f[0], view->df[0].offs, SEEK_SET);
+	view->df[0].sz = f_read(view->f[0], view->df[0].data, pbytes);
+	if (view->df[0].sz) {
+	    if (view->df[0].sz < pbytes) {
+		view->df[0].end = view->df[0].offs + view->df[0].sz;
 	    }
-	} else {
-	    view->end[0] = f_seek(view->f[0], 0, SEEK_END);
 	}
     }
     if (flags & REINIT_READ_RIGHT) {
-	f_seek(view->f[1], view->offs[1], SEEK_SET);
-	view->sz[1] = f_read(view->f[1], view->data[1], pbytes);
-	if (view->sz[1]) {
-	    if (view->sz[1] < pbytes) {
-		view->end[1] = view->offs[1] + view->sz[1];
+	f_seek(view->f[1], view->df[1].offs, SEEK_SET);
+	view->df[1].sz = f_read(view->f[1], view->df[1].data, pbytes);
+	if (view->df[1].sz) {
+	    if (view->df[1].sz < pbytes) {
+		view->df[1].end = view->df[1].offs + view->df[1].sz;
 	    }
-	} else {
-	    view->end[1] = f_seek(view->f[1], 0, SEEK_END);
 	}
     }
     if (flags & (REINIT_READ_LEFT | REINIT_READ_RIGHT)) {
 	size_t i, len;
-	char *data1 = view->data[0];
-	char *data2 = view->data[1];
+	char *data1 = view->df[0].data;
+	char *data2 = view->df[1].data;
 	char *diffs = view->diffs;
-	size_t sz1 = view->sz[0];
-	size_t sz2 = view->sz[1];
+	size_t sz1 = view->df[0].sz;
+	size_t sz2 = view->df[1].sz;
 	len = sz1;
 	if (len > sz2) {
 	    len = sz2;
@@ -168,10 +167,10 @@ redo_diff (WDiff *view, int flags, size_t pbytes)
 	for (i = len; i < sz2; i++) {
 	    diffs[i] = XDIFF_IN_RIGHT | XDIFF_DIFFERENT;
 	}
-    }
-    view->max = view->end[0];
-    if (view->max < view->end[1]) {
-	view->max = view->end[1];
+	view->max = view->df[0].end;
+	if (view->max < view->df[1].end) {
+	    view->max = view->df[1].end;
+	}
     }
     return 0;
 }
@@ -214,11 +213,11 @@ find_prev_hunk (WDiff *view)
 	int sub1 = pbytes;
 	int sub2 = pbytes;
 
-	if (sub1 > view->offs[0]) {
-	    sub1 = view->offs[0];
+	if (sub1 > view->df[0].offs) {
+	    sub1 = view->df[0].offs;
 	}
-	if (sub2 > view->offs[1]) {
-	    sub2 = view->offs[1];
+	if (sub2 > view->df[1].offs) {
+	    sub2 = view->df[1].offs;
 	}
 
 	sub = sub1;
@@ -230,12 +229,10 @@ find_prev_hunk (WDiff *view)
 	    return 0;
 	}
 
-	view->offs[0] -= sub;
-	view->offs[1] -= sub;
+	view->df[0].offs -= sub;
+	view->df[1].offs -= sub;
 
-	if (redo_diff(view, REINIT_READ_LEFT | REINIT_READ_RIGHT, pbytes) < 0) {
-	    return -1;
-	}
+	redo_diff(view, REINIT_READ_LEFT | REINIT_READ_RIGHT);
 
 	i = sub;
 	while (i > 0 && !(view->diffs[i - 1] & XDIFF_DIFFERENT)) {
@@ -255,16 +252,16 @@ find_prev_hunk (WDiff *view)
 	    i--;
 	}
 	if (i > 0) {
-	    view->offs[0] += i;
-	    view->offs[1] += i;
+	    view->df[0].offs += i;
+	    view->df[1].offs += i;
 	    break;
 	}
 
-	if (sub1 > view->offs[0]) {
-	    sub1 = view->offs[0];
+	if (sub1 > view->df[0].offs) {
+	    sub1 = view->df[0].offs;
 	}
-	if (sub2 > view->offs[1]) {
-	    sub2 = view->offs[1];
+	if (sub2 > view->df[1].offs) {
+	    sub2 = view->df[1].offs;
 	}
 
 	sub = sub1;
@@ -276,12 +273,10 @@ find_prev_hunk (WDiff *view)
 	    return 0;
 	}
 
-	view->offs[0] -= sub;
-	view->offs[1] -= sub;
+	view->df[0].offs -= sub;
+	view->df[1].offs -= sub;
 
-	if (redo_diff(view, REINIT_READ_LEFT | REINIT_READ_RIGHT, pbytes) < 0) {
-	    return -1;
-	}
+	redo_diff(view, REINIT_READ_LEFT | REINIT_READ_RIGHT);
 
 	i = sub;
     }
@@ -295,37 +290,160 @@ find_next_hunk (WDiff *view)
     int i;
     int pbytes = view->pbytes;
 
+    if (!pbytes) {
+	return 0;
+    }
+
     for (;;) {
 	i = 0;
-	while (i < pbytes && (view->diffs[i] & XDIFF_DIFFERENT)) {
+	while (i < pbytes && (view->diffs[i] == (XDIFF_DIFFERENT | XDIFF_IN_LEFT | XDIFF_IN_RIGHT))) {
 	    i++;
 	}
 	if (i < pbytes) {
 	    break;
 	}
-	view->offs[0] += i;
-	view->offs[1] += i;
-	if (redo_diff(view, REINIT_READ_LEFT | REINIT_READ_RIGHT, pbytes) < 0) {
-	    return -1;
-	}
+	view->df[0].offs += i;
+	view->df[1].offs += i;
+	redo_diff(view, REINIT_READ_LEFT | REINIT_READ_RIGHT);
     }
 
     for (;;) {
 	while (i < pbytes && !(view->diffs[i] & XDIFF_DIFFERENT) && view->diffs[i]) {
 	    i++;
 	}
-	view->offs[0] += i;
-	view->offs[1] += i;
+	view->df[0].offs += i;
+	view->df[1].offs += i;
 	if (i < pbytes) {
 	    break;
 	}
-	if (redo_diff(view, REINIT_READ_LEFT | REINIT_READ_RIGHT, pbytes) < 0) {
-	    return -1;
-	}
+	redo_diff(view, REINIT_READ_LEFT | REINIT_READ_RIGHT);
 	i = 0;
     }
 
+    if (view->df[0].offs >= view->df[0].end && view->df[1].offs >= view->df[1].end) {
+	view->df[0].offs--;
+	view->df[1].offs--;
+    }
+
     return 0;
+}
+
+
+static int
+recalc_offset_rel(WDiff *view, struct display_file *lf, struct display_file *rf, off_t bytes)
+{
+    off_t off;
+    if (lf->move && rf->move) {
+	if (bytes < 0) {
+	    off = lf->offs;
+	    if (off > rf->offs) {
+		off = rf->offs;
+	    }
+	    if (bytes < -off) {
+		bytes = -off;
+	    }
+	} else {
+	    if (lf->offs + bytes >= view->max || rf->offs + bytes >= view->max) {
+		return -1;
+	    }
+	}
+	lf->offs += bytes;
+	rf->offs += bytes;
+    } else if (lf->move) {
+	off = lf->offs + bytes;
+	if (off >= lf->end) {
+	    off = lf->end - 1;
+	}
+	if (off < 0) {
+	    off = 0;
+	}
+	lf->offs = off;
+    } else if (rf->move) {
+	off = rf->offs + bytes;
+	if (off >= rf->end) {
+	    off = rf->end - 1;
+	}
+	if (off < 0) {
+	    off = 0;
+	}
+	rf->offs = off;
+    }
+    return 0;
+}
+
+
+static void
+recalc_offset_end(WDiff *view, struct display_file *lf, struct display_file *rf, int where)
+{
+    off_t off;
+    if (lf->move && rf->move) {
+	if (where == 0) {
+	    if (lf->offs == 0 || rf->offs == 0) {
+		lf->offs = 0;
+		rf->offs = 0;
+	    } else {
+		off = lf->offs;
+		if (off > rf->offs) {
+		    off = rf->offs;
+		}
+		lf->offs -= off;
+		rf->offs -= off;
+	    }
+	} else {
+	    off_t ll = lf->end - lf->offs;
+	    off_t rl = rf->end - rf->offs;
+	    if (ll <= 1 || rl <= 1) {
+		off = view->max - lf->offs;
+		if (off > view->max - rf->offs) {
+		    off = view->max - rf->offs;
+		}
+	    } else {
+		off = ll;
+		if (off > rl) {
+		    off = rl;
+		}
+		off += (ll != rl);
+	    }
+	    lf->offs += off - 1;
+	    rf->offs += off - 1;
+	}
+    } else if (lf->move) {
+	lf->offs = where ? lf->end - 1 : 0;
+    } else if (rf->move) {
+	rf->offs = where ? rf->end - 1 : 0;
+    }
+}
+
+
+static void
+recalc_offset_pos(WDiff *view, struct display_file *lf, struct display_file *rf, off_t pos)
+{
+    if (lf->move && rf->move) {
+	if (pos != lf->offs && recalc_offset_rel(view, lf, rf, pos - lf->offs) != 0) {
+	    off_t off = view->max - lf->offs;
+	    if (off > view->max - rf->offs) {
+		off = view->max - rf->offs;
+	    }
+	    lf->offs += off - 1;
+	    rf->offs += off - 1;
+	}
+    } else if (lf->move) {
+	if (pos >= lf->end) {
+	    pos = lf->end -1;
+	}
+	if (pos < 0) {
+	    pos = 0;
+	}
+	lf->offs = pos;
+    } else if (rf->move) {
+	if (pos >= rf->end) {
+	    pos = rf->end -1;
+	}
+	if (pos < 0) {
+	    pos = 0;
+	}
+	rf->offs = pos;
+    }
 }
 
 
@@ -394,17 +512,16 @@ view_init (WDiff *view, const char *file1, const char *file2, const char *label1
     view->label[1] = label2;
     view->f[0] = f[0];
     view->f[1] = f[1];
-    view->fdata = NULL;
     view->diffs = NULL;
-    view->data[0] = NULL;
-    view->data[1] = NULL;
-    view->move[0] = 1;
-    view->move[1] = 1;
-    view->end[0] = f_seek(f[0], 0, SEEK_END);
-    view->end[1] = f_seek(f[1], 0, SEEK_END);
-    view->max = view->end[0];
-    if (view->max < view->end[1]) {
-	view->max = view->end[1];
+    view->df[0].data = NULL;
+    view->df[1].data = NULL;
+    view->df[0].move = 1;
+    view->df[1].move = 1;
+    view->df[0].end = f_seek(f[0], 0, SEEK_END);
+    view->df[1].end = f_seek(f[1], 0, SEEK_END);
+    view->max = view->df[0].end;
+    if (view->max < view->df[1].end) {
+	view->max = view->df[1].end;
     }
 
     view->view_quit = 0;
@@ -426,7 +543,7 @@ static int
 view_reinit (WDiff *view)
 {
     if (quick_dialog(&diffopt) != B_CANCEL) {
-	return redo_diff(view, REINIT_READ_LEFT | REINIT_READ_RIGHT, view->pbytes);
+	return redo_diff(view, REINIT_READ_LEFT | REINIT_READ_RIGHT);
     }
     return 0;
 }
@@ -435,7 +552,7 @@ view_reinit (WDiff *view)
 static void
 view_fini (WDiff *view)
 {
-    free(view->fdata);
+    free(view->diffs);
 
     f_close(view->f[1]);
     f_close(view->f[0]);
@@ -452,9 +569,9 @@ view_display_file (WDiff *view, int ord,
 {
     int i, j, k;
     char buf[BUFSIZ];
-    const char *data = view->data[ord];
+    const char *data = view->df[ord].data;
     const char *diffs = view->diffs;
-    off_t offset = view->offs[ord];
+    off_t offset = view->df[ord].offs;
     int nbytes = view->nbytes;
 
     off_t mask = 0;
@@ -511,7 +628,7 @@ view_display_file (WDiff *view, int ord,
 	    } else {
 		tty_setcolor(NORMAL_COLOR);
 	    }
-	    tty_print_nstring(buf + i, 3);
+	    tty_print_nstring(buf + i, (i + 3 < width) ? 3 : (width - i));
 	}
 
 	tty_setcolor(NORMAL_COLOR);
@@ -521,8 +638,8 @@ view_display_file (WDiff *view, int ord,
 	    i++;
 	}
 
-	for (k = 0; k < nbytes; k++, i++) {
-	    if (*diffs++ & XDIFF_DIFFERENT) {
+	for (k = 0; k < nbytes && i < width; k++, i++) {
+	    if (diffs[k] & XDIFF_DIFFERENT) {
 		tty_setcolor(VIEW_UNDERLINED_COLOR);
 	    } else {
 		tty_setcolor(NORMAL_COLOR);
@@ -542,6 +659,7 @@ view_display_file (WDiff *view, int ord,
 	if (stop) {
 	    break;
 	}
+	diffs += nbytes;
     }
 #if !VERTICAL_SPLIT
     height = total_height;
@@ -564,8 +682,8 @@ view_status (WDiff *view, int ord, int width, int pos)
 {
     char buf[BUFSIZ];
     int filename_width;
-    off_t skip_offs = view->offs[ord];
-    int moves = view->move[ord];
+    off_t skip_offs = view->df[ord].offs;
+    int moves = view->df[ord].move;
 
     tty_setcolor(SELECTED_COLOR);
 
@@ -595,21 +713,20 @@ view_update (WDiff *view)
     int min_size;
     int size1;
     int size2;
-    int pbytes;
+    int flags = 0;
     int owidth = 0;
-    off_t u = view->max - 1;
 
-    if (view->offs[0] > u) {
-	view->offs[0] = u;
+    if (view->df[0].offs >= view->max) {
+	view->df[0].offs = view->max;
     }
-    if (view->offs[1] > u) {
-	view->offs[1] = u;
+    if (view->df[1].offs >= view->max) {
+	view->df[1].offs = view->max;
     }
-    if (view->offs[0] < 0) {
-	view->offs[0] = 0;
+    if (view->df[0].offs < 0) {
+	view->df[0].offs = 0;
     }
-    if (view->offs[1] < 0) {
-	view->offs[1] = 0;
+    if (view->df[1].offs < 0) {
+	view->df[1].offs = 0;
     }
 
     /* XXX some more sanity checks (LINES/COLS)? */
@@ -626,13 +743,7 @@ view_update (WDiff *view)
     }
 
     if (view->display_numbers) {
-#if 0
-	off_t n = view->max;	/* XXX might change at each redo_diff */
-	for (owidth = 1; n >>= 4; owidth++) {
-	}
-#else
 	owidth = 4;
-#endif
     }
 #else	/* !VERTICAL_SPLIT */
 
@@ -678,6 +789,9 @@ view_update (WDiff *view)
 	if (view->nbytes < 0) {
 	    view->nbytes = 0;	/* XXX sanity checks should prevent this */
 	}
+	if (view->nbytes > 0 && view->nbytes < 4) {
+	    view->nbytes = 4;
+	}
 	view->nbytes /= 4;
 	if (view->nbytes <= view->subtract) {
 	    view->subtract = view->nbytes - 1;
@@ -687,15 +801,11 @@ view_update (WDiff *view)
 	}
 	view->nbytes -= view->subtract;
 #if VERTICAL_SPLIT
-	pbytes = view->nbytes * (size - 2);
+	view->pbytes = view->nbytes * (size - 2);
 #else	/* !VERTICAL_SPLIT */
-	pbytes = view->nbytes * min_size;
+	view->pbytes = view->nbytes * min_size;
 #endif	/* !VERTICAL_SPLIT */
-	if (redo_diff(view, REINIT_REALLOC, pbytes) < 0) {
-	    return;
-	}
-	view->last[0] = view->offs[0];
-	view->last[1] = view->offs[1];
+	flags = REINIT_REALLOC;
 
 	tty_setcolor(NORMAL_COLOR);
 #if VERTICAL_SPLIT
@@ -710,19 +820,19 @@ view_update (WDiff *view)
 	view->new_frame = 0;
     }
 
-    if (view->last[0] != view->offs[0] || view->last[1] != view->offs[1]) {
-	int flags = 0;
-	if (view->last[0] != view->offs[0]) {
+    if (view->df[0].last != view->df[0].offs || view->df[1].last != view->df[1].offs || flags) {
+	if (view->df[0].last != view->df[0].offs) {
 	    flags |= REINIT_READ_LEFT;
 	}
-	if (view->last[1] != view->offs[1]) {
+	if (view->df[1].last != view->df[1].offs) {
 	    flags |= REINIT_READ_RIGHT;
 	}
-	if (redo_diff(view, flags, view->pbytes) < 0) {
+	if (redo_diff(view, flags) < 0) {
+	    view->view_quit = 1;
 	    return;
 	}
-	view->last[0] = view->offs[0];
-	view->last[1] = view->offs[1];
+	view->df[0].last = view->df[0].offs;
+	view->df[1].last = view->df[1].offs;
     }
 
 #if VERTICAL_SPLIT
@@ -802,8 +912,9 @@ view_goto_cmd (WDiff *view)
     if (input != NULL) {
 	const char *s = input;
 	if (scan_unsigned(&s, &address) == 0 && *s == '\0') {
-	    if (view->move[0]) view->offs[0] = address;
-	    if (view->move[1]) view->offs[1] = address;
+	    struct display_file *lf = &view->df[view->ord];
+	    struct display_file *rf = &view->df[view->ord ^ 1];
+	    recalc_offset_pos(view, lf, rf, address);
 	    view->last_found = -1;
 	    view_update(view);
 	}
@@ -845,6 +956,8 @@ view_event (Gpm_Event *event, void *x)
 {
     WDiff *view = (WDiff *)x;
     int result = MOU_NORMAL;
+    struct display_file *lf = &view->df[view->ord];
+    struct display_file *rf = &view->df[view->ord ^ 1];
 
     /* We are not interested in the release events */
     if (!(event->type & (GPM_DOWN | GPM_DRAG))) {
@@ -853,14 +966,12 @@ view_event (Gpm_Event *event, void *x)
 
     /* Wheel events */
     if ((event->buttons & GPM_B_UP) && (event->type & GPM_DOWN)) {
-	if (view->move[0]) view->offs[0] -= view->nbytes;
-	if (view->move[1]) view->offs[1] -= view->nbytes;
+	recalc_offset_rel(view, lf, rf, -view->nbytes);
 	view_update(view);
 	return result;
     }
     if ((event->buttons & GPM_B_DOWN) && (event->type & GPM_DOWN)) {
-	if (view->move[0]) view->offs[0] += view->nbytes;
-	if (view->move[1]) view->offs[1] += view->nbytes;
+	recalc_offset_rel(view, lf, rf, view->nbytes);
 	view_update(view);
 	return result;
     }
@@ -872,6 +983,9 @@ view_event (Gpm_Event *event, void *x)
 static cb_ret_t
 view_handle_key (WDiff *view, int c)
 {
+    struct display_file *lf = &view->df[view->ord];
+    struct display_file *rf = &view->df[view->ord ^ 1];
+
     c = convert_from_input_c(c);
 
     switch (c) {
@@ -918,18 +1032,15 @@ view_handle_key (WDiff *view, int c)
 	    return MSG_HANDLED;
 
 	case '1':
-	    view->move[0] = 1;
-	    view->move[1] ^= 1;
+	    lf->move = 1;
+	    rf->move ^= 1;
 	    return MSG_HANDLED;
 	case '2':
-	    view->move[0] ^= 1;
-	    view->move[1] = 1;
+	    lf->move ^= 1;
+	    rf->move = 1;
 	    return MSG_HANDLED;
 
 	case XCTRL('u'): {
-	    int tmp = view->move[0];
-	    view->move[0] = view->move[1];
-	    view->move[1] = tmp;
 	    view->ord ^= 1;
 	    return MSG_HANDLED;
 	}
@@ -967,56 +1078,46 @@ view_handle_key (WDiff *view, int c)
 	case ALT ('<'):
 	case KEY_M_CTRL | KEY_PPAGE:
 	    view->last_found = -1;
-	    if (view->move[0]) view->offs[0] = 0;
-	    if (view->move[1]) view->offs[1] = 0;
+	    recalc_offset_end(view, lf, rf, 0);
 	    return MSG_HANDLED;
 
 	case KEY_END:
 	case ALT ('>'):
 	case KEY_M_CTRL | KEY_NPAGE:
 	    view->last_found = -1;
-	    if (view->move[0]) view->offs[0] = view->max - 1;
-	    if (view->move[1]) view->offs[1] = view->max - 1;
+	    recalc_offset_end(view, lf, rf, 1);
 	    return MSG_HANDLED;
 
 	case KEY_UP:
-	    if (view->move[0]) view->offs[0] -= view->nbytes;
-	    if (view->move[1]) view->offs[1] -= view->nbytes;
+	    recalc_offset_rel(view, lf, rf, -view->nbytes);
 	    return MSG_HANDLED;
 
 	case KEY_DOWN:
-	    if (view->move[0]) view->offs[0] += view->nbytes;
-	    if (view->move[1]) view->offs[1] += view->nbytes;
+	    recalc_offset_rel(view, lf, rf, view->nbytes);
 	    return MSG_HANDLED;
 
 	case KEY_NPAGE:
-	    if (view->move[0]) view->offs[0] += view->pbytes;
-	    if (view->move[1]) view->offs[1] += view->pbytes;
+	    recalc_offset_rel(view, lf, rf, view->pbytes);
 	    return MSG_HANDLED;
 
 	case KEY_PPAGE:
-	    if (view->move[0]) view->offs[0] -= view->pbytes;
-	    if (view->move[1]) view->offs[1] -= view->pbytes;
+	    recalc_offset_rel(view, lf, rf, -view->pbytes);
 	    return MSG_HANDLED;
 
 	case KEY_LEFT:
-	    if (view->move[0]) view->offs[0]--;
-	    if (view->move[1]) view->offs[1]--;
+	    recalc_offset_rel(view, lf, rf, -1);
 	    return MSG_HANDLED;
 
 	case KEY_RIGHT:
-	    if (view->move[0]) view->offs[0]++;
-	    if (view->move[1]) view->offs[1]++;
+	    recalc_offset_rel(view, lf, rf, 1);
 	    return MSG_HANDLED;
 
 	case KEY_M_CTRL | KEY_LEFT:
-	    if (view->move[0]) view->offs[0] -= 16;
-	    if (view->move[1]) view->offs[1] -= 16;
+	    recalc_offset_rel(view, lf, rf, -16);
 	    return MSG_HANDLED;
 
 	case KEY_M_CTRL | KEY_RIGHT:
-	    if (view->move[0]) view->offs[0] += 16;
-	    if (view->move[1]) view->offs[1] += 16;
+	    recalc_offset_rel(view, lf, rf, 16);
 	    return MSG_HANDLED;
 
 	case XCTRL('o'):
