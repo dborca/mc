@@ -78,11 +78,12 @@ typedef struct {
 	size_t len;
     } u;
     void *p;
+    int borrow;
 } DIFFLN;
 
 typedef struct {
     FBUF *f;
-    ARRAY *a;
+    ARRAY *a, *other;
     DSRC dsrc;
 } PRINTER_CTX;
 
@@ -1045,7 +1046,7 @@ static void
 cc_free_elt (void *elt)
 {
     DIFFLN *p = elt;
-    if (p->p) {
+    if (p->p && !p->borrow) {
 	free(p->p);
     }
 }
@@ -1056,6 +1057,7 @@ printer (void *ctx, int ch, int line, off_t off, size_t sz, const char *str)
 {
     DIFFLN *p;
     ARRAY *a = ((PRINTER_CTX *)ctx)->a;
+    ARRAY *other = ((PRINTER_CTX *)ctx)->other;
     DSRC dsrc = ((PRINTER_CTX *)ctx)->dsrc;
     if (a->error) {
 	return -1;
@@ -1069,9 +1071,19 @@ printer (void *ctx, int ch, int line, off_t off, size_t sz, const char *str)
 	p->ch = ch;
 	p->line = line;
 	p->u.off = off;
+	p->borrow = 0;
 	if (dsrc == DATA_SRC_MEM && line) {
 	    if (sz && str[sz - 1] == '\n') {
 		sz--;
+		if (ch == EQU_CH && other) {
+		    const DIFFLN *q = (DIFFLN *)other->data + a->len - 1;
+		    if (sz == q->u.len && !memcmp(str, q->p, sz)) {
+			p->p = q->p;
+			p->u.len = sz;
+			p->borrow = 1;
+			goto okay;
+		    }
+		}
 	    }
 	    if (sz) {
 		p->p = malloc(sz);
@@ -1091,6 +1103,16 @@ printer (void *ctx, int ch, int line, off_t off, size_t sz, const char *str)
 	p = (DIFFLN *)a->data + a->len - 1;
 	if (sz && str[sz - 1] == '\n') {
 	    sz--;
+	    if (p->ch == EQU_CH && other) {
+		const DIFFLN *q = (DIFFLN *)other->data + a->len - 1;
+		if (p->u.len + sz == q->u.len && !memcmp(str, (char *)q->p + p->u.len, sz) && !memcmp(p->p, q->p, p->u.len)) {
+		    free(p->p);
+		    p->p = q->p;
+		    p->u.len = q->u.len;
+		    p->borrow = 1;
+		    goto okay;
+		}
+	    }
 	}
 	if (sz) {
 	    size_t new_size = p->u.len + sz;
@@ -1104,6 +1126,7 @@ printer (void *ctx, int ch, int line, off_t off, size_t sz, const char *str)
 	}
 	p->u.len += sz;
     }
+  okay:
     if (dsrc == DATA_SRC_TMP && (line || !ch)) {
 	FBUF *f = ((PRINTER_CTX *)ctx)->f;
 	f_write(f, str, sz);
@@ -1165,11 +1188,13 @@ redo_diff (WDiff *view)
     arr_init(&a[0], sizeof(DIFFLN), 256);
     ctx.a = &a[0];
     ctx.f = f[0];
+    ctx.other = NULL;
     rv |= dff_reparse(0, view->file[0], &ops, printer, &ctx);
 
     arr_init(&a[1], sizeof(DIFFLN), 256);
     ctx.a = &a[1];
     ctx.f = f[1];
+    ctx.other = &a[0]; /* XXX set this to NULL to disable borrow */
     rv |= dff_reparse(1, view->file[1], &ops, printer, &ctx);
 
     arr_free(&ops, NULL);
