@@ -78,8 +78,6 @@ typedef struct DNODE {
 
 typedef int (*DFUNC) (void *ctx, int ch, const char *f1, const char *f2);
 
-static int diff_file (const char *r0, const char *f0, const char *r1, const char *f1, int recursive, const DNODE *prev, DFUNC printer, void *ctx);
-
 #define is_eq(c) ((c) == EQU_CH || (c) == DIR_CH)
 
 typedef struct {
@@ -94,6 +92,12 @@ typedef struct {
     const char *dir[2];		/* filenames */
     ARRAY z;
     int ndiff;			/* number of hunks */
+
+    regex_t irx;
+    int ignore:1;
+    int hideleft:1;
+    int hideright:1;
+    int hideident:1;
 
     int view_quit:1;		/* Quit flag */
 
@@ -111,14 +115,20 @@ typedef struct {
     int last_found;
 } WDiff;
 
+static int diff_file (WDiff *view, const char *r0, const char *f0, const char *r1, const char *f1, int recursive, const DNODE *prev, DFUNC printer);
 
-#define OPTX 50
-#define OPTY 8
+#define OPTX 53
+#define OPTY 11
 
 static QuickWidget diffopt_widgets[] = {
-    { quick_button,   6,   10, 5, OPTY, N_("&Cancel"),    0, B_CANCEL, NULL, NULL, NULL },
-    { quick_button,   3,   10, 5, OPTY, N_("&OK"),        0, B_ENTER,  NULL, NULL, NULL },
-    { quick_checkbox, 4, OPTX, 3, OPTY, N_("Recursi&ve"), 0, 0,        NULL, NULL, NULL },
+    { quick_button,    6,   10, 8, OPTY, N_("&Cancel"),          0, B_CANCEL, NULL, NULL, NULL },
+    { quick_button,    3,   10, 8, OPTY, N_("&OK"),              0, B_ENTER,  NULL, NULL, NULL },
+    { quick_input,     4, OPTX, 7, OPTY, "",                    45, 0,        NULL, NULL, N_(" Unselect ")},
+    { quick_label,     4, OPTX, 6, OPTY, N_("Ignore pattern:"),  0, 0,        NULL, NULL, NULL },
+    { quick_checkbox, 30, OPTX, 5, OPTY, N_("Hide &Identical"),  0, 0,        NULL, NULL, NULL },
+    { quick_checkbox, 30, OPTX, 4, OPTY, N_("Hide &Right-only"), 0, 0,        NULL, NULL, NULL },
+    { quick_checkbox, 30, OPTX, 3, OPTY, N_("Hide &Left-only"),  0, 0,        NULL, NULL, NULL },
+    { quick_checkbox,  4, OPTX, 3, OPTY, N_("Recursi&ve"),       0, 0,        NULL, NULL, NULL },
     NULL_QuickWidget
 };
 
@@ -140,7 +150,7 @@ static QuickWidget search_widgets[] = {
     { quick_checkbox,  4, SEARCH_DLG_WIDTH, 4, SEARCH_DLG_HEIGHT, N_("case &Sensitive"),        0, 0,        NULL, NULL, NULL },
     { quick_input,     3, SEARCH_DLG_WIDTH, 3, SEARCH_DLG_HEIGHT, "",                          52, 0,        NULL, NULL, N_("Search") },
     { quick_label,     2, SEARCH_DLG_WIDTH, 2, SEARCH_DLG_HEIGHT, N_(" Enter search string:"),  0, 0,        NULL, NULL, NULL },
-     NULL_QuickWidget
+    NULL_QuickWidget
 };
 
 static QuickDialog search_input = {
@@ -249,6 +259,7 @@ strpath (const char *s1, const char *s2)
 /**
  * Scan directory.
  *
+ * \param view main view object
  * \param a list of items to fill
  * \param pre first component of directory
  * \param name second component of directory
@@ -256,7 +267,7 @@ strpath (const char *s1, const char *s2)
  * \return 0 if success
  */
 static int
-scan_dir (ARRAY *a, const char *pre, const char *name)
+scan_dir (const WDiff *view, ARRAY *a, const char *pre, const char *name)
 {
     char buf[2 * PATH_MAX];	/* XXX for _bufpath */
     char *p;
@@ -290,6 +301,9 @@ scan_dir (ARRAY *a, const char *pre, const char *name)
 	}
 
 	if (ent->d_name[0] == '.' && (ent->d_name[1] == '\0' || (ent->d_name[1] == '.' && ent->d_name[2] == '\0'))) {
+	    continue;
+	}
+	if (view->ignore && regexec(&view->irx, ent->d_name, 0, NULL, 0) == 0) {
 	    continue;
 	}
 
@@ -402,25 +416,25 @@ diff_binary (const char *p0, const char *p1, const struct stat st[2])
 /**
  * Compare two subdirectories.
  *
+ * \param view main view object
  * \param r0 1st path component
  * \param r1 2nd path component
  * \param d common subdirectory name
  * \param recursive max allowed depth
  * \param prev top of stack of parent subdirectories
  * \param printer callback
- * \param ctx opaque object to be passed to callback
  *
  * \return 0 success, 1 if dir scanning failed, otherwise critical error
  */
 static int
-diff_dirs (const char *r0, const char *r1, const char *d, int recursive, const DNODE *prev, DFUNC printer, void *ctx)
+diff_dirs (WDiff *view, const char *r0, const char *r1, const char *d, int recursive, const DNODE *prev, DFUNC printer)
 {
     char buf[2 * PATH_MAX];	/* XXX for _bufpath */
     ARRAY a[2];
     int rv = 1;
     arr_init(&a[0], sizeof(char *), 256);
     arr_init(&a[1], sizeof(char *), 256);
-    if (scan_dir(&a[0], r0, d) == 0 && scan_dir(&a[1], r1, d) == 0) {
+    if (scan_dir(view, &a[0], r0, d) == 0 && scan_dir(view, &a[1], r1, d) == 0) {
 	int i = 0;
 	int j = 0;
 	char **q0 = a[0].data;
@@ -438,6 +452,9 @@ diff_dirs (const char *r0, const char *r1, const char *d, int recursive, const D
 	    if (nameorder <= 0) {
 		f0 = *q0++;
 		i++;
+		if (view->hideleft && nameorder) {
+		    continue;
+		}
 		if (d != NULL) {
 		    tmp = f0 = make_new_path(d, f0);
 		    if (tmp == NULL) {
@@ -449,6 +466,9 @@ diff_dirs (const char *r0, const char *r1, const char *d, int recursive, const D
 	    if (nameorder >= 0) {
 		f1 = *q1++;
 		j++;
+		if (view->hideright && nameorder) {
+		    continue;
+		}
 		if (d != NULL) {
 		    if (tmp != NULL) {
 			f1 = tmp;
@@ -461,7 +481,7 @@ diff_dirs (const char *r0, const char *r1, const char *d, int recursive, const D
 		    }
 		}
 	    }
-	    rv |= diff_file(r0, f0, r1, f1, recursive, prev, printer, ctx);
+	    rv |= diff_file(view, r0, f0, r1, f1, recursive, prev, printer);
 	    free_new_path(tmp);
 	}
     }
@@ -474,6 +494,7 @@ diff_dirs (const char *r0, const char *r1, const char *d, int recursive, const D
 /**
  * Compare two files.
  *
+ * \param view main view object
  * \param r0 1st path component
  * \param f0 1st file name (should be NULL initially)
  * \param r1 2nd path component
@@ -481,7 +502,6 @@ diff_dirs (const char *r0, const char *r1, const char *d, int recursive, const D
  * \param recursive max allowed depth
  * \param prev top of stack of parent subdirectories (should be NULL initially)
  * \param printer callback
- * \param ctx opaque object to be passed to callback
  *
  * \return 0 success, otherwise error
  *
@@ -489,11 +509,12 @@ diff_dirs (const char *r0, const char *r1, const char *d, int recursive, const D
  * \note f0 and f1 cannot be both NULL, unless prev is NULL
  */
 static int
-diff_file (const char *r0, const char *f0, const char *r1, const char *f1, int recursive, const DNODE *prev, DFUNC printer, void *ctx)
+diff_file (WDiff *view, const char *r0, const char *f0, const char *r1, const char *f1, int recursive, const DNODE *prev, DFUNC printer)
 {
     int rv;
     char *p0, *p1;
     struct stat st[2];
+    void *ctx = &view->z;
 
     if (prev != NULL) {
 	if (f0 == NULL) {
@@ -550,7 +571,7 @@ diff_file (const char *r0, const char *f0, const char *r1, const char *f1, int r
 	    node.link = prev;
 	    node.st[0] = &st[0];
 	    node.st[1] = &st[1];
-	    rv = diff_dirs(r0, r1, f0, recursive, &node, printer, ctx);
+	    rv = diff_dirs(view, r0, r1, f0, recursive, &node, printer);
 	    if (rv == 1 && prev) {
 		return printer(ctx, ERR_CH, f0, f1);
 	    }
@@ -565,6 +586,9 @@ diff_file (const char *r0, const char *f0, const char *r1, const char *f1, int r
 	return printer(ctx, ERR_CH, f0, f1);
     }
     if (rv == 0) {
+	if (view->hideident) {
+	    return 0;
+	}
 	return printer(ctx, EQU_CH, f0, f1);
     }
     return printer(ctx, CHG_CH, f0, f1);
@@ -654,7 +678,7 @@ redo_diff (WDiff *view)
 {
     int rv;
     arr_init(&view->z, sizeof(LNODE), 256);
-    rv = diff_file(view->dir[0], NULL, view->dir[1], NULL, view->recursive, NULL, printer, &view->z);
+    rv = diff_file(view, view->dir[0], NULL, view->dir[1], NULL, view->recursive, NULL, printer);
     if (rv != 0 || view->z.error) {
 	arr_free(&view->z, free_pair);
 	return -1;
@@ -800,6 +824,10 @@ view_init (WDiff *view, int recursive, const char *dir1, const char *dir2)
     view->dir[0] = dir1;
     view->dir[1] = dir2;
     view->recursive = recursive;
+    view->hideleft = 0;
+    view->hideright = 0;
+    view->hideident = 0;
+    view->ignore = 0;
 
     ndiff = redo_diff(view);
     if (ndiff < 0) {
@@ -1068,13 +1096,52 @@ view_update (WDiff *view)
 static void
 view_redo (WDiff *view)
 {
+    static char *ignore = NULL;
+    char *tignore;
+
+    int hideleft = view->hideleft;
+    int hideright = view->hideright;
+    int hideident = view->hideident;
     int recursive = view->recursive;
     int ndiff = view->ndiff;
 
-    diffopt_widgets[2].value = recursive;
-    diffopt_widgets[2].result = &recursive;
+    diffopt_widgets[7].value = recursive;
+    diffopt_widgets[7].result = &recursive;
+    diffopt_widgets[6].value = hideleft;
+    diffopt_widgets[6].result = &hideleft;
+    diffopt_widgets[5].value = hideright;
+    diffopt_widgets[5].result = &hideright;
+    diffopt_widgets[4].value = hideident;
+    diffopt_widgets[4].result = &hideident;
+    diffopt_widgets[2].str_result = &tignore;
+    diffopt_widgets[2].text = ignore;
 
     if (quick_dialog(&diffopt) != B_CANCEL) {
+	regfree(&view->irx); /* XXX will eventually leak */
+	view->ignore = 0;
+	ignore = NULL;
+	if (tignore && *tignore) {
+	    int error;
+	    if (easy_patterns) {
+		char *signore = convert_pattern (tignore, match_file, 0);
+		error = regcomp(&view->irx, signore, REG_EXTENDED | REG_NOSUB);
+		g_free(signore);
+	    } else {
+		error = regcomp(&view->irx, tignore, REG_EXTENDED | REG_NOSUB);
+	    }
+	    if (error) {
+		char errbuf[256];
+		regerror(error, &view->irx, errbuf, sizeof(errbuf));
+		message (1, MSG_ERROR, _("Invalid pattern `%s' \n %s "), tignore, errbuf);
+	    } else {
+		view->ignore = 1;
+	    }
+	    ignore = INPUT_LAST_TEXT;
+	}
+	g_free(tignore);
+	view->hideleft = hideleft;
+	view->hideright = hideright;
+	view->hideident = hideident;
 	view->recursive = (recursive != 0) * RECURSIVE_DEPTH;
 	view_fini(view);
 	mc_setctl (view->dir[0], VFS_SETCTL_STALE_DATA, NULL);

@@ -3004,6 +3004,18 @@ Quit.
 .PP
 .B Recursive
 Diff subdirectories recursively.
+.PP
+.B Hide Left-only
+Hide files that appear only in left panel.
+.PP
+.B Hide Right-only
+Hide files that appear only in right panel.
+.PP
+.B Hide Identical
+Hide identical files.
+.PP
+.B Ignore pattern
+Skip files matching the given pattern.
 .\"NODE "Virtual File System"
 .SH "Virtual File System"
 The Midnight Commander is provided with a code layer to access the file
