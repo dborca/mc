@@ -76,7 +76,7 @@ typedef struct DNODE {
     const struct stat *st[2];
 } DNODE;
 
-typedef int (*DFUNC) (void *ctx, int ch, const char *f1, const char *f2);
+typedef int (*DFUNC) (void *ctx, int ch, const char *f0, const char *f1);
 
 #define is_eq(c) ((c) == EQU_CH || (c) == DIR_CH)
 
@@ -918,6 +918,9 @@ view_display_file (const WDiff *view, int ord,
 		snprintf(buf, display_numbers + 1, "%*d", nwidth, linenum);
 		tty_print_string(buf);
 	    }
+	    if (ch == DIR_CH) {
+		tty_setcolor(DIRECTORY_COLOR);
+	    }
 	    if (ch == ADD_CH) {
 		tty_setcolor(DFFADD_COLOR);
 	    }
@@ -926,9 +929,6 @@ view_display_file (const WDiff *view, int ord,
 	    }
 	    if (ch == ERR_CH) {
 		tty_setcolor(STALE_LINK_COLOR);
-	    }
-	    if (ch == DIR_CH) {
-		tty_setcolor(DIRECTORY_COLOR);
 	    }
 	    if (i == view->last_found) {
 		tty_setcolor(MARKED_SELECTED_COLOR);
@@ -948,6 +948,9 @@ view_display_file (const WDiff *view, int ord,
 		buf[display_numbers] = '\0';
 		tty_print_nstring(buf, display_numbers);
 	    }
+	    if (ch == DIR_CH) {
+		tty_setcolor(DIRECTORY_COLOR);
+	    }
 	    if (ch == DEL_CH) {
 		tty_setcolor(DFFCHD_COLOR);	/* XXX perhaps this sucks? */
 	    }
@@ -956,9 +959,6 @@ view_display_file (const WDiff *view, int ord,
 	    }
 	    if (ch == ERR_CH) {
 		tty_setcolor(STALE_LINK_COLOR);
-	    }
-	    if (ch == DIR_CH) {
-		tty_setcolor(DIRECTORY_COLOR);
 	    }
 	    memset(buf, ' ', width);
 	    buf[width] = '\0';
@@ -1324,10 +1324,10 @@ view_edit (WDiff *view, int ord)
 
     if (s != NULL) {
 	char buf[2 * PATH_MAX];	/* XXX for _bufpath */
-	s = make_tmp_path(view->dir[ord], s);
-	if (s != NULL) {
-	    do_edit_at_line(s, 0);
-	    free_tmp_path(s);
+	char *tmp = make_tmp_path(view->dir[ord], s);
+	if (tmp != NULL) {
+	    do_edit_at_line(tmp, 0);
+	    free_tmp_path(tmp);
 	    view_redo(view);
 	    view_update(view);
 	}
@@ -1351,10 +1351,10 @@ view_view (WDiff *view, int ord)
 
     if (s != NULL) {
 	char buf[2 * PATH_MAX];	/* XXX for _bufpath */
-	s = make_tmp_path(view->dir[ord], s);
-	if (s != NULL) {
-	    view_file_at_line(s, 0, use_internal_view, 0);
-	    free_tmp_path(s);
+	char *tmp = make_tmp_path(view->dir[ord], s);
+	if (tmp != NULL) {
+	    view_file_at_line(tmp, 0, use_internal_view, 0);
+	    free_tmp_path(tmp);
 	    view_update(view);
 	}
     }
