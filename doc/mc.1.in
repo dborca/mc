@@ -3005,6 +3005,9 @@ Quit.
 .B Recursive
 Diff subdirectories recursively.
 .PP
+.B No follow links
+Do not follow symlinks when doing compare.
+.PP
 .B Hide Left-only
 Hide files that appear only in left panel.
 .PP

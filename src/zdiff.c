@@ -98,6 +98,7 @@ typedef struct {
     int hideleft:1;
     int hideright:1;
     int hideident:1;
+    int nofollow:1;
 
     int view_quit:1;		/* Quit flag */
 
@@ -128,6 +129,7 @@ static QuickWidget diffopt_widgets[] = {
     { quick_checkbox, 30, OPTX, 5, OPTY, N_("Hide &Identical"),  0, 0,        NULL, NULL, NULL },
     { quick_checkbox, 30, OPTX, 4, OPTY, N_("Hide &Right-only"), 0, 0,        NULL, NULL, NULL },
     { quick_checkbox, 30, OPTX, 3, OPTY, N_("Hide &Left-only"),  0, 0,        NULL, NULL, NULL },
+    { quick_checkbox,  4, OPTX, 4, OPTY, N_("No follow lin&ks"), 0, 0,        NULL, NULL, NULL },
     { quick_checkbox,  4, OPTX, 3, OPTY, N_("Recursi&ve"),       0, 0,        NULL, NULL, NULL },
     NULL_QuickWidget
 };
@@ -355,6 +357,48 @@ dispose (void *p)
 
 
 /**
+ * Check path and extract link target.
+ *
+ * \param path filename to be checked
+ * \param st stat structure (may be NULL)
+ * \param link buffer to store link target (may be NULL)
+ * \param[out] mode inode protection mode (may be NULL)
+ *
+ * \return NULL if path is not a symlink, otherwise address of output buffer
+ *
+ * \note if st is NULL, the path is lstat()-ed
+ * \note input buffer is expected to be at least MC_MAXPATHLEN
+ */
+static char *
+check(const char *path, struct stat *st, char link[MC_MAXPATHLEN], int *mode)
+{
+    struct stat xt;
+
+    if (mode) {
+	*mode = 0;
+    }
+    if (st == NULL) {
+	int rv = mc_lstat(path, &xt);
+	if (rv) {
+	    return NULL;
+	}
+	st = &xt;
+    }
+    if (mode) {
+	*mode = st->st_mode;
+    }
+    if (S_ISLNK(st->st_mode) && link) {
+	int len = mc_readlink(path, link, MC_MAXPATHLEN - 1);
+	if (len > 0) {
+	    link[len] = '\0';
+	    return link;
+	}
+    }
+    return NULL;
+}
+
+
+/**
  * Compare two binary files.
  *
  * \param p0 1st filename
@@ -515,6 +559,8 @@ diff_file (WDiff *view, const char *r0, const char *f0, const char *r1, const ch
     char *p0, *p1;
     struct stat st[2];
     void *ctx = &view->z;
+    char *l0, link0[MC_MAXPATHLEN];
+    char *l1, link1[MC_MAXPATHLEN];
 
     if (prev != NULL) {
 	if (f0 == NULL) {
@@ -532,21 +578,47 @@ diff_file (WDiff *view, const char *r0, const char *f0, const char *r1, const ch
 	return -1;
     }
 
-    if (mc_stat(p0, &st[0]) || mc_stat(p1, &st[1])) {
-	free_2nd_path(p1);
-	free_1st_path(p0);
-	if (prev == NULL) {
-	    return -1;
+    if (prev && view->nofollow) {
+	if (mc_lstat(p0, &st[0]) || mc_lstat(p1, &st[1])) {
+	    free_2nd_path(p1);
+	    free_1st_path(p0);
+	    return printer(ctx, ERR_CH, f0, f1);
 	}
-	return printer(ctx, ERR_CH, f0, f1);
-    }
-    if ((st[0].st_mode & S_IFMT) != (st[1].st_mode & S_IFMT)) {
-	free_2nd_path(p1);
-	free_1st_path(p0);
-	if (prev == NULL) {
-	    return -1;
+	l0 = check(p0, &st[0], link0, NULL);
+	l1 = check(p1, &st[1], link1, NULL);
+	if ((st[0].st_mode & S_IFMT) != (st[1].st_mode & S_IFMT)) {
+	    free_2nd_path(p1);
+	    free_1st_path(p0);
+	    return printer(ctx, DEL_CH, f0, NULL) | printer(ctx, ADD_CH, NULL, f1);
 	}
-	return printer(ctx, ERR_CH, f0, f1);
+	if (S_ISLNK(st[0].st_mode)) {
+	    free_2nd_path(p1);
+	    free_1st_path(p0);
+	    if (l0 == NULL || l1 == NULL) {
+		return printer(ctx, ERR_CH, f0, f1);
+	    }
+	    if (!strcmp(l0, l1)) {
+		return printer(ctx, EQU_CH, f0, f1);
+	    }
+	    return printer(ctx, CHG_CH, f0, f1);
+	}
+    } else {
+	if (mc_stat(p0, &st[0]) || mc_stat(p1, &st[1])) {
+	    free_2nd_path(p1);
+	    free_1st_path(p0);
+	    if (prev == NULL) {
+		return -1;
+	    }
+	    return printer(ctx, ERR_CH, f0, f1);
+	}
+	if ((st[0].st_mode & S_IFMT) != (st[1].st_mode & S_IFMT)) {
+	    free_2nd_path(p1);
+	    free_1st_path(p0);
+	    if (prev == NULL) {
+		return -1;
+	    }
+	    return printer(ctx, DEL_CH, f0, NULL) | printer(ctx, ADD_CH, NULL, f1);
+	}
     }
     if (S_ISDIR(st[0].st_mode)) {
 	const DNODE *n;
@@ -824,6 +896,7 @@ view_init (WDiff *view, int recursive, const char *dir1, const char *dir2)
     view->dir[0] = dir1;
     view->dir[1] = dir2;
     view->recursive = recursive;
+    view->nofollow = 0;
     view->hideleft = 0;
     view->hideright = 0;
     view->hideident = 0;
@@ -1099,14 +1172,17 @@ view_redo (WDiff *view)
     static char *ignore = NULL;
     char *tignore;
 
+    int nofollow = view->nofollow;
     int hideleft = view->hideleft;
     int hideright = view->hideright;
     int hideident = view->hideident;
     int recursive = view->recursive;
     int ndiff = view->ndiff;
 
-    diffopt_widgets[7].value = recursive;
-    diffopt_widgets[7].result = &recursive;
+    diffopt_widgets[8].value = recursive;
+    diffopt_widgets[8].result = &recursive;
+    diffopt_widgets[7].value = nofollow;
+    diffopt_widgets[7].result = &nofollow;
     diffopt_widgets[6].value = hideleft;
     diffopt_widgets[6].result = &hideleft;
     diffopt_widgets[5].value = hideright;
@@ -1139,6 +1215,7 @@ view_redo (WDiff *view)
 	    ignore = INPUT_LAST_TEXT;
 	}
 	g_free(tignore);
+	view->nofollow = nofollow;
 	view->hideleft = hideleft;
 	view->hideright = hideright;
 	view->hideident = hideident;
@@ -1813,6 +1890,16 @@ view_diff_cmd (void *obj, const char *name0, const char *name1)
 	file1 = strpath(view->dir[ord ^ 1], p->name[ord ^ 1]);
 	if (p->ch == DIR_CH) {
 	    is_dir0 = is_dir1 = 1;
+	} else if (view->nofollow) {
+	    struct stat st0, st1;
+	    rv = mc_stat(file0, &st0);
+	    if (rv == 0) {
+		rv = mc_stat(file1, &st1);
+	    }
+	    if (rv == 0) {
+		is_dir0 = S_ISDIR(st0.st_mode);
+		is_dir1 = S_ISDIR(st1.st_mode);
+	    }
 	}
     }
 
