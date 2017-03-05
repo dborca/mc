@@ -76,13 +76,14 @@ typedef struct DNODE {
     const struct stat *st[2];
 } DNODE;
 
-typedef int (*DFUNC) (void *ctx, int ch, const char *f0, const char *f1);
+typedef int (*DFUNC) (void *ctx, int ch, const char *f0, const char *f1, const char *link0, const char *link1);
 
 #define is_eq(c) ((c) == EQU_CH || (c) == DIR_CH)
 
 typedef struct {
     int ch;
     char *name[2];
+    char *link[2];
 } LNODE;
 
 typedef struct {
@@ -564,10 +565,10 @@ diff_file (WDiff *view, const char *r0, const char *f0, const char *r1, const ch
 
     if (prev != NULL) {
 	if (f0 == NULL) {
-	    return printer(ctx, ADD_CH, NULL, f1);
+	    return printer(ctx, ADD_CH, NULL, f1, NULL, NULL);
 	}
 	if (f1 == NULL) {
-	    return printer(ctx, DEL_CH, f0, NULL);
+	    return printer(ctx, DEL_CH, f0, NULL, NULL, NULL);
 	}
     }
     p0 = make_1st_path(r0, f0);
@@ -582,25 +583,25 @@ diff_file (WDiff *view, const char *r0, const char *f0, const char *r1, const ch
 	if (mc_lstat(p0, &st[0]) || mc_lstat(p1, &st[1])) {
 	    free_2nd_path(p1);
 	    free_1st_path(p0);
-	    return printer(ctx, ERR_CH, f0, f1);
+	    return printer(ctx, ERR_CH, f0, f1, NULL, NULL);
 	}
 	l0 = check(p0, &st[0], link0, NULL);
 	l1 = check(p1, &st[1], link1, NULL);
 	if ((st[0].st_mode & S_IFMT) != (st[1].st_mode & S_IFMT)) {
 	    free_2nd_path(p1);
 	    free_1st_path(p0);
-	    return printer(ctx, DEL_CH, f0, NULL) | printer(ctx, ADD_CH, NULL, f1);
+	    return printer(ctx, DEL_CH, f0, NULL, l0, NULL) | printer(ctx, ADD_CH, NULL, f1, NULL, l1);
 	}
 	if (S_ISLNK(st[0].st_mode)) {
 	    free_2nd_path(p1);
 	    free_1st_path(p0);
 	    if (l0 == NULL || l1 == NULL) {
-		return printer(ctx, ERR_CH, f0, f1);
+		return printer(ctx, ERR_CH, f0, f1, l0, l1);
 	    }
 	    if (!strcmp(l0, l1)) {
-		return printer(ctx, EQU_CH, f0, f1);
+		return printer(ctx, EQU_CH, f0, f1, l0, l1);
 	    }
-	    return printer(ctx, CHG_CH, f0, f1);
+	    return printer(ctx, CHG_CH, f0, f1, l0, l1);
 	}
     } else {
 	if (mc_stat(p0, &st[0]) || mc_stat(p1, &st[1])) {
@@ -609,7 +610,7 @@ diff_file (WDiff *view, const char *r0, const char *f0, const char *r1, const ch
 	    if (prev == NULL) {
 		return -1;
 	    }
-	    return printer(ctx, ERR_CH, f0, f1);
+	    return printer(ctx, ERR_CH, f0, f1, NULL, NULL);
 	}
 	if ((st[0].st_mode & S_IFMT) != (st[1].st_mode & S_IFMT)) {
 	    free_2nd_path(p1);
@@ -617,7 +618,7 @@ diff_file (WDiff *view, const char *r0, const char *f0, const char *r1, const ch
 	    if (prev == NULL) {
 		return -1;
 	    }
-	    return printer(ctx, DEL_CH, f0, NULL) | printer(ctx, ADD_CH, NULL, f1);
+	    return printer(ctx, DEL_CH, f0, NULL, NULL, NULL) | printer(ctx, ADD_CH, NULL, f1, NULL, NULL);
 	}
     }
     if (S_ISDIR(st[0].st_mode)) {
@@ -636,7 +637,7 @@ diff_file (WDiff *view, const char *r0, const char *f0, const char *r1, const ch
 	free_2nd_path(p1);
 	free_1st_path(p0);
 	if (found) {
-	    return printer(ctx, ERR_CH, f0, f1);
+	    return printer(ctx, ERR_CH, f0, f1, NULL, NULL);
 	}
 	if (prev == NULL || recursive--) {
 	    DNODE node;
@@ -645,25 +646,25 @@ diff_file (WDiff *view, const char *r0, const char *f0, const char *r1, const ch
 	    node.st[1] = &st[1];
 	    rv = diff_dirs(view, r0, r1, f0, recursive, &node, printer);
 	    if (rv == 1 && prev) {
-		return printer(ctx, ERR_CH, f0, f1);
+		return printer(ctx, ERR_CH, f0, f1, NULL, NULL);
 	    }
 	    return rv;
 	}
-	return printer(ctx, DIR_CH, f0, f1);
+	return printer(ctx, DIR_CH, f0, f1, NULL, NULL);
     }
     rv = diff_binary(p0, p1, st);
     free_2nd_path(p1);
     free_1st_path(p0);
     if (rv < 0) {
-	return printer(ctx, ERR_CH, f0, f1);
+	return printer(ctx, ERR_CH, f0, f1, NULL, NULL);
     }
     if (rv == 0) {
 	if (view->hideident) {
 	    return 0;
 	}
-	return printer(ctx, EQU_CH, f0, f1);
+	return printer(ctx, EQU_CH, f0, f1, NULL, NULL);
     }
-    return printer(ctx, CHG_CH, f0, f1);
+    return printer(ctx, CHG_CH, f0, f1, NULL, NULL);
 }
 
 
@@ -671,9 +672,14 @@ diff_file (WDiff *view, const char *r0, const char *f0, const char *r1, const ch
 
 
 static void
-cvt_mget(const char *name, char *buf, int width, int skip)
+cvt_mget(const char *name, const char *link, char *buf, int width, int skip)
 {
     int i, j, len = strlen(name);
+    if (link) {
+	static char tmp[PATH_MAX * 3];
+	len = snprintf(tmp, sizeof(tmp), "%s -> %s", name, link);
+	name = tmp;
+    }
     for (i = skip, j = 0; i < len && j < width; j++, i++) {
 	buf[j] = name[i];
     }
@@ -696,11 +702,13 @@ free_pair (void *p)
     } else {
 	free(n->name[1]);
     }
+    free(n->link[0]);
+    free(n->link[1]);
 }
 
 
 static int
-printer (void *ctx, int ch, const char *f0, const char *f1)
+printer (void *ctx, int ch, const char *f0, const char *f1, const char *link0, const char *link1)
 {
     ARRAY *z = ctx;
     LNODE *n;
@@ -727,6 +735,8 @@ printer (void *ctx, int ch, const char *f0, const char *f1)
     n->ch = ch;
     n->name[0] = p0;
     n->name[1] = p1;
+    n->link[0] = link0 ? strdup(link0) : NULL;
+    n->link[1] = link1 ? strdup(link1) : NULL;
     return 0;
 }
 
@@ -1006,7 +1016,7 @@ view_display_file (const WDiff *view, int ord,
 	    if (i == view->last_found) {
 		tty_setcolor(MARKED_SELECTED_COLOR);
 	    }
-	    cvt_mget(p->name[ord], buf, width, skip);
+	    cvt_mget(p->name[ord], p->link[ord], buf, width, skip);
 	} else {
 	    if (ch == ADD_CH) {
 		ch = DEL_CH;
