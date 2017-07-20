@@ -179,9 +179,9 @@ union record {
  *
  * Result is -1 if the field is invalid (all blank, or nonoctal).
  */
-static long tar_from_oct (int digs, char *where)
+static off_t tar_from_oct (int digs, char *where)
 {
-    register long value;
+    register off_t value;
 
     while (isspace ((unsigned char) *where)) {	/* Skip spaces */
 	where++;
@@ -283,7 +283,7 @@ tar_get_next_record (struct vfs_s_super *archive, int tard)
     return &rec_buf;
 }
 
-static void tar_skip_n_records (struct vfs_s_super *archive, int tard, int n)
+static void tar_skip_n_records (struct vfs_s_super *archive, int tard, off_t n)
 {
     (void) archive;
 
@@ -293,7 +293,7 @@ static void tar_skip_n_records (struct vfs_s_super *archive, int tard, int n)
 
 static void
 tar_fill_stat (struct vfs_s_super *archive, struct stat *st, union record *header,
-	       size_t h_size)
+	       off_t h_size)
 {
     st->st_mode = tar_from_oct (8, header->header.mode);
 
@@ -369,7 +369,7 @@ typedef enum {
  */
 static ReadStatus
 tar_read_header (struct vfs_class *me, struct vfs_s_super *archive,
-		 int tard, size_t *h_size)
+		 int tard, off_t *h_size)
 {
     register int i;
     register long sum, signed_sum, recsum;
@@ -653,7 +653,7 @@ tar_open_archive (struct vfs_class *me, struct vfs_s_super *archive,
 	return -1;
 
     for (;;) {
-	size_t h_size;
+	off_t h_size;
 
 	prev_status = status;
 	status = tar_read_header (me, archive, tard, &h_size);
