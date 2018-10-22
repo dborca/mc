@@ -134,9 +134,19 @@ context default
 
 context exclusive /\* \*/ brown
     spellcheck
+    keyword whole BUG   brightred
+    keyword whole FIXME brightred
+    keyword whole NOTE  brightred
+    keyword whole TODO  brightred
+    keyword whole XXX   brightred
 
 context exclusive // \n brown
     spellcheck
+    keyword whole BUG   brightred
+    keyword whole FIXME brightred
+    keyword whole NOTE  brightred
+    keyword whole TODO  brightred
+    keyword whole XXX   brightred
 
 context linestart # \n brightred
     keyword \\\n yellow
