@@ -1726,7 +1726,6 @@ view_handle_key (WDiff *view, int c)
 #ifdef HAVE_CHARSET
 	case XCTRL ('t'):
 	    do_select_codepage ();
-	    view_update (view);
 	    return MSG_HANDLED;
 #endif				/* HAVE_CHARSET */
     }
