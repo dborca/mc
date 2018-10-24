@@ -938,7 +938,11 @@ file_mask_dialog (FileOpContext *ctx, FileOperation operation, const char *text,
 {
     int source_easy_patterns = easy_patterns;
     char *source_mask, *orig_mask, *dest_dir, *tmpdest;
+#ifdef RE_NREGS /*WITH_GNU_REGEX*/
     const char *error;
+#else
+    int error;
+#endif
     char *def_text_secure;
     struct stat buf;
     int val;
@@ -1015,17 +1019,32 @@ file_mask_dialog (FileOpContext *ctx, FileOperation operation, const char *text,
 	source_mask = convert_pattern (source_mask, match_file, 1);
 	easy_patterns = source_easy_patterns;
 	error =
+#ifdef RE_NREGS /*WITH_GNU_REGEX*/
 	    re_compile_pattern (source_mask, strlen (source_mask),
 				&ctx->rx);
+#else
+	    regcomp (&ctx->rx, source_mask, 0);
+#endif
 	g_free (source_mask);
     } else
 	error =
+#ifdef RE_NREGS /*WITH_GNU_REGEX*/
 	    re_compile_pattern (source_mask, strlen (source_mask),
 				&ctx->rx);
+#else
+	    regcomp (&ctx->rx, source_mask, 0);
+#endif
 
     if (error) {
+#ifdef RE_NREGS /*WITH_GNU_REGEX*/
 	message (1, MSG_ERROR, _("Invalid source pattern `%s' \n %s "),
 		    orig_mask, error);
+#else /* ) */
+	char errbuf[256];
+	regerror(error, &ctx->rx, errbuf, sizeof(errbuf));
+	message (1, MSG_ERROR, _("Invalid source pattern `%s' \n %s "),
+		    orig_mask, errbuf);
+#endif
 	g_free (orig_mask);
 	goto ask_file_mask;
     }

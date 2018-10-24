@@ -167,8 +167,13 @@ do_transform_source (FileOpContext *ctx, const char *source)
     static char fntarget[MC_MAXPATHLEN];
 
     len = strlen (fnsource);
+#ifdef RE_NREGS /*WITH_GNU_REGEX*/
     j = re_match (&ctx->rx, fnsource, len, 0, &ctx->regs);
     if (j != len) {
+#else /* } */
+    j = regexec (&ctx->rx, fnsource, sizeof(ctx->regs) / sizeof(ctx->regs[0]), ctx->regs, 0);
+    if (j != 0 || ctx->regs[0].rm_so || ctx->regs[0].rm_eo != len) {
+#endif
 	transform_error = FILE_SKIP;
 	return NULL;
     }
@@ -209,14 +214,24 @@ do_transform_source (FileOpContext *ctx, const char *source)
 	    }
 
 	case '*':
+#ifdef RE_NREGS /*WITH_GNU_REGEX*/
 	    if (next_reg < 0 || next_reg >= RE_NREGS
 		|| ctx->regs.start[next_reg] < 0) {
+#else /* } */
+	    if (next_reg < 0 || next_reg > ctx->rx.re_nsub
+		|| ctx->regs[next_reg].rm_so < 0) {
+#endif
 		message (1, MSG_ERROR, _(" Invalid target mask "));
 		transform_error = FILE_ABORT;
 		return NULL;
 	    }
+#ifdef RE_NREGS /*WITH_GNU_REGEX*/
 	    for (l = (size_t) ctx->regs.start[next_reg];
 		 l < (size_t) ctx->regs.end[next_reg]; l++)
+#else
+	    for (l = (size_t) ctx->regs[next_reg].rm_so;
+		 l < (size_t) ctx->regs[next_reg].rm_eo; l++)
+#endif
 		fntarget[k++] = convert_case (fnsource[l], &case_conv);
 	    next_reg++;
 	    break;

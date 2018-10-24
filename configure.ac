@@ -100,6 +100,9 @@ AC_SYS_LARGEFILE
 AC_PROG_LN_S
 AC_CHECK_TOOL(AR, ar, ar)
 
+AC_ARG_WITH(gnu-regex, 
+	[  --with-gnu-regex         Force using GNU regex [[yes]]])
+
 dnl Only list browsers here that can be run in background (i.e. with `&')
 AC_CHECK_PROGS(X11_WWW, [gnome-moz-remote mozilla konqueror opera netscape])
 
@@ -576,7 +579,9 @@ if test "x$enable_charset" = xyes; then
 fi
 
 if test "$GLIBC21" != yes; then
+if test "x$with_gnu_regex" == "xyes"; then
     AC_DEFINE(USE_INCLUDED_REGEX, 1, [Use the regex included here])
+fi
 fi
 
 

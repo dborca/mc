@@ -89,8 +89,13 @@ typedef struct FileOpContext {
 	char *dest_mask;
 
 	/* Regex for the file mask */
+#ifdef RE_NREGS /*WITH_GNU_REGEX*/
 	struct re_pattern_buffer rx;
 	struct re_registers regs;
+#else
+	regex_t rx;
+	regmatch_t regs[30];
+#endif
 
 	/* Whether to dive into subdirectories for recursive operations */
 	int dive_into_subdirs;
