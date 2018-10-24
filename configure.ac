@@ -579,7 +579,7 @@ if test "x$enable_charset" = xyes; then
 fi
 
 if test "$GLIBC21" != yes; then
-if test "x$with_gnu_regex" == "xyes"; then
+if test "x$with_gnu_regex" != "xno"; then
     AC_DEFINE(USE_INCLUDED_REGEX, 1, [Use the regex included here])
 fi
 fi
