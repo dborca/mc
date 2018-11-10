@@ -1789,6 +1789,18 @@ listbox_draw (WListbox *l, int focused)
 	}
 	tty_printf (" %-*s ", l->width-2, name_trunc (text, l->width-2));
     }
+    if (l->searching) {
+	int spos = l->searchstr;
+	int slen = strlen(l->searchbuf);
+	if (spos > l->width - 2 - slen) {
+	    spos = l->width - 2 - slen;
+	}
+	attrset (DLG_HOT_NORMALC(h));
+	widget_move (&l->widget, sel_line, 0);
+	tty_print_char('>');
+	widget_move (&l->widget, sel_line, spos + 1);
+	tty_printf ("%.*s", l->width - 2 - spos, l->searchbuf);
+    }
     l->cursor_y = sel_line;
     if (!l->scrollbar)
 	return;
@@ -1972,6 +1984,64 @@ listbox_key (WListbox *l, int key)
     if (!l->list)
 	return MSG_NOT_HANDLED;
     
+    if (l->searching) {
+	size_t len;
+	if (key == ESC_CHAR) {
+	    l->searching = 0;
+	    return MSG_HANDLED;
+	}
+	if (key == '\n') {
+	    l->searching = 0;
+	    return MSG_NOT_HANDLED;
+	}
+	len = strlen (l->searchbuf);
+	if (key == KEY_BACKSPACE) {
+	    if (len) {
+		l->searchbuf[--len] = '\0';
+	    }
+	} else {
+	    WLEntry *e;
+	    int wrapped = 0;
+	    char *str = NULL;
+	    size_t oldlen = len;
+	    if (key >= ' ' && key < 255 && len < sizeof (l->searchbuf) - 1 && len < l->width - 2) {
+		l->searchbuf[len++] = key;
+		l->searchbuf[len] = '\0';
+	    }
+	    e = l->current;
+	    i = l->pos;
+	    if (key == XCTRL('s') || key == ALT('s')) {
+		e = e->next;
+		i++;
+	    }
+	    for (; !wrapped || i != l->pos; i++, e = e->next) {
+		if (i >= l->count) {
+		    i = 0;
+		    e = l->list;
+		    if (wrapped) {
+			break;
+		    }
+		    wrapped = 1;
+		}
+		str = strstr(e->text, l->searchbuf);
+		if (str) {
+		    listbox_select_by_number (l, i);
+		    l->searchstr = str - e->text;
+		    break;
+		}
+	    }
+	    if (!str) {
+		l->searchbuf[oldlen] = 0;
+	    }
+	}
+	return MSG_HANDLED;
+    } else if (key == XCTRL('s') || key == ALT('s')) {
+	l->searching = 1;
+	l->searchstr = 0;
+	l->searchbuf[0] = '\0';
+	return MSG_HANDLED;
+    }
+
     switch (key){
     case KEY_HOME:
     case KEY_A1:
@@ -2165,6 +2235,7 @@ listbox_new (int y, int x, int width, int height, lcback callback)
     l->cback = callback;
     l->allow_duplicates = 1;
     l->scrollbar = slow_terminal ? 0 : 1;
+    l->searching = 0;
     widget_want_hotkey (l->widget, 1);
 
     return l;

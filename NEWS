@@ -43,6 +43,7 @@ Version 4.6.3c.
 	- Added free space report in panel; new checkbox in Layout.
 	- Added mountpoint selector: F11 for left panel, F12 for right panel.
 	- Added simple panel scrollbar.
+	- Added quick-search in listbox.
 	- Added relative symlink (C-x v).
 	- Added Skip All to panel operations.
 	- Added support for .xz and .lzma archives.

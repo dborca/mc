@@ -115,6 +115,9 @@ struct WListbox {
     int scrollbar;		/* Draw a scrollbar? */
     lcback cback;		/* The callback function */
     int cursor_x, cursor_y;	/* Cache the values */
+    int searching;
+    int searchstr;
+    char searchbuf[64];
 };
 
 typedef struct WGroupbox {
