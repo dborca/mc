@@ -717,6 +717,10 @@ dlg_mouse_event (Dlg_head * h, Gpm_Event * event)
 	return (*widget->mouse) (&new_event, widget);
     } while (item != starting_widget);
 
+    if (mouse_cancel_dlg && (event->type & GPM_UP) && !h->fullscreen && h->mouse_status >= MOU_NORMAL) {
+	h->ret_value = B_CANCEL;
+	dlg_stop(h);
+    }
     return MOU_NORMAL;
 }
 
@@ -743,7 +747,7 @@ void init_dlg (Dlg_head *h)
     current_dlg = h;
 
     /* Initialize the mouse status */
-    h->mouse_status = MOU_NORMAL;
+    h->mouse_status = MOU_NORMAL - 1;
 
     /* Select the first widget that takes focus */
     while (!dlg_focus (h) && h->current)

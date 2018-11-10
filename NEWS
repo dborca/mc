@@ -48,6 +48,7 @@ Version 4.6.3c.
 	- Added support for .xz and .lzma archives.
 	- Added geeqie as alternate image viewer in mc.ext.
 	- Added case insensitive-ness in Select/Unselect dialog.
+	- Can dismiss dialogs with mouse click outside.
 	- Common search history in Editor, Viewer, Diff Viewer and Find File.
 	- Changed regex search to be disabled by default in Find File.
 	- Improved Find File: insensitive filenames, whole words, first hit.

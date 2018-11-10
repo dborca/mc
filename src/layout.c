@@ -103,6 +103,9 @@ int xterm_title = 1;
 /* Set to show free space on device assigned to current directory */
 int free_space = 1;
 
+/* Set to allow dialogs to be dismissed by clicking outside area */
+int mouse_cancel_dlg = 1;
+
 /* The starting line for the output of the subprogram */
 int output_start_y = 0;
 
@@ -162,6 +165,7 @@ static struct {
     int    *variable;
     WCheck *widget;
 } check_options [] = {
+    { N_("mouse cancel &Dlg"), &mouse_cancel_dlg, 0 },
     { N_("show free sp&Ace"),  &free_space,      0 },
     { N_("&Xterm window title"), &xterm_title,   0 },
     { N_("h&Intbar visible"),  &message_visible, 0 },

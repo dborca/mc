@@ -1793,6 +1793,11 @@ when necessary.  If your terminal emulator is broken and you see some
 incorrect output on startup and directory change, turn off the
 .I Xterm Window Title
 option.
+.PP
+If the
+.I Mouse Cancel Dlg
+option is enabled, dialog boxes can be dismissed by a mouse up event
+outside the dialog area.
 .\"NODE "    Confirmation"
 .SH "    Confirmation"
 In this menu you configure the confirmation options for file deletion,

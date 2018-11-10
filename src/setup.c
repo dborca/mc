@@ -135,6 +135,7 @@ static const struct {
     { "permission_mode", &permission_mode },
     { "filetype_mode", &filetype_mode },
     { "free_space", &free_space },
+    { "mouse_cancel_dlg", &mouse_cancel_dlg },
     { 0, 0 }
 };
 
