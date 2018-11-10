@@ -64,6 +64,7 @@ Version 4.6.3c.
 	- Fixed %e expansion for editor scripts.
 	- Fixed copy/move dialogs to avoid stealing Alt-d.
 	- Fixed completion in command line, with escaping.
+	- Fixed mouse scroll in listbox.
 	- Avoid Alt-f and Alt-b shortcuts near input widgets.
 	- Changed behavior of % in command-line.  It is treated as a simple
 	  character, unless it is quoted with a backslash; in which case, it

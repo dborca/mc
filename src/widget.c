@@ -2167,6 +2167,21 @@ listbox_event (Gpm_Event *event, void *data)
 	dlg_select_widget (l);
     if (!l->list)
 	return MOU_NORMAL;
+    if (event->type & GPM_DOWN) {
+	/* Scroll: We need to refresh ourselves (see below) */
+	if (event->buttons & GPM_B_UP) {
+	    listbox_back (l);
+	    listbox_callback (w, WIDGET_DRAW, 0);
+	    /*mc_refresh ();*/
+	    return MOU_NORMAL;
+	}
+	if (event->buttons & GPM_B_DOWN) {
+	    listbox_fwd (l);
+	    listbox_callback (w, WIDGET_DRAW, 0);
+	    /*mc_refresh ();*/
+	    return MOU_NORMAL;
+	}
+    }
     if (event->type & (GPM_DOWN | GPM_DRAG)) {
 	if (event->x < 0 || event->x >= l->width)
 	    return MOU_REPEAT;
