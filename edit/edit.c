@@ -2662,6 +2662,9 @@ edit_execute_cmd (WEdit *edit, int command, int char_for_insertion)
     case CK_User_Menu:
 	user_menu (edit);
 	break;
+    case CK_Ctags:
+	edit_show_ctags (edit);
+	break;
     case CK_Sort:
 	edit_sort_cmd (edit);
 	break;

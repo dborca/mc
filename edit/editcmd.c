@@ -3177,3 +3177,283 @@ edit_begin_end_macro_cmd(WEdit *edit)
 	    edit_execute_key_command (edit, command, -1);
     }
 }
+
+#define SKIP_NS(p, e) do { if ((p) >= (e)) return NULL; if (isspace(*(p))) break; (p)++; } while (1)
+#define SKIP_WS(p, e) do { if ((p) >= (e)) return NULL; if (!isspace(*(p))) break; (p)++; } while (1)
+
+static char *
+parse_ctags_line(const char *src, char *line, char *end, unsigned int *linenum, int *type)
+{
+    long n;
+    char *bp, *s;
+    size_t length;
+    char *symbol = line;
+    SKIP_NS(line, end);
+    length = line - symbol;
+    *type = '?';
+
+    /*
+     * symbol [type] number filename expr
+     *
+     * BSD ctags bug: '%-16s%4u' may merge 'symbol' and 'number'
+     */
+    if (length >= 20) {
+        /* find filename */
+        bp = strstr(line, src);
+        if (!bp || (bp > line && !isspace(bp[-1]))) {
+            return NULL;
+        }
+        /* find real symbol in expr */
+        line = bp + strlen(src);
+        for (;;) {
+            int ch = symbol[length];
+            symbol[length] = '\0';
+            s = strstr(line, symbol);
+            symbol[length] = ch;
+            if (s &&
+                !isalnum(s[length]) && s[length] != '_' &&
+                s > line &&
+                !isalnum(s[-1]) && s[-1] != '_') {
+                break;
+            }
+            if (length <= 16) {
+                return NULL;
+            }
+            length--;
+            if (!isdigit(symbol[length])) {
+                return NULL;
+            }
+        }
+        line = symbol + length;
+        /* sanity check */
+        if (*line == '0') {
+            return NULL;
+        }
+    }
+
+    /* parse number */
+    n = strtol(line, &bp, 10);
+    if (bp <= line || !isspace(*bp) || n <= 0) {
+        /* type info */
+        SKIP_WS(line, end);
+        *type = *line;
+        if (!strncmp(line, "enum ", 5)) {
+            *type = 'g';
+        }
+        SKIP_NS(line, end);
+        /* retry */
+        n = strtol(line, &bp, 10);
+        if (bp <= line || !isspace(*bp) || n <= 0) {
+            return NULL;
+        }
+    }
+    symbol[length] = '\0';
+
+    /* sanity check */
+    line = ++bp;
+    s = strstr(line, src);
+    if (!s) {
+        return NULL;
+    }
+    while (line < s) {
+        if (!isspace(*line)) {
+            return NULL;
+        }
+        line++;
+    }
+    *linenum = n;
+    return strdup(symbol);
+}
+
+static char *
+parse_ctags_line_v1(const char *src, char *line, char *end, unsigned int *linenum, int *type)
+{
+    char *symbol = line;
+    while (end > line && end[-1] != '\t') {
+        end--;
+    }
+    if (end == line) {
+        return NULL;
+    }
+    *linenum = atoi(end);
+    *--end = '\0';
+    while (line < end && *line != '\t') {
+        line++;
+    }
+    *line++ = '\0';
+    if (line >= end) {
+        return NULL;
+    }
+    if (strcmp(line, src)) {
+        return NULL;
+    }
+    *type = '?';
+    return strdup(symbol);
+}
+
+static char *
+parse_ctags_line_v2(const char *src, char *line, char *end, unsigned int *linenum, int *type)
+{
+    char *symbol, *tok = end;
+    while (tok > line + 1 && tok[-2] != ';' && tok[-1] != '\"') {
+        tok--;
+    }
+    if (tok == line + 1) {
+        return parse_ctags_line_v1(src, line, end, linenum, type);
+    }
+    tok[-2] = '\0';
+    symbol = parse_ctags_line_v1(src, line, tok - 2, linenum, type);
+    if (!symbol) {
+        return NULL;
+    }
+    /* --fields=ks */
+    for (tok = strtok(tok, "\t"); tok; tok = strtok(NULL, "\t")) {
+        char *p;
+        if (*tok && tok[1] == '\0') {
+            *type = *tok;
+            continue;
+        }
+        p = strchr(tok, ':');
+        if (p) {
+            size_t l1 = strlen(p + 1);
+            size_t l2 = strlen(symbol);
+            char *s = malloc(l1 + 2 + l2 + 1);
+            if (!s) {
+                free(symbol);
+                return NULL;
+            }
+            memcpy(s, p + 1, l1);
+            s[l1 + 0] = ':';
+            s[l1 + 1] = ':';
+            memcpy(s + l1 + 2, symbol, l2 + 1);
+            free(symbol);
+            symbol = s;
+        }
+    }
+    return symbol;
+}
+
+void
+edit_show_ctags(WEdit *edit)
+{
+    struct ctag_t {
+	char *symbol;
+	int type;
+	unsigned int linenum;
+    } tag;
+    int i;
+    FILE *f;
+    int cols = 0;
+    char line[1024];
+    GArray *entries = NULL;
+    char *(*parse)(const char *src, char *line, char *end, unsigned int *linenum, int *type);
+    if (edit->modified) {
+	if (edit_query_dialog2 (_ ("Warning"), _ (" Current text was modified without a file save. "), _ ("C&ontinue"), _ ("&Cancel"))) {
+	    return;
+	}
+    }
+    i = system(catstrs ("ctags --format=2 --fields=ks -n -f ", home_dir, PATH_SEP_STR TAGS_FILE, " \"", edit->filename, "\" 2>/dev/null", (char *) NULL));
+    if (i == 0) {
+	parse = parse_ctags_line_v2;
+	f = fopen(catstrs (home_dir, PATH_SEP_STR TAGS_FILE, (char *) NULL), "r");
+    } else {
+	parse = parse_ctags_line;
+	f = popen(catstrs ("ctags -dwx \"", edit->filename, "\" 2>/dev/null", (char *) NULL), "r");
+    }
+    if (!f) {
+	return;
+    }
+    entries = g_array_new(FALSE, FALSE, sizeof(struct ctag_t));
+    while (fgets(line, sizeof(line), f)) {
+	char *p;
+	if (!strncmp(line, "!_TAG_FILE_FORMAT\t", 18)) {
+	    switch (line[18]) {
+		case '2':
+		    parse = parse_ctags_line_v2;
+		    break;
+		case '1':
+		    parse = parse_ctags_line_v1;
+		    break;
+	    }
+	}
+	if (!strncmp(line, "!_TAG_", 6)) {
+	    continue;
+	}
+	p = strchr(line, '\n');
+	if (!p) {
+	    break;
+	}
+	if (p > line && p[-1] == '\r') {
+	    p--;
+	}
+	*p = '\0';
+	tag.symbol = parse(edit->filename, line, p, &tag.linenum, &tag.type);
+	if (!tag.symbol) {
+	    continue;
+	}
+	if (cols < strlen(tag.symbol)) {
+	    cols = strlen(tag.symbol);
+	}
+	g_array_append_val(entries, tag);
+    }
+    (i ? pclose : fclose)(f);
+    if (entries->len) {
+	long l;
+	Listbox *listbox;
+	int xpos, ypos, lines;
+	const char *title = " Ctags ";
+
+	listbox = g_new (Listbox, 1);
+
+	/* Adjust sizes */
+	lines = entries->len;
+	if (lines > 20) {
+	    lines = 20;
+	}
+	if (lines > LINES - 6) {
+	    lines = LINES - 6;
+	}
+
+	cols += 4;
+	if (cols > 64) {
+	    cols = 64;
+	}
+	if (cols < sizeof (title) + 1) {
+	    cols = sizeof (title) + 1;
+	}
+	if (cols > COLS - 6) {
+	    cols = COLS - 6;
+	}
+
+	xpos = (COLS - cols) / 2;
+	ypos = (LINES - lines) / 2 - 2;
+
+	/* Create components */
+	listbox->dlg =
+	    create_dlg (ypos, xpos, lines + 2, cols + 2, dialog_colors, NULL,
+			NULL, title, DLG_CENTER | DLG_COMPACT);
+
+	listbox->list = listbox_new (1, 1, cols, lines, 0);
+
+	add_widget (listbox->dlg, listbox->list);
+
+	for (i = 0; i < entries->len; i++) {
+	    tag = g_array_index (entries, struct ctag_t, i);
+	    g_snprintf(line, sizeof(line), "%c %s", tag.type, tag.symbol);
+	    LISTBOX_APPEND_TEXT (listbox, 0, line, NULL);
+	    g_free(tag.symbol);
+	}
+	i = run_listbox (listbox);
+	if (i >= 0) {
+	    tag = g_array_index (entries, struct ctag_t, i);
+	    l = tag.linenum;
+	    if (l < 0) {
+		l = edit->total_lines + l + 2;
+	    }
+	    edit_move_display (edit, l - edit->num_widget_lines / 2 - 1);
+	    edit_move_to_line (edit, l - 1);
+	    edit->force |= REDRAW_COMPLETELY;
+	}
+    }
+    g_array_free(entries, TRUE);
+}

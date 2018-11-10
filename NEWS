@@ -10,6 +10,7 @@ Version 4.6.3c.
 	- Added kill word shortcut (Alt-d).
 	- Added whitespace toggle shortcut (Alt-_).
 	- Added edit_filter_cmd to filter block through any command (Alt-x).
+	- Added rudimentary ctags support (Alt-Enter).
 	- Made tabs visible through selection.
 	- Do not steal Alt-key for undefined macros.
 	- Home key toggles between start of line and start of non-whitespace.

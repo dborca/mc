@@ -244,6 +244,8 @@ void format_paragraph (WEdit *edit, int force);
 /* either command or char_for_insertion must be passed as -1 */
 void edit_execute_cmd (WEdit *edit, int command, int char_for_insertion);
 
+void edit_show_ctags (WEdit *edit);
+
 #define get_sys_error(s) (s)
 
 #define edit_error_dialog(h,s) query_dialog (h, s, D_ERROR, 1, _("&Dismiss"))
@@ -316,5 +318,6 @@ extern int visible_tabs, visible_tws;
 #define MACRO_FILE         EDIT_DIR PATH_SEP_STR "cooledit.macros"
 #define BLOCK_FILE         EDIT_DIR PATH_SEP_STR "cooledit.block"
 #define TEMP_FILE          EDIT_DIR PATH_SEP_STR "cooledit.temp"
+#define TAGS_FILE          EDIT_DIR PATH_SEP_STR "tags"
 
 #endif

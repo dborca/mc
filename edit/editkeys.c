@@ -98,7 +98,7 @@ static const edit_key_map_type common_key_map[] = {
     { KEY_RIGHT, CK_Right },
     { KEY_UP, CK_Up },
 
-    { ALT ('\n'), CK_Return },
+    { ALT ('\n'), CK_Ctags },
     { ALT ('\t'), CK_Complete_Word },
     { ALT ('l'), CK_Goto },
     { ALT ('L'), CK_Goto },
