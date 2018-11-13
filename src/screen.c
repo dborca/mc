@@ -1998,7 +1998,7 @@ do_search (WPanel *panel, int c_code)
 	if (l)
 	    panel->search_buffer[--l] = '\0';
     } else {
-	if (c_code && l < sizeof (panel->search_buffer)) {
+	if (c_code && l < sizeof (panel->search_buffer) - 1) {
 	    panel->search_buffer[l] = c_code;
 	    panel->search_buffer[l + 1] = 0;
 	    l++;
