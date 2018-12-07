@@ -2105,7 +2105,7 @@ static long edit_get_bracket (WEdit * edit, int in_screen, unsigned long furthes
     if (!furthest_bracket_search)
 	furthest_bracket_search--;
 /* not on a bracket at all */
-    if (!p)
+    if (!p || !c)
 	return -1;
 /* the matching bracket */
     d = p[1];
