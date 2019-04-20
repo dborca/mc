@@ -26,16 +26,19 @@ context default
 	keyword whole caller		yellow
 	keyword whole case		yellow
 	keyword whole catch		yellow
+	keyword whole const		yellow
 	keyword whole constructor	yellow
 	keyword whole continue		yellow
 	keyword whole else		yellow
 	keyword whole default		yellow
 	keyword whole delete		yellow
+	keyword whole do		yellow
 	keyword whole for		yellow
 	keyword whole function		yellow
 	keyword whole if		yellow
 	keyword whole in		yellow
 	keyword whole instanceof	yellow
+	keyword whole let		yellow
 	keyword whole new		yellow
 	keyword whole prototype		yellow
 	keyword whole return		yellow
