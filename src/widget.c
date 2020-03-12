@@ -1131,7 +1131,8 @@ push_history (WInput *in, const char *text)
     t = g_strdup (text);
 
     if (in->history_name) {
-	p = in->history_name + 3;
+	for (p = in->history_name, i = 0; *p && i < 3; i++, p++) {
+	}
 	for (i = 0; i < ELEMENTS (password_input_fields); i++)
 	    if (strcmp (p, password_input_fields[i]) == 0)
 		break;
