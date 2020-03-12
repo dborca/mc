@@ -1228,7 +1228,7 @@ view_redo (WDiff *view)
 	if (tignore && *tignore) {
 	    int error;
 	    if (easy_patterns) {
-		char *signore = convert_pattern (tignore, match_file, 0);
+		char *signore = convert_pattern (tignore, match_file, 0, 1);
 		error = regcomp(&view->irx, signore, REG_EXTENDED | REG_NOSUB);
 		g_free(signore);
 	    } else {

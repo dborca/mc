@@ -627,7 +627,7 @@ maybe_end_group (char *d, int do_group, int *was_wildcard)
    expression. Called by regexp_match and mask_rename. */
 /* Shouldn't we support [a-fw] type wildcards as well ?? */
 char *
-convert_pattern (const char *pattern, int match_type, int do_group)
+convert_pattern (const char *pattern, int match_type, int do_group, int extended)
 {
     char *d;
     char *new_pattern;
@@ -650,6 +650,14 @@ convert_pattern (const char *pattern, int match_type, int do_group)
 	    case '?':
 		d = maybe_start_group (d, do_group, &was_wildcard);
 		*d = '.';
+		break;
+		
+	    case '+':
+		d = maybe_end_group (d, do_group, &was_wildcard);
+		if (extended) {
+		    *d++ = '\\';
+		}
+		*d = '+';
 		break;
 		
 	    case '.':
@@ -697,7 +705,7 @@ regexp_match (const char *pattern, const char *string, int match_type, int flags
 	    g_free (old_pattern);
 	    old_pattern = NULL;
 	}
-	my_pattern = convert_pattern (pattern, match_type, 0);
+	my_pattern = convert_pattern (pattern, match_type, 0, 1);
 	if (regcomp (&r, my_pattern, REG_EXTENDED|REG_NOSUB|MC_ARCH_FLAGS|flags)) {
 	    g_free (my_pattern);
 	    return -1;

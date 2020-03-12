@@ -1016,7 +1016,7 @@ file_mask_dialog (FileOpContext *ctx, FileOperation operation, const char *text,
     if (source_easy_patterns) {
 	source_easy_patterns = easy_patterns;
 	easy_patterns = 1;
-	source_mask = convert_pattern (source_mask, match_file, 1);
+	source_mask = convert_pattern (source_mask, match_file, 1, 0);
 	easy_patterns = source_easy_patterns;
 	error =
 #ifdef RE_NREGS /*WITH_GNU_REGEX*/

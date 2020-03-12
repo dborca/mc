@@ -129,7 +129,7 @@ enum {
 };
 
 extern int easy_patterns;
-char *convert_pattern (const char *pattern, int match_type, int do_group);
+char *convert_pattern (const char *pattern, int match_type, int do_group, int extended);
 int regexp_match (const char *pattern, const char *string, int match_type, int flags);
 
 /* Error pipes */
