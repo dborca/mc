@@ -3333,14 +3333,31 @@ parse_ctags_line_v2(const char *src, char *line, char *end, unsigned int *linenu
     return symbol;
 }
 
+struct ctag_t {
+    char *symbol;
+    int type;
+    unsigned int linenum;
+} tag;
+
+static int
+tag_compar(const void *_a, const void *_b)
+{
+    const struct ctag_t *a = (struct ctag_t *)_a;
+    const struct ctag_t *b = (struct ctag_t *)_b;
+    int rv = a->type - b->type;
+    if (rv) {
+	return rv;
+    }
+    rv = strcmp(a->symbol, b->symbol);
+    if (rv) {
+	return rv;
+    }
+    return a->linenum - b->linenum;
+}
+
 void
 edit_show_ctags(WEdit *edit)
 {
-    struct ctag_t {
-	char *symbol;
-	int type;
-	unsigned int linenum;
-    } tag;
     int i;
     FILE *f;
     int cols = 0;
@@ -3396,7 +3413,12 @@ edit_show_ctags(WEdit *edit)
 	}
 	g_array_append_val(entries, tag);
     }
-    (i ? pclose : fclose)(f);
+    if (i) {
+	pclose(f);
+    } else {
+	g_array_sort(entries, tag_compar);
+	fclose(f);
+    }
     if (entries->len) {
 	long l;
 	Listbox *listbox;
