@@ -326,6 +326,8 @@ void *g_ptr_array_remove_index(ARRAY *a, unsigned int i);
 #define g_array_index(a,t,i)      (((t*) (void *) (a)->data) [(i)])
 #define g_array_append_val(a, p) g_array_append_val_(a, &p)
 
+#define g_array_sort(a, compar) qsort(a->data, a->len, a->eltsize, compar)
+
 ARRAY *g_array_new(int z, int c, int eltsize);
 void g_array_free(ARRAY *a, int free_seg);
 int g_array_append_val_(ARRAY *a, const void *p);
