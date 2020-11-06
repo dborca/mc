@@ -3690,7 +3690,7 @@ mc_internal_viewer (const char *command, const char *file,
 	*move_dir_p = 0;
     succeeded = view_load (wview, command, file, start_line);
     if (succeeded) {
-	dlgswitch_add(view_dlg, DLG_TYPE_VIEW, file, wview, move_dir_p);
+	dlgswitch_add(view_dlg, DLG_TYPE_VIEW, file, wview);
 	view_run_viewer(view_dlg, wview, move_dir_p);
     } else {
 	destroy_dlg (view_dlg);

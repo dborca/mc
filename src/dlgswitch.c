@@ -44,11 +44,9 @@ struct DLG_NODE {
     union {
 	struct {
 	    WView *wview;
-	    int *move_dir_p;
 	} view_data;
 	struct {
 	    WEdit *wedit;
-	    void **edit_menubar_p;
 	} edit_data;
     } u;
 };
@@ -121,7 +119,6 @@ dlgswitch_add (Dlg_head *h, DLG_TYPE type, const char *name, ...)
 		    va_list ap;
 		    va_start(ap, name);
 		    e->u.view_data.wview = va_arg(ap, WView *);
-		    e->u.view_data.move_dir_p = va_arg(ap, int *);
 		    va_end(ap);
 		}
 		break;
@@ -132,7 +129,6 @@ dlgswitch_add (Dlg_head *h, DLG_TYPE type, const char *name, ...)
 		    va_list ap;
 		    va_start(ap, name);
 		    e->u.edit_data.wedit = va_arg(ap, WEdit *);
-		    e->u.edit_data.edit_menubar_p = va_arg(ap, void **);
 		    va_end(ap);
 		}
 		break;
@@ -276,12 +272,12 @@ dlgswitch_process_pending(void)
 
 	switch (mc_cur_dlg->type) {
 	    case DLG_TYPE_VIEW:
-		view_run_viewer(mc_cur_dlg->dlg, mc_cur_dlg->u.view_data.wview, NULL); /* XXX move_dir_p may not be valid anymore */
+		view_run_viewer(mc_cur_dlg->dlg, mc_cur_dlg->u.view_data.wview, NULL);
 		/* XXX might want to update panels here, because of hexviewer save block */
 		break;
 #ifdef USE_INTERNAL_EDIT
 	    case DLG_TYPE_EDIT:
-		edit_run_editor(mc_cur_dlg->dlg, mc_cur_dlg->u.edit_data.wedit, mc_cur_dlg->u.edit_data.edit_menubar_p);
+		edit_run_editor(mc_cur_dlg->dlg, mc_cur_dlg->u.edit_data.wedit);
 		update_panels (UP_OPTIMIZE, UP_KEEPSEL); /* XXX a bit heavy-handed */
 		break;
 #endif
@@ -472,7 +468,7 @@ dlgswitch_before_exit (void)
 		    dlgswitch_process_pending();
 		    break;
 		}
-		view_finish_viewer(mc_cur_dlg->dlg, mc_cur_dlg->u.view_data.wview, NULL); /* XXX move_dir_p may not be valid anymore */
+		view_finish_viewer(mc_cur_dlg->dlg, mc_cur_dlg->u.view_data.wview, NULL);
 		break;
 #ifdef USE_INTERNAL_EDIT
 	    case DLG_TYPE_EDIT:
@@ -481,7 +477,7 @@ dlgswitch_before_exit (void)
 		    dlgswitch_process_pending();
 		    break;
 		}
-		edit_finish_editor(mc_cur_dlg->dlg, mc_cur_dlg->u.edit_data.wedit, mc_cur_dlg->u.edit_data.edit_menubar_p);
+		edit_finish_editor(mc_cur_dlg->dlg, mc_cur_dlg->u.edit_data.wedit);
 		break;
 #endif
 	    case DLG_TYPE_MC:

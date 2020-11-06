@@ -177,23 +177,29 @@ edit_file_modified (WEdit *wedit)
 }
 
 void
-edit_finish_editor(void *edit_dlg, WEdit *wedit, void *edit_menubar)
+edit_finish_editor(void *edit_dlg, WEdit *wedit)
 {
-    edit_done_menu (edit_menubar);		/* editmenu.c */
+    struct WMenu *menubar = (struct WMenu *)wedit->widget.next;
+    edit_done_menu (menubar);		/* editmenu.c */
     destroy_dlg (edit_dlg);
     dlgswitch_remove_current();
 }
 
 void
-edit_run_editor(void *_edit_dlg, WEdit *_wedit, void **edit_menubar_p)
+edit_run_editor(void *dlg, WEdit *widget)
 {
-    Dlg_head *edit_dlg = _edit_dlg;
-    wedit = _wedit;
-    edit_menubar = *edit_menubar_p;
+    Dlg_head *edit_dlg = dlg;
+    wedit = widget;
+    edit_menubar = (struct WMenu *)widget->widget.next;
+    /* XXX There are a lot of globals around here. If we came here from the dialog switcher -- not from edit_file(),
+     * take note that some of those globals may have changed while we were backgrounded. Proposed solutions include:
+     * - get rid of all those globals and put them into WEdit, or
+     * - implement dlgswitch_update_current(...) to track changes and update here accordingly: edit_reload_menu() etc.
+     */
 
     run_dlg (edit_dlg);
     if (!edit_dlg->soft_exit) {
-	edit_finish_editor(_edit_dlg, _wedit, edit_menubar);
+	edit_finish_editor(edit_dlg, wedit);
     }
 }
 #endif
@@ -235,8 +241,9 @@ edit_file (const char *_file, int line)
     add_widget (edit_dlg, edit_menubar);
 
 #ifdef USE_DLGSWITCH
-    dlgswitch_add(edit_dlg, DLG_TYPE_EDIT, _file, wedit, &edit_menubar);
-    edit_run_editor(edit_dlg, wedit, (void **)&edit_menubar);
+    g_assert((struct Widget *)edit_menubar == wedit->widget.next);
+    dlgswitch_add(edit_dlg, DLG_TYPE_EDIT, _file, wedit);
+    edit_run_editor(edit_dlg, wedit);
 #else
     run_dlg (edit_dlg);
 

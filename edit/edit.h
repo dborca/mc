@@ -121,8 +121,8 @@ void menu_save_mode_cmd (void);
 int edit_raw_key_query (const char *heading, const char *query, int cancel);
 int edit_file (const char *_file, int line);
 #ifdef USE_DLGSWITCH
-void edit_finish_editor(void *edit_dlg, WEdit *wedit, void *edit_menubar);
-void edit_run_editor(void *edit_dlg, WEdit *wedit, void **edit_menubar_p);
+void edit_finish_editor(void *edit_dlg, WEdit *wedit);
+void edit_run_editor(void *edit_dlg, WEdit *wedit);
 int edit_file_modified (WEdit *wedit);
 #endif
 int edit_translate_key (WEdit *edit, long x_key, int *cmd, int *ch);
