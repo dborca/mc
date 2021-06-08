@@ -1021,6 +1021,7 @@ show_hist (GList *history, int widget_x, int widget_y)
     hi = z;
     if (y < widget_y) {
 	/* traverse */
+	query_list->backwards = 1;
 	while (hi) {
 	    listbox_add_item (query_list, 0, 0, (char *) hi->data, NULL);
 	    hi = g_list_next (hi);
@@ -2002,7 +2003,6 @@ listbox_key (WListbox *l, int key)
 	    }
 	} else {
 	    WLEntry *e;
-	    int wrapped = 0;
 	    char *str = NULL;
 	    size_t oldlen = len;
 	    if (key >= ' ' && key < 255 && len < sizeof (l->searchbuf) - 1 && len < l->width - 2) {
@@ -2012,25 +2012,37 @@ listbox_key (WListbox *l, int key)
 	    e = l->current;
 	    i = l->pos;
 	    if (key == XCTRL('s') || key == ALT('s')) {
-		e = e->next;
-		i++;
-	    }
-	    for (; !wrapped || i != l->pos; i++, e = e->next) {
-		if (i >= l->count) {
-		    i = 0;
-		    e = l->list;
-		    if (wrapped) {
-			break;
+		if (l->backwards) {
+		    e = e->prev;
+		    if (--i < 0) {
+			i = l->count - 1;
 		    }
-		    wrapped = 1;
+		} else {
+		    e = e->next;
+		    if (++i >= l->count) {
+			i = 0;
+		    }
 		}
+	    }
+	    do {
 		str = strstr(e->text, l->searchbuf);
 		if (str) {
 		    listbox_select_by_number (l, i);
 		    l->searchstr = str - e->text;
 		    break;
 		}
-	    }
+		if (l->backwards) {
+		    e = e->prev;
+		    if (--i < 0) {
+			i = l->count - 1;
+		    }
+		} else {
+		    e = e->next;
+		    if (++i >= l->count) {
+			i = 0;
+		    }
+		}
+	    } while (i != l->pos);
 	    if (!str) {
 		l->searchbuf[oldlen] = 0;
 	    }
@@ -2252,6 +2264,7 @@ listbox_new (int y, int x, int width, int height, lcback callback)
     l->allow_duplicates = 1;
     l->scrollbar = slow_terminal ? 0 : 1;
     l->searching = 0;
+    l->backwards = 0;
     widget_want_hotkey (l->widget, 1);
 
     return l;
