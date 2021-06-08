@@ -92,6 +92,7 @@ f none $datadir/mc/syntax/diff.syntax
 f none $datadir/mc/syntax/dos.syntax
 f none $datadir/mc/syntax/fortran.syntax
 f none $datadir/mc/syntax/html.syntax
+f none $datadir/mc/syntax/ini.syntax
 f none $datadir/mc/syntax/java.syntax
 f none $datadir/mc/syntax/js.syntax
 f none $datadir/mc/syntax/latex.syntax
@@ -100,6 +101,7 @@ f none $datadir/mc/syntax/lsm.syntax
 f none $datadir/mc/syntax/m4.syntax
 f none $datadir/mc/syntax/mail.syntax
 f none $datadir/mc/syntax/makefile.syntax
+f none $datadir/mc/syntax/markdown.syntax
 f none $datadir/mc/syntax/ml.syntax
 f none $datadir/mc/syntax/nroff.syntax
 f none $datadir/mc/syntax/octave.syntax

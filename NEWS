@@ -2,7 +2,7 @@ Version 4.6.3d.
 
 - Editor.
 	- Added positive lookahead assertion \<...\> to syntax highlighting.
-	- Added C++ and Obj-C idioms to C syntax.  Added INI syntax.
+	- Added C++ and Obj-C idioms to C syntax.  Added INI, Markdown syntax.
 	- Added block indent mode (Shift-F6).  Use Tab/Backspace to indent.
 	- Added block tolower/toupper in menu.
 	- Added search-all a.k.a. create bookmarks.

@@ -100,6 +100,7 @@
          <QPG:Add file="./syntax/fortran.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
          <QPG:Add file="./syntax/html.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
          <QPG:Add file="./syntax/idl.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
+         <QPG:Add file="./syntax/ini.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
          <QPG:Add file="./syntax/java.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
          <QPG:Add file="./syntax/js.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
          <QPG:Add file="./syntax/latex.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
@@ -109,6 +110,7 @@
          <QPG:Add file="./syntax/m4.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
          <QPG:Add file="./syntax/mail.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
          <QPG:Add file="./syntax/makefile.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
+         <QPG:Add file="./syntax/markdown.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
          <QPG:Add file="./syntax/ml.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
          <QPG:Add file="./syntax/nroff.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>
          <QPG:Add file="./syntax/octave.syntax" permissions="0644" install="/opt/share/mc/syntax/"/>

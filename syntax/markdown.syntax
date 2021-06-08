@@ -1,0 +1,26 @@
+# Markdown syntax highlighting
+
+context default lightgray
+    spellcheck
+    keyword whole _*_ yellow
+    keyword whole \**\* white
+
+context linestart #### \n red
+    spellcheck
+
+context linestart # \n brightred
+    spellcheck
+
+context linestart >> \n green
+    spellcheck
+
+context linestart > \n brightgreen
+    spellcheck
+
+context linestart \s\s\s\s \n cyan
+
+context ``` ``` cyan
+
+context `` `` cyan
+
+context ` ` magenta
