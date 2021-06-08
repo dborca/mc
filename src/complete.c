@@ -317,9 +317,10 @@ static void fetch_hosts (const char *filename)
 		i++;
 	    if (buffer[i] ==  '#')
 		continue;
-	    for (start = i; buffer[i] && !cr_whitespace (buffer[i]); i++);
-	        if (i - start == 0)
-	            continue;
+	    for (start = i; buffer[i] && !cr_whitespace (buffer[i]); i++) {
+	    }
+	    if (i - start == 0)
+	        continue;
 	    name = g_strndup (buffer + start, i - start);
 	    {
 	    	char **host_p;

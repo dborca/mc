@@ -835,15 +835,6 @@ panel_scrollbar (WPanel *p)
 	widget_move (&p->widget, n + 2, p->widget.cols - 1);
 	addch ('v');
     }
-{
-    int i;
-    for (i = 2; i < n + 2; i++) {
-	if (i != line) {
-	    widget_move (&p->widget, i, p->widget.cols - 1);
-	    addch (0xB0);	/* 0xB0, 0xB1, 0xB2, 0xDB */
-	}
-    }
-}
 #endif
     /* Now draw the nice relative pointer */
     widget_move (&p->widget, line, p->widget.cols - 1);

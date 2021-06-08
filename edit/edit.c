@@ -71,7 +71,7 @@ int option_edit_bottom_extreme = 0;
 const char *option_whole_chars_search = "0123456789abcdefghijklmnopqrstuvwxyz_";
 char *option_backup_ext = NULL;
 
-/*-
+/*- Gap buffer
  *
  * here's a quick sketch of the layout: (don't run this through indent.)
  *
