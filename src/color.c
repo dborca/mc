@@ -447,15 +447,13 @@ try_alloc_color_pair (const char *fg, const char *bg)
     p->next = 0;
     p->fg = fg ? g_strdup (fg) : 0;
     p->bg = bg ? g_strdup (bg) : 0;
-    if (!fg)
-        /* Index in color_map array = COLOR_INDEX - 1 */
-	fg_index = color_map[EDITOR_NORMAL_COLOR_INDEX - 1].fg;
-    else
+    /* Index in color_map array = COLOR_INDEX - 1 */
+    fg_index = color_map[EDITOR_NORMAL_COLOR_INDEX - 1].fg;
+    if (fg)
 	get_color (fg, &fg_index);
 
-    if (!bg)
-	bg_index = color_map[EDITOR_NORMAL_COLOR_INDEX - 1].bg;
-    else
+    bg_index = color_map[EDITOR_NORMAL_COLOR_INDEX - 1].bg;
+    if (bg)
 	get_color (bg, &bg_index);
 
     bold_attr = fg_index & A_BOLD;
