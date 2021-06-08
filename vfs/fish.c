@@ -633,6 +633,11 @@ fish_linear_start (struct vfs_class *me, struct vfs_s_fh *fh, off_t offset)
 {
     char *name;
     char *quoted_name;
+#ifdef HAVE_LONG_LONG
+    long long total;
+#else
+    long total;
+#endif
     if (offset)
         ERRNOR (E_NOTSUPP, 0);
     name = vfs_s_fullpath (me, fh->ino);
@@ -660,12 +665,13 @@ fish_linear_start (struct vfs_class *me, struct vfs_s_fh *fh, off_t offset)
     if (offset != PRELIM) ERRNOR (E_REMOTE, 0);
     fh->linear = LS_LINEAR_OPEN;
     fh->u.fish.got = 0;
-#if SIZEOF_OFF_T > SIZEOF_INT
-    if (sscanf( reply_str, "%llu", &fh->u.fish.total )!=1)
+#ifdef HAVE_LONG_LONG
+    if (sscanf( reply_str, "%llu", &total )!=1)
 #else
-    if (sscanf( reply_str, "%u", &fh->u.fish.total )!=1)
+    if (sscanf( reply_str, "%lu", &total )!=1)
 #endif
 	ERRNOR (E_REMOTE, 0);
+    fh->u.fish.total = total;
     return 1;
 }
 

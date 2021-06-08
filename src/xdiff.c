@@ -577,7 +577,7 @@ view_display_file (WDiff *view, int ord,
     off_t offset = view->df[ord].offs;
     int nbytes = view->nbytes;
 
-    off_t mask = 0;
+    unsigned int mask = 0;
 
     int available = width - (nbytes * 4 + 1);
     if (owidth > available - 1) {
@@ -588,7 +588,7 @@ view_display_file (WDiff *view, int ord,
     }
 
     if (owidth > 0) {
-	mask = ((((off_t)1 << ((owidth - 1) * 4)) - 1) << 4) | 0xF;
+	mask = (((1 << ((owidth - 1) * 4)) - 1) << 4) | 0xF;
 	owidth++;
     }
 
@@ -604,7 +604,7 @@ view_display_file (WDiff *view, int ord,
 	tty_gotoyx(r + j, c);
 
 	if (owidth > 0) {
-	    sprintf(buf, "%0*llX ", owidth - 1, offset & mask);
+	    sprintf(buf, "%0*X ", owidth - 1, (int)(offset & mask));
 	    tty_setcolor(MARKED_COLOR);
 	    tty_print_nstring(buf, owidth);
 	}
