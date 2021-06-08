@@ -553,7 +553,7 @@ regex/\.(rexx?|cmd)$
 ### Plain compressed files ###
 
 # zip
-type/^([Zz][Ii][Pp])\ archive
+type/^(iOS App )?([Zz][Ii][Pp])\ archive
 	Open=%cd %p#uzip
 	View=%view{ascii} unzip -v %f
 
