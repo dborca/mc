@@ -2763,7 +2763,7 @@ hex_search (WView *view, const char *text)
 	int ptr;
 
 	/* Skip leading spaces */
-	if (*text == ' ' || *text == '\t') {
+	if (*text == ' ' || *text == '\t' || *text == ',') {
 	    text++;
 	    continue;
 	}
