@@ -659,6 +659,7 @@ vfs/extfs/deba
 vfs/extfs/debd
 vfs/extfs/dpkg
 vfs/extfs/iso9660
+vfs/extfs/findfs
 vfs/extfs/hp48
 vfs/extfs/lslR
 vfs/extfs/mailfs

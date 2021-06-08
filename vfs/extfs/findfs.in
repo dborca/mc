@@ -1,0 +1,54 @@
+#!/bin/sh
+#
+# extfs parse `find <path>`
+# Written by Daniel Borca, 2021
+# Licensed under GNU GPL version 2 or later version.
+
+AWK=@AWK@
+
+dir_list ()
+{
+    #   a
+    #   a/b
+    # =>
+    #   dr-x------ a
+    #   -r-------- a/b
+
+    sort -u "$1" | $AWK -v uid=${UID-0} '
+    function pr(end) {
+        leng = length(last)
+        perm = "dr-xr-xr-x"
+        if (substr(last, leng, 1) != "/") {
+            if (!end && (substr($0, 1, leng) == last && substr($0, leng + 1, 1) == "/")) {
+                if (length($0) == leng + 1) {
+                    return
+                }
+            } else {
+                perm = "-r--r--r--"
+            }
+        }
+        if (end || last != $0) {
+            printf "%s 1 %-8d %-8d %8d 02-29-1972 23:59 %s\n", perm, uid, gid, size, last
+        }
+    }
+    NF {
+        gsub(/\/+/, "/")
+        if (last) {
+            pr(0)
+        }
+        last = $0
+    }
+    END {
+        if (last) {
+            pr(1)
+        }
+    }'
+}
+
+cmd="$1"
+shift
+case "$cmd" in
+    list) dir_list "$@" ;;
+    *)    exit 1 ;;
+esac
+exit 0

@@ -16,6 +16,7 @@ EXTFS_IN    = 			\
 	debd.in			\
 	dpkg.in			\
 	iso9660.in		\
+	findfs.in		\
 	hp48.in			\
 	lslR.in			\
 	mailfs.in		\
@@ -41,6 +42,7 @@ EXTFS_OUT = 			\
 	debd			\
 	dpkg			\
 	iso9660			\
+	findfs			\
 	hp48			\
 	lslR			\
 	mailfs			\

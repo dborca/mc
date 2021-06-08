@@ -45,6 +45,7 @@
          <QPG:Add file="./vfs/extfs/debd" permissions="0755" install="/opt/share/mc/extfs/"/>
          <QPG:Add file="./vfs/extfs/dpkg" permissions="0755" install="/opt/share/mc/extfs/"/>
          <QPG:Add file="./vfs/extfs/extfs.ini" permissions="0644" install="/opt/share/mc/extfs/"/>
+         <QPG:Add file="./vfs/extfs/findfs" permissions="0755" install="/opt/share/mc/extfs/"/>
          <QPG:Add file="./vfs/extfs/hp48" permissions="0755" install="/opt/share/mc/extfs/"/>
          <QPG:Add file="./vfs/extfs/iso9660" permissions="0755" install="/opt/share/mc/extfs/"/>
          <QPG:Add file="./vfs/extfs/lslR" permissions="0755" install="/opt/share/mc/extfs/"/>
