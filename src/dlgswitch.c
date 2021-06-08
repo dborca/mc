@@ -83,7 +83,7 @@ dlgswitch_remove_current (void)
 	    } else {
 		mc_dialogs = e->next;
 	    }
-	    free(e->name);
+	    g_free(e->name);
 	    free(e);
 	    if (e == mc_manager) {
 		mc_manager = NULL;
@@ -124,7 +124,7 @@ dlgswitch_add (Dlg_head *h, DLG_TYPE type, const char *name, ...)
 		break;
 #ifdef USE_INTERNAL_EDIT
 	    case DLG_TYPE_EDIT:
-		e->name = name ? concat_dir_and_file(current_panel->cwd, name) : strdup("<new>");
+		e->name = name ? concat_dir_and_file(current_panel->cwd, name) : g_strdup("<new>");
 		if (e->name != NULL) {
 		    va_list ap;
 		    va_start(ap, name);
@@ -134,7 +134,7 @@ dlgswitch_add (Dlg_head *h, DLG_TYPE type, const char *name, ...)
 		break;
 #endif
 	    case DLG_TYPE_MC:
-		e->name = strdup(name);
+		e->name = g_strdup(name);
 		if (e->name != NULL) {
 		    mc_manager = e;
 		}
@@ -182,7 +182,7 @@ dlgswitch_update_path (const char *dir, const char *file)
 	return -1;
     }
 
-    free(mc_cur_dlg->name);
+    g_free(mc_cur_dlg->name);
     mc_cur_dlg->name = p;
 
     return 0;
@@ -441,12 +441,12 @@ dlgswitch_reuse (DLG_TYPE type, const char *dir, const char *file)
 	}
 	for (e = mc_dialogs; e != NULL; e = e->next) {
 	    if (type == e->type && !strcmp(filename, e->name)) {
-		free(filename);
+		g_free(filename);
 		dlgswitch_goto(e);
 		return 0;
 	    }
 	}
-	free(filename);
+	g_free(filename);
     }
 
     return -1;

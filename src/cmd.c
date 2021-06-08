@@ -1352,14 +1352,10 @@ dirsizes_cmd (void)
 void
 save_setup_cmd (void)
 {
-    char *str;
-    
     save_setup ();
     sync_profiles ();
-    str = g_strconcat ( _(" Setup saved to ~/"), PROFILE_NAME, (char *) NULL);
     
-    message (0, _(" Setup "), str);
-    g_free (str);
+    message (0, _(" Setup "), "%s%s", _(" Setup saved to ~/"), PROFILE_NAME);
 }
 
 static void

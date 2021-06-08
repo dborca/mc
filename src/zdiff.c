@@ -1892,8 +1892,8 @@ view_diff_cmd (void *obj, const char *name0, const char *name1)
 	    if (rv == 0) {
 		is_dir0 = S_ISDIR(st0.st_mode);
 		is_dir1 = S_ISDIR(st1.st_mode);
-		file0 = g_strdup(name0);
-		file1 = g_strdup(name1);
+		file0 = strdup(name0);
+		file1 = strdup(name1);
 	    }
 	} else {
 	    const WPanel *panel0 = current_panel;
@@ -1902,8 +1902,8 @@ view_diff_cmd (void *obj, const char *name0, const char *name1)
 		panel0 = other_panel;
 		panel1 = current_panel;
 	    }
-	    file0 = concat_dir_and_file(panel0->cwd, selection(panel0)->fname);
-	    file1 = concat_dir_and_file(panel1->cwd, selection(panel1)->fname);
+	    file0 = strpath(panel0->cwd, selection(panel0)->fname);
+	    file1 = strpath(panel1->cwd, selection(panel1)->fname);
 	    is_dir0 = S_ISDIR(selection(panel0)->st.st_mode) || link_isdir(selection(panel0));
 	    is_dir1 = S_ISDIR(selection(panel1)->st.st_mode) || link_isdir(selection(panel1));
 	}

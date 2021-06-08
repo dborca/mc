@@ -3463,7 +3463,7 @@ edit_show_ctags(WEdit *edit)
 	    tag = g_array_index (entries, struct ctag_t, i);
 	    g_snprintf(line, sizeof(line), "%c %s", tag.type, tag.symbol);
 	    LISTBOX_APPEND_TEXT (listbox, 0, line, NULL);
-	    g_free(tag.symbol);
+	    free(tag.symbol);
 	}
 	i = run_listbox (listbox);
 	if (i >= 0) {

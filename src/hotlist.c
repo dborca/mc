@@ -1470,13 +1470,9 @@ load_hotlist (void)
 	if (result) {
 	    remove_old_list = 1;
 	} else {
-	    char *msg;
-
-	    msg = g_strconcat (_("MC was unable to write ~/"), HOTLIST_FILENAME,
-				_(" file, your old hotlist entries were not deleted"), (char *) NULL);
-
-	    message (D_ERROR, _(" Hotlist Load "), msg);
-	    g_free (msg);
+	    message (D_ERROR, _(" Hotlist Load "), "%s%s%s",
+		_("MC was unable to write ~/"), HOTLIST_FILENAME,
+		_(" file, your old hotlist entries were not deleted"));
 	}
     } else {
 	hot_load_file (hotlist);

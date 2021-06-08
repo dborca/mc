@@ -1414,7 +1414,7 @@ concat_dir_and_file (const char *dir, const char *file)
     if (i && dir[i - 1] == PATH_SEP) {
 	i--;
     }
-    p = malloc(i + 1 + j + 1);
+    p = g_malloc(i + 1 + j + 1);
     memcpy(p, dir, i);
     p[i++] = PATH_SEP;
     p[i] = '\0';
