@@ -278,7 +278,7 @@ static void configure_colors (void)
 }
 
 #ifndef HAVE_SLANG
-#define MAX_PAIRS 64
+#define MAX_PAIRS 256
 int attr_pairs [MAX_PAIRS];
 #endif
 
@@ -315,7 +315,7 @@ void init_colors (void)
 	configure_colors ();
 
 #ifndef HAVE_SLANG
-	if (ELEMENTS (color_map) > MAX_PAIRS){
+	if (ELEMENTS (color_map) >= MAX_PAIRS){
 	    /* This message should only be seen by the developers */
 	    fprintf (stderr,
 		     "Too many defined colors, resize MAX_PAIRS on color.c");
@@ -461,6 +461,11 @@ try_alloc_color_pair (const char *fg, const char *bg)
     bg_index = bg_index & COLOR_WHITE;
 
     p->index = alloc_color_pair (fg_index, bg_index);
+    if (p->index >= MAX_PAIRS) {
+	/* This message should only be seen by the developers */
+	fprintf(stderr, "Wrong color pair index %d = %s/%s, resize MAX_PAIRS on color.c\n", p->index, fg, bg);
+	exit(1);
+    }
     attr_pairs [p->index] = bold_attr;
     return p->index;
 }
