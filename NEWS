@@ -82,6 +82,7 @@ Version 4.6.3d.
 	- extfs: added sqlite3 support.
 	- extfs: added hfsplus support.
 	- extfs: added xar support.
+	- tarfs: fixed filesize parsing.
 
 - Miscellaneous.
 	- Weakened glib dependencies.

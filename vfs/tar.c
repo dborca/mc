@@ -344,13 +344,13 @@ tar_fill_stat (struct vfs_s_super *archive, struct stat *st, union record *heade
 	st->st_gid = tar_from_oct (8, header->header.gid);
     }
     st->st_size = h_size;
-    st->st_mtime = tar_from_oct (1 + 12, header->header.mtime);
+    st->st_mtime = tar_from_oct (12, header->header.mtime);
     st->st_atime = 0;
     st->st_ctime = 0;
     if (archive->u.arch.type == TAR_GNU) {
-	st->st_atime = tar_from_oct (1 + 12,
+	st->st_atime = tar_from_oct (12,
 				     header->header.unused.oldgnu.atime);
-	st->st_ctime = tar_from_oct (1 + 12,
+	st->st_ctime = tar_from_oct (12,
 				     header->header.unused.oldgnu.ctime);
     }
 }
@@ -449,7 +449,7 @@ tar_read_header (struct vfs_class *me, struct vfs_s_super *archive,
 	|| header->header.linkflag == LF_DIR)
 	*h_size = 0;		/* Links 0 size on tape */
     else
-	*h_size = tar_from_oct (1 + 12, header->header.size);
+	*h_size = tar_from_oct (12, header->header.size);
 
     /*
      * Skip over directory snapshot info records that
