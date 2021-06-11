@@ -40,8 +40,6 @@
 #include "zdiff.h"
 
 
-#ifdef USE_DIFF_VIEW
-
 #define RECURSIVE_DEPTH 100
 
 #define ADD_CH	'+'
@@ -1953,4 +1951,3 @@ view_diff_cmd (void *obj, const char *name0, const char *name1)
 	message (1, MSG_ERROR, _(" Error building diff "));
     }
 }
-#endif

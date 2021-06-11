@@ -26,9 +26,6 @@
 #include "zutil.h"
 
 
-#ifdef USE_DIFF_VIEW
-
-
 #if GLIB_MAJOR_VERSION > 0
 #include "../slib/array.c"
 #endif
@@ -421,4 +418,3 @@ get_digits (unsigned int n)
     }
     return d;
 }
-#endif

@@ -37,8 +37,6 @@
 #include "ydiff.h"
 
 
-#ifdef USE_DIFF_VIEW
-
 #define ADD_CH		'+'
 #define DEL_CH		'-'
 #define CHG_CH		'*'
@@ -2323,4 +2321,3 @@ diff_view (const char *file1, const char *file2)
 
     return error;
 }
-#endif

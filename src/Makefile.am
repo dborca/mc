@@ -42,6 +42,7 @@ mc_LDADD = $(EDITLIB) $(SLANGLIB) $(VFSLIB) \
 	$(INTLLIBS) $(GLIB_LIBS) $(MCLIBS) $(LIBICONV)
 
 CHARSET_SRC = charsets.c charsets.h selcodepage.c selcodepage.h
+DIFF_VIEW_SRC = xdiff.c xdiff.h ydiff.c ydiff.h zdiff.c zdiff.h zutil.c zutil.h
 
 SRCS =	achown.c achown.h background.c background.h boxes.c boxes.h	\
 	chmod.c chmod.h chown.c chown.h cmd.c cmd.h color.c color.h	\
@@ -63,12 +64,15 @@ SRCS =	achown.c achown.h background.c background.h boxes.c boxes.h	\
 	tree.c tree.h treestore.c treestore.h tty.c tty.h user.c user.h	\
 	util.c util.h utilunix.c view.c view.h vfsdummy.h widget.c	\
 	widget.h win.c win.h wtools.c wtools.h unixcompat.h		\
-	x11conn.h x11conn.c ecs.h ecs.c xdiff.c xdiff.h ydiff.c ydiff.h zdiff.c zdiff.h zutil.c zutil.h
+	x11conn.h x11conn.c ecs.h ecs.c
 
 if CHARSET
 mc_SOURCES = $(SRCS) $(CHARSET_SRC)
 else
 mc_SOURCES = $(SRCS)
+endif
+if USE_DIFF
+mc_SOURCES += $(DIFF_VIEW_SRC)
 endif
 
 EXTRA_DIST = ChangeLog OChangeLog man2hlp.c $(CHARSET_SRC)

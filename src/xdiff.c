@@ -36,8 +36,6 @@
 #include "xdiff.h"
 
 
-#ifdef USE_DIFF_VIEW
-
 #define VERTICAL_SPLIT		1
 
 #define REINIT_READ_LEFT	(1 << 0)
@@ -1275,4 +1273,3 @@ xdiff_view (const char *file1, const char *file2)
 
     return error;
 }
-#endif
