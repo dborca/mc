@@ -51,6 +51,11 @@
 static const edit_key_map_type cooledit_key_map[] = {
     { ALT ('r'), CK_Match_Bracket },
     { ALT ('m'), CK_Mail },
+    { ALT ('k'), CK_Toggle_Bookmark },
+    { ALT ('x'), CK_Filter },
+    { ALT ('\\'), CK_Block_ToLower },
+    { ALT ('/'), CK_Block_ToUpper },
+    { XCTRL ('@'), CK_Ctags },
     { XCTRL ('f'), CK_Save_Block },
     { XCTRL ('n'), CK_New },
     { XCTRL ('p'), CK_Pipe_Block (1) },	/* spell check */
@@ -62,8 +67,6 @@ static const edit_key_map_type cooledit_key_map[] = {
 
 static const edit_key_map_type emacs_key_map[] = {
     { ALT ('$'), CK_Pipe_Block (1) },	/* spell check */
-    { ALT ('b'), CK_Word_Left },
-    { ALT ('f'), CK_Word_Right },
     { ALT ('v'), CK_Page_Up },
     { ALT ('w'), CK_XStore },
     { XCTRL ('@'), CK_Mark },
@@ -98,13 +101,14 @@ static const edit_key_map_type common_key_map[] = {
     { KEY_RIGHT, CK_Right },
     { KEY_UP, CK_Up },
 
-    { ALT ('\n'), CK_Ctags },
+    { ALT ('\n'), CK_Return },
     { ALT ('\t'), CK_Complete_Word },
+    { ALT ('b'), CK_Word_Left },
+    { ALT ('f'), CK_Word_Right },
     { ALT ('l'), CK_Goto },
     { ALT ('L'), CK_Goto },
     { ALT ('p'), CK_Paragraph_Format },
     { ALT ('t'), CK_Sort },
-    { ALT ('x'), CK_Filter },
     { ALT ('u'), CK_ExtCmd },
     { ALT ('_'), CK_Toggle_Tab_TWS },
     { ALT ('<'), CK_Beginning_Of_Text },
@@ -113,7 +117,6 @@ static const edit_key_map_type common_key_map[] = {
     { ALT (KEY_BACKSPACE), CK_Delete_Word_Left },
     { ALT ('i'), CK_Prev_Bookmark },
     { ALT ('j'), CK_Next_Bookmark },
-    { ALT ('k'), CK_Toggle_Bookmark },
 
     { XCTRL ('k'), CK_Delete_To_Line_End },
     { XCTRL ('l'), CK_Refresh },
