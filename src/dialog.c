@@ -652,7 +652,7 @@ dlg_key_event (Dlg_head *h, int d_key)
     handled = (*h->callback) (h, DLG_KEY, d_key);
 
 #ifdef USE_DLGSWITCH
-    if (!handled) {
+    if (!handled && (h->flags & DLG_SWITCHABLE)) {
 	switch (d_key) {
 	    case ALT ('`'):
 		dlgswitch_select();

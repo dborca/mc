@@ -147,6 +147,7 @@ void draw_box (Dlg_head *h, int y, int x, int ys, int xs);
 void draw_double_box (Dlg_head *h, int y, int x, int ys, int xs);
 
 /* Flags for create_dlg: */
+#define DLG_SWITCHABLE	(1 << 6) /* USE_DLGSWITCH */
 #define DLG_REVERSE	(1 << 5) /* Tab order is opposite to the add order */
 #define DLG_WANT_TAB	(1 << 4) /* Should the tab key be sent to the dialog? */
 #define DLG_WANT_IDLE	(1 << 3) /* Dialog wants idle events */
