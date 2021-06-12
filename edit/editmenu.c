@@ -45,6 +45,9 @@
 #include "../src/key.h"		/* XCTRL */
 #include "../src/main.h"	/* drop_menus */
 #include "../src/learn.h"	/* learn_keys */
+#ifdef USE_DLGSWITCH
+#include "../src/dlgswitch.h"
+#endif
 
 #include "edit-widget.h"
 #include "editcmddef.h"
@@ -148,6 +151,12 @@ static void
 menu_markcol_cmd (void)
 {
     menu_cmd (CK_Column_Mark);
+}
+
+static void
+menu_block_indent_cmd (void)
+{
+    menu_cmd (CK_Paragraph_Indent_Mode);
 }
 
 static void
@@ -268,6 +277,12 @@ static void
 menu_date_cmd (void)
 {
     menu_cmd (CK_Date);
+}
+
+static void
+menu_ctags_cmd (void)
+{
+    menu_cmd (CK_Ctags);
 }
 
 static void
