@@ -305,12 +305,32 @@ edit_draw_this_line (WEdit *edit, long b, long row, long start_col,
     int i;
 
     int book_mark = 0;
+#ifndef HAVE_SLANG
+    static int book_mark_color = -1;
+    static int book_mark_found_color = -1;
+#endif
 
     if (book_mark_query_color(edit, edit->start_line + row, BOOK_MARK_COLOR)) {
 	book_mark = BOOK_MARK_COLOR;
     } else if (book_mark_query_color(edit, edit->start_line + row, BOOK_MARK_FOUND_COLOR)) {
 	book_mark = BOOK_MARK_FOUND_COLOR;
     }
+#ifndef HAVE_SLANG
+    switch (book_mark) {
+	case BOOK_MARK_COLOR:
+	    if (book_mark_color < 0) {
+		book_mark_color = try_alloc_color_pair("white", "red");
+	    }
+	    book_mark = book_mark_color;
+	    break;
+	case BOOK_MARK_FOUND_COLOR:
+	    if (book_mark_found_color < 0) {
+		book_mark_found_color = try_alloc_color_pair("lightgray", "cyan");
+	    }
+	    book_mark = book_mark_found_color;
+	    break;
+    }
+#endif
 
     if (row > edit->num_widget_lines - EDIT_TEXT_VERTICAL_OFFSET) {
 	return;
