@@ -45,6 +45,12 @@
 #   define noacs()
 #endif
 
+#ifdef _POSIX_VDISABLE
+#   define NULL_VALUE _POSIX_VDISABLE
+#else
+#   define NULL_VALUE 255
+#endif
+
 /*** global variables **************************************************/
 
 /*** file scope type declarations **************************************/
@@ -74,12 +80,35 @@ tty_enable_interrupt_key(void)
     sigemptyset (&act.sa_mask);
     act.sa_flags = 0;
     sigaction (SIGINT, &act, NULL);
+
+#ifndef HAVE_SLANG
+    /* unmask the terminal signals, but avoid cbreak() because of ^Z */
+#ifdef HAVE_TERMIOS_H
+    /*cur_term->Nttyb.c_cc[VINTR] = 3;           ^C */
+    cur_term->Nttyb.c_cc[VSUSP] = NULL_VALUE; /* ignore ^Z */
+    cur_term->Nttyb.c_lflag |= ISIG;          /* enable interrupts */
+#else
+    cur_term->Nttyb.s.sg_flags |= CBREAK;
+#endif
+    _nc_set_tty_mode(&cur_term->Nttyb);
+#endif
 }
 
 extern void
 tty_disable_interrupt_key(void)
 {
     struct sigaction act;
+
+#ifndef HAVE_SLANG
+    /* mask the terminal signals */
+#ifdef HAVE_TERMIOS_H
+    cur_term->Nttyb.c_cc[VSUSP] = 26; /* ^Z */
+    cur_term->Nttyb.c_lflag &= ~ISIG; /* disable interrupts */
+#else
+    cur_term->Nttyb.s.sg_flags |= RAW;
+#endif
+    _nc_set_tty_mode(&cur_term->Nttyb);
+#endif
 
     act.sa_handler = SIG_IGN;
     sigemptyset (&act.sa_mask);

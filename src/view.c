@@ -1135,7 +1135,7 @@ view_moveto_bottom (WView *view)
     offset_type datalines, lines_up, filesize, last_offset;
 
     if (view->growbuf_in_use)
-	view_growbuf_read_until (view, view->monitor_mode ? view_get_filesize(view) + 1024 * 1024 : OFFSETTYPE_MAX);
+	view_growbuf_read_until (view, OFFSETTYPE_MAX);
 
     filesize = view_get_filesize (view);
     last_offset = offset_doz(filesize, 1);
@@ -2530,6 +2530,11 @@ get_line_at (WView *view, offset_type *p, offset_type *skipped)
 	    i--;			/* Strip newline/zero */
 	    break;
 	}
+
+	if (got_interrupt()) {
+	    g_free(buffer);
+	    return NULL;
+	}
     }
 
     if (buffer) {
@@ -2604,8 +2609,6 @@ search (WView *view, char *text,
 		view_percent (view, p);
 		mc_refresh ();
 	    }
-	    if (got_interrupt ())
-		break;
 	}
 	forward_line_start = p;
 	s = get_line_at (view, &p, &t);

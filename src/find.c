@@ -486,6 +486,11 @@ get_line_at (int file_fd, char *buf, int *pos, int *n_read, int buf_size,
     int i = 0;
 
     for (;;) {
+	if (got_interrupt()) {
+	    g_free(buffer);
+	    return NULL;
+	}
+
 	if (*pos >= *n_read) {
 	    *pos = 0;
 	    if ((*n_read = mc_read (file_fd, buf, buf_size)) <= 0)
@@ -591,7 +596,7 @@ search_content (Dlg_head *h, const char *directory, const char *filename)
     mc_refresh ();
 
     enable_interrupt_key ();
-    got_interrupt ();
+    /* get_line_at() will be checking for interrupts */
 
     {
 	int post_add = invert_match_flag;

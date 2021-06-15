@@ -315,6 +315,16 @@ ftpfs_reconnect (struct vfs_class *me, struct vfs_s_super *super)
 }
 
 static int
+write_interr(int fd, void *buf, size_t n)
+{
+    int rv;
+    enable_interrupt_key ();
+    rv = write(fd, buf, n);
+    disable_interrupt_key ();
+    return rv;
+}
+
+static int
 ftpfs_command (struct vfs_class *me, struct vfs_s_super *super, int wait_reply, const char *fmt, ...)
 {
     va_list ap;
@@ -342,8 +352,7 @@ ftpfs_command (struct vfs_class *me, struct vfs_s_super *super, int wait_reply, 
     }
 
     got_sigpipe = 0;
-    enable_interrupt_key ();
-    status = write (SUP.sock, cmdstr, cmdlen);
+    status = write_interr (SUP.sock, cmdstr, cmdlen);
 
     if (status < 0) {
 	code = 421;
@@ -353,7 +362,7 @@ ftpfs_command (struct vfs_class *me, struct vfs_s_super *super, int wait_reply, 
 		level = 1;
 		status = ftpfs_reconnect (me, super);
 		level = 0;
-		if (status && (write (SUP.sock, cmdstr, cmdlen) > 0)) {
+		if (status && (write_interr (SUP.sock, cmdstr, cmdlen) > 0)) {
 		    goto ok;
 		}
 
@@ -361,12 +370,10 @@ ftpfs_command (struct vfs_class *me, struct vfs_s_super *super, int wait_reply, 
 	    got_sigpipe = 1;
 	}
 	g_free (cmdstr);
-	disable_interrupt_key ();
 	return TRANSIENT;
     }
     retry = 0;
   ok:
-    disable_interrupt_key ();
 
     if (wait_reply)
     {
@@ -379,7 +386,7 @@ ftpfs_command (struct vfs_class *me, struct vfs_s_super *super, int wait_reply, 
 	    level = 1;
     	    status = ftpfs_reconnect (me, super);	    
 	    level = 0;
-	    if (status && (write (SUP.sock, cmdstr, cmdlen) > 0)) {
+	    if (status && (write_interr (SUP.sock, cmdstr, cmdlen) > 0)) {
 	        goto ok;
 	    }
 	}
@@ -708,9 +715,8 @@ ftpfs_open_socket (struct vfs_class *me, struct vfs_s_super *super)
 	else
 	    print_vfs_message (_("ftpfs: connection to server failed: %s"),
 				   unix_error_string(errno));
-	disable_interrupt_key();
 	close (my_socket);
-	return -1;
+	my_socket = -1;
     }
     disable_interrupt_key();
     return my_socket;
@@ -977,8 +983,6 @@ ftpfs_open_data_connection (struct vfs_class *me, struct vfs_s_super *super, con
 	data = accept (s, (struct sockaddr *)&from, &fromlen);
 	if (data < 0) {
 	    ftpfs_errno = errno;
-	    close (s);
-	    return -1;
 	}
 	close (s);
     } 
@@ -1238,9 +1242,6 @@ ftpfs_dir_load (struct vfs_class *me, struct vfs_s_inode *dir, char *remote_path
     if (sock == -1)
 	goto fallback;
 
-    /* Clear the interrupt flag */
-    enable_interrupt_key ();
-
     while (1) {
 	int i;
 	int res =
@@ -1252,7 +1253,6 @@ ftpfs_dir_load (struct vfs_class *me, struct vfs_s_inode *dir, char *remote_path
 	if (res == EINTR) {
 	    me->verrno = ECONNRESET;
 	    close (sock);
-	    disable_interrupt_key ();
 	    ftpfs_get_reply (me, SUP.sock, NULL, 0);
 	    print_vfs_message (_("%s: failure"), me->name);
 	    return -1;
@@ -1420,11 +1420,13 @@ ftpfs_linear_read (struct vfs_class *me, struct vfs_s_fh *fh, void *buf, int len
     int n;
     struct vfs_s_super *super = FH_SUPER;
 
+    enable_interrupt_key();
     while ((n = read (FH_SOCK, buf, len))<0) {
         if ((errno == EINTR) && !got_interrupt())
 	    continue;
 	break;
     }
+    disable_interrupt_key();
 
     if (n<0)
 	ftpfs_linear_abort(me, fh);

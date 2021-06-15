@@ -394,6 +394,9 @@ dff_reparse (int ord, FBUF *f, const ARRAY *ops, DFUNC printer, void *ctx)
 		}
 		printer(ctx, 0, 0, 0, sz, buf);
 		off += sz;
+		if (got_interrupt()) {
+		    return -1;
+		}
 	    }
 	}
 	if (line != n) {
@@ -420,6 +423,9 @@ dff_reparse (int ord, FBUF *f, const ARRAY *ops, DFUNC printer, void *ctx)
 		    }
 		    printer(ctx, 0, 0, 0, sz, buf);
 		    off += sz;
+		    if (got_interrupt()) {
+			return -1;
+		    }
 		}
 		n--;
 	    }
@@ -440,6 +446,9 @@ dff_reparse (int ord, FBUF *f, const ARRAY *ops, DFUNC printer, void *ctx)
 		    }
 		    printer(ctx, 0, 0, 0, sz, buf);
 		    off += sz;
+		    if (got_interrupt()) {
+			return -1;
+		    }
 		}
 		n--;
 	    }
@@ -469,6 +478,9 @@ dff_reparse (int ord, FBUF *f, const ARRAY *ops, DFUNC printer, void *ctx)
 	    }
 	    printer(ctx, 0, 0, 0, sz, buf);
 	    off += sz;
+	    if (got_interrupt()) {
+		return -1;
+	    }
 	}
     }
 
@@ -1183,19 +1195,21 @@ redo_diff (WDiff *view)
 
     ctx.dsrc = view->dsrc;
 
-    rv = 0;
-
+    enable_interrupt_key();
     arr_init(&a[0], sizeof(DIFFLN), 256);
     ctx.a = &a[0];
     ctx.f = t[0];
     ctx.other = NULL;
-    rv |= dff_reparse(0, f[0], &ops, printer, &ctx);
+    rv = dff_reparse(0, f[0], &ops, printer, &ctx);
 
     arr_init(&a[1], sizeof(DIFFLN), 256);
     ctx.a = &a[1];
     ctx.f = t[1];
     ctx.other = &a[0]; /* XXX set this to NULL to disable borrow */
-    rv |= dff_reparse(1, f[1], &ops, printer, &ctx);
+    if (rv == 0) {
+	rv = dff_reparse(1, f[1], &ops, printer, &ctx);
+    }
+    disable_interrupt_key();
 
     arr_free(&ops, NULL);
 

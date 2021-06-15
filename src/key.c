@@ -1079,9 +1079,13 @@ get_event (struct Gpm_Event *event, int redo_event, int block)
 	    timeout.tv_sec = 0;
 	    timeout.tv_usec = 0;
 	}
+#ifdef HAVE_SLANG /* Does slang need this? Do we need it at all? ncurses works better without it */
 	enable_interrupt_key ();
+#endif
 	flag = select (maxfdp + 1, &select_set, NULL, NULL, time_addr);
+#ifdef HAVE_SLANG
 	disable_interrupt_key ();
+#endif
 
 	/* select timed out: it could be for any of the following reasons:
 	 * redo_event -> it was because of the MOU_REPEAT handler

@@ -956,10 +956,6 @@ vfs_s_retrieve_file (struct vfs_class *me, struct vfs_s_inode *ino)
     if (!MEDATA->linear_start (me, &fh, 0))
 	goto error_3;
 
-    /* Clear the interrupt status */
-    got_interrupt ();
-    enable_interrupt_key ();
-
     while ((n = MEDATA->linear_read (me, &fh, buffer, sizeof (buffer)))) {
 	int t;
 	if (n < 0)
@@ -981,14 +977,11 @@ vfs_s_retrieve_file (struct vfs_class *me, struct vfs_s_inode *ino)
     }
     MEDATA->linear_close (me, &fh);
     close (handle);
-
-    disable_interrupt_key ();
     return 0;
 
   error_1:
     MEDATA->linear_close (me, &fh);
   error_3:
-    disable_interrupt_key ();
     close (handle);
     unlink (ino->localname);
   error_4:
@@ -1226,27 +1219,27 @@ vfs_s_get_line_interruptible (struct vfs_class *me, char *buffer, int size, int 
 {
     int n;
     int i;
+    int rv = 0;
 
     (void) me;
 
     enable_interrupt_key ();
     for (i = 0; i < size-1; i++){
 	n = read (fd, buffer+i, 1);
-	disable_interrupt_key ();
 	if (n == -1 && errno == EINTR){
-	    buffer [i] = 0;
-	    return EINTR;
+	    rv = EINTR;
+	    break;
 	}
 	if (n == 0){
-	    buffer [i] = 0;
-	    return 0;
+	    break;
 	}
 	if (buffer [i] == '\n'){
-	    buffer [i] = 0;
-	    return 1;
+	    rv = 1;
+	    break;
 	}
     }
-    buffer [size-1] = 0;
-    return 0;
+    buffer [i] = 0;
+    disable_interrupt_key ();
+    return rv;
 }
 #endif /* USE_NETCODE */

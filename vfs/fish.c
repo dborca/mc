@@ -704,13 +704,13 @@ fish_linear_read (struct vfs_class *me, struct vfs_s_fh *fh, void *buf, int len)
     struct vfs_s_super *super = FH_SUPER;
     int n = 0;
     len = MIN( fh->u.fish.total - fh->u.fish.got, len );
-    disable_interrupt_key();
+    enable_interrupt_key();
     while (len && ((n = read (SUP.sockr, buf, len))<0)) {
         if ((errno == EINTR) && !got_interrupt())
 	    continue;
 	break;
     }
-    enable_interrupt_key();
+    disable_interrupt_key();
 
     if (n>0) fh->u.fish.got += n;
     if (n<0) fish_linear_abort(me, fh);
