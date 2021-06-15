@@ -116,6 +116,7 @@ static const struct {
     { "quickview", view_quick   },
     { "info",      view_info },
     { "tree",      view_tree },
+    { "edit",      view_quick_edit },
     { 0, 0 }
 };
 

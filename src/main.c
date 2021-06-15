@@ -829,6 +829,9 @@ listmode_cmd (void)
 static menu_entry LeftMenu[] = {
     {' ', N_("&Listing mode..."), 'L', listing_cmd},
     {' ', N_("&Quick view     C-x q"), 'Q', quick_view_cmd},
+#ifdef USE_INTERNAL_EDIT
+    {' ', N_("quick &Edit     C-x e"), 'E', quick_edit_cmd},
+#endif
     {' ', N_("&Info           C-x i"), 'I', info_cmd},
     {' ', N_("&Tree"), 'T', tree_cmd},
     {' ', "", ' ', 0},
@@ -855,6 +858,9 @@ static menu_entry LeftMenu[] = {
 static menu_entry RightMenu[] = {
     {' ', N_("&Listing mode..."), 'L', listing_cmd},
     {' ', N_("&Quick view     C-x q"), 'Q', quick_view_cmd},
+#ifdef USE_INTERNAL_EDIT
+    {' ', N_("quick &Edit     C-x e"), 'E', quick_edit_cmd},
+#endif
     {' ', N_("&Info           C-x i"), 'I', info_cmd},
     {' ', N_("&Tree"), 'T', tree_cmd},
     {' ', "", ' ', 0},
@@ -1284,6 +1290,7 @@ static const key_map ctl_x_map[] = {
     {XCTRL ('s'), edit_symlink_cmd},
     {'i', info_cmd_no_menu},
     {'q', quick_cmd_no_menu},
+    {'e', edit_cmd_no_menu},
     {'h', add2hotlist_cmd},
     {'!', external_panelize},
 #ifdef WITH_BACKGROUND

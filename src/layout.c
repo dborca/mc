@@ -55,6 +55,9 @@
 #include "subshell.h"	/* For use_subshell and resize_subshell() */
 #include "tree.h"
 #include "menu.h"
+#ifdef USE_INTERNAL_EDIT
+#include "../edit/edit.h"
+#endif
 
 /* Needed for the extern declarations of integer parameters */
 #include "dir.h"
@@ -952,6 +955,22 @@ void set_display_type (int num, int type)
 	}
     }
 
+#ifdef USE_INTERNAL_EDIT
+    if (get_display_type(num) == view_quick_edit) {
+	WEdit *edit = (WEdit *)old_widget;
+	if (!edit_ok_to_exit(edit)) {
+	    return;
+	}
+	/* The fake lock file is ghosted when switching out from a dirty edit to listing. This
+	 * is because panel_new happens before dlg_replace_widget sends WIDGET_DESTROY to edit.
+	 */
+    }
+#else
+    if (type == view_quick_edit) {
+	return;
+    }
+#endif
+
     new_widget = 0;
     
     switch (type){
@@ -967,6 +986,22 @@ void set_display_type (int num, int type)
     case view_tree:
 	new_widget = (Widget *) tree_new (1, 0, 0, 0, 0);
 	break;
+
+#ifdef USE_INTERNAL_EDIT
+    case view_quick_edit:
+	the_other_panel = (WPanel *) panels [the_other].widget;
+	if (the_other_panel)
+	    file_name =
+		the_other_panel->dir.list[the_other_panel->selected].fname;
+	else
+	    file_name = "";
+
+	new_widget = (Widget *) edit_new (y, x, lines, cols, file_name, 0, 1);
+	if (!new_widget) {
+	    return;
+	}
+	break;
+#endif
 
     case view_quick:
 	new_widget = (Widget *) view_new (0, 0, 0, 0, 1);

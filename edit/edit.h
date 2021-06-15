@@ -120,6 +120,7 @@ void edit_reload_menu (WEdit *edit);
 void menu_save_mode_cmd (void);
 int edit_raw_key_query (const char *heading, const char *query, int cancel);
 int edit_file (const char *_file, int line);
+WEdit *edit_new(int y, int x, int lines, int cols, const char *_file, int line, int in_panel);
 #ifdef USE_DLGSWITCH
 void edit_finish_editor(void *edit_dlg, WEdit *wedit);
 void edit_run_editor(void *edit_dlg, WEdit *wedit);

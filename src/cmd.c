@@ -1404,6 +1404,17 @@ quick_cmd_no_menu (void)
 	set_display_type (current_panel == left_panel ? 1 : 0, view_quick);
 }
 
+void
+edit_cmd_no_menu (void)
+{
+    if (get_display_type (0) == view_quick_edit)
+	set_display_type (0, view_listing);
+    else if (get_display_type (1) == view_quick_edit)
+	set_display_type (1, view_listing);
+    else
+	set_display_type (current_panel == left_panel ? 1 : 0, view_quick_edit);
+}
+
 static void
 switch_to_listing (int panel_index)
 {
@@ -1455,6 +1466,14 @@ quick_view_cmd (void)
     if ((WPanel *) get_panel_widget (MENU_PANEL_IDX) == current_panel)
 	change_panel ();
     set_display_type (MENU_PANEL_IDX, view_quick);
+}
+
+void
+quick_edit_cmd (void)
+{
+    if ((WPanel *) get_panel_widget (MENU_PANEL_IDX) == current_panel)
+	change_panel ();
+    set_display_type (MENU_PANEL_IDX, view_quick_edit);
 }
 
 /* Handle the tree internal listing modes switching */

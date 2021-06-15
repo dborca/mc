@@ -2072,7 +2072,7 @@ edit_replace_cmd (WEdit *edit, int again)
 
 		switch (edit_replace_prompt (edit, input2,	/* and prompt 2/3 down */
 					     (edit->num_widget_columns -
-					      CONFIRM_DLG_WIDTH) / 2,
+					      CONFIRM_DLG_WIDTH) / 2 + edit->widget.x,
 					     edit->num_widget_lines * 2 /
 					     3)) {
 		case B_ENTER:

@@ -21,6 +21,7 @@ enum view_modes {
     view_info,			/* Information panel */
     view_tree,			/* Tree view */
     view_quick,			/* Quick view */
+    view_quick_edit,		/* Quick edit */
     view_nothing		/* Undefined */
 };
 

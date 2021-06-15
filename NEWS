@@ -48,6 +48,7 @@ Version 4.6.3d.
 	- Added quick-search in listbox.
 	- Added relative symlink (C-x v).
 	- Added Skip All to panel operations.
+	- Added quick-edit panel mode: C-x e.
 	- Added support for .xz and .lzma archives.
 	- Added geeqie as alternate image viewer in mc.ext.
 	- Added case insensitive-ness in Select/Unselect dialog.

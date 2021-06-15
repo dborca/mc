@@ -59,6 +59,12 @@ static int
 edit_event (WEdit * edit, Gpm_Event * event, int *result)
 {
     *result = MOU_NORMAL;
+    if (edit->in_panel && !(edit->widget.options & W_WANT_CURSOR)) {
+	dlg_select_widget (edit);
+	if (event->buttons & (GPM_B_UP|GPM_B_DOWN)) {
+	    return 0; /* Ignore first wheel after gaining focus */
+	}
+    }
     edit_update_curs_row (edit);
     edit_update_curs_col (edit);
 
@@ -124,6 +130,8 @@ edit_mouse_event (Gpm_Event *event, void *x)
     struct WMenu *edit_menubar = ((WEdit *)x)->menubar;
     if (edit_event ((WEdit *) x, event, &result))
 	return result;
+    else if (!edit_menubar)
+	return MOU_NORMAL;
     else
 	return (*edit_menubar->widget.mouse) (event, edit_menubar);
 }
@@ -190,6 +198,7 @@ void
 edit_run_editor(void *dlg, WEdit *widget)
 {
     Dlg_head *edit_dlg = dlg;
+    WEdit *wold = wedit;
     wedit = widget;
     /* XXX There are a lot of globals around here. If we came here from the dialog switcher -- not from edit_file(),
      * take note that some of those globals may have changed while we were backgrounded. Get rid of all those globals
@@ -200,8 +209,24 @@ edit_run_editor(void *dlg, WEdit *widget)
     if (!edit_dlg->soft_exit) {
 	edit_finish_editor(edit_dlg, wedit);
     }
+    wedit = wold;
 }
 #endif
+
+WEdit *
+edit_new(int y, int x, int lines, int cols, const char *_file, int line, int in_panel)
+{
+    WEdit *edit = edit_init (NULL, lines - 2, cols, _file, line);
+    if (edit) {
+        init_widget (&(edit->widget), y, x, lines - 1, cols, edit_callback, edit_mouse_event);
+        if (in_panel) {
+            edit->in_panel = 1;
+            widget_want_cursor (edit->widget, 0);
+        }
+        wedit = edit;
+    }
+    return edit;
+}
 
 int
 edit_file (const char *_file, int line)
@@ -209,6 +234,7 @@ edit_file (const char *_file, int line)
     static int made_directory = 0;
     Dlg_head *edit_dlg;
     WButtonBar *edit_bar;
+    WEdit *wold = wedit;
 
     if (!made_directory) {
 	char *dir = concat_dir_and_file (home_dir, EDIT_DIR);
@@ -216,7 +242,7 @@ edit_file (const char *_file, int line)
 	g_free (dir);
     }
 
-    if (!(wedit = edit_init (NULL, LINES - 2, COLS, _file, line))) {
+    if (!edit_new(0, 0, LINES, COLS, _file, line, 0)) {
 	return 0;
     }
 
@@ -224,10 +250,6 @@ edit_file (const char *_file, int line)
     edit_dlg =
 	create_dlg (0, 0, LINES, COLS, NULL, edit_dialog_callback,
 		    "[Internal File Editor]", NULL, DLG_WANT_TAB | DLG_SWITCHABLE);
-
-    init_widget (&(wedit->widget), 0, 0, LINES - 1, COLS,
-		 edit_callback,
-		 edit_mouse_event);
 
     widget_want_cursor (wedit->widget, 1);
 
@@ -250,6 +272,7 @@ edit_file (const char *_file, int line)
     destroy_dlg (edit_dlg);
 #endif
 
+    wedit = wold;
     return 1;
 }
 
@@ -327,8 +350,10 @@ edit_labels (WEdit *edit)
     edit_my_define (h, 6, _("Move"), cmd_F6, edit);
     edit_my_define (h, 7, _("Search"), cmd_F7, edit);
     edit_my_define (h, 8, _("Delete"), cmd_F8, edit);
-    edit_my_define (h, 9, _("PullDn"), edit_menu_cmd, edit);
-    edit_my_define (h, 10, _("Quit"), cmd_F10, edit);
+    if (!edit->in_panel) { /* don't override the key to access the main menu */
+	edit_my_define (h, 9, _("PullDn"), edit_menu_cmd, edit);
+	edit_my_define (h, 10, _("Quit"), cmd_F10, edit);
+    }
 
     buttonbar_redraw (h);
 }
@@ -359,6 +384,9 @@ edit_callback (Widget *w, widget_msg_t msg, int parm)
     switch (msg) {
     case WIDGET_INIT:
 	e->force |= REDRAW_COMPLETELY;
+	if (e->in_panel) {
+	    return MSG_HANDLED;
+	}
 	edit_labels (e);
 	return MSG_HANDLED;
 
@@ -369,6 +397,10 @@ edit_callback (Widget *w, widget_msg_t msg, int parm)
 	/* fallthrough */
 
     case WIDGET_FOCUS:
+	if (e->in_panel && msg == WIDGET_FOCUS) {
+	    widget_want_cursor (e->widget, 1);
+	    edit_labels(e);
+	}
 	edit_update_screen (e);
 	return MSG_HANDLED;
 
@@ -396,6 +428,14 @@ edit_callback (Widget *w, widget_msg_t msg, int parm)
     case WIDGET_DESTROY:
 	edit_clean (e);
 	return MSG_HANDLED;
+
+    case WIDGET_UNFOCUS:
+	if (e->in_panel) {
+	    widget_want_cursor (e->widget, 0);
+	    edit_status (e);
+	    return MSG_HANDLED;
+	}
+	/* fallthrough */
 
     default:
 	return default_proc (msg, parm);

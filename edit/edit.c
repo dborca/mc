@@ -2606,6 +2606,9 @@ edit_execute_cmd (WEdit *edit, int command, int char_for_insertion)
 	break;
 
     case CK_Exit:
+	if (edit->in_panel) {
+	    break;
+	}
 	dlg_stop (edit->widget.parent);
 	break;
     case CK_New:

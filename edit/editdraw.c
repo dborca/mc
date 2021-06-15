@@ -75,6 +75,11 @@ static void status_string (WEdit * edit, char *s, int w)
         }
     }
 
+    if (edit->in_panel && !(edit->widget.options & W_WANT_CURSOR)) {
+	*s = '\0';
+	return;
+    }
+
     /*
      * If we are at the end of file, print <EOF>,
      * otherwise print the current character as is (if printable),
