@@ -79,7 +79,7 @@ static int replace_prompt = 1;
 static int replace_whole = 0;
 static int replace_case = 0;
 static int replace_backwards = 0;
-static int replace_insel = 0;
+static int replace_in_mark = 0;
 static int search_create_bookmark = 0;
 
 /* queries on a save */
@@ -1376,7 +1376,7 @@ edit_replace_dialog (WEdit * edit, const char *search_default,
     int treplace_backwards = replace_backwards;
     int treplace_whole = replace_whole;
     int treplace_case = replace_case;
-    int treplace_insel = replace_insel;
+    int treplace_in_mark = replace_in_mark;
 
 /* Alt-p is in use as hotkey for previous entry; don't use */
     QuickWidget quick_widgets[] =
@@ -1419,7 +1419,7 @@ edit_replace_dialog (WEdit * edit, const char *search_default,
 
     quick_widgets[2].result = &treplace_all;
     quick_widgets[3].result = &treplace_prompt;
-    quick_widgets[4].result = &treplace_insel;
+    quick_widgets[4].result = &treplace_in_mark;
     quick_widgets[5].result = &treplace_backwards;
     quick_widgets[6].result = &treplace_scanf;
     quick_widgets[7].result = &treplace_regexp;
@@ -1446,7 +1446,7 @@ edit_replace_dialog (WEdit * edit, const char *search_default,
 	    replace_prompt = treplace_prompt;
 	    replace_whole = treplace_whole;
 	    replace_case = treplace_case;
-	    replace_insel = treplace_insel;
+	    replace_in_mark = treplace_in_mark;
 	    return;
 	} else {
 	    *arg_order = NULL;
@@ -1466,7 +1466,7 @@ edit_search_dialog (WEdit * edit, char **search_text)
     int treplace_whole = replace_whole;
     int treplace_case = replace_case;
     int treplace_backwards = replace_backwards;
-    int treplace_insel = replace_insel;
+    int treplace_in_mark = replace_in_mark;
     int tsearch_create_bookmark = search_create_bookmark;
 
     QuickWidget quick_widgets[] =
@@ -1498,7 +1498,7 @@ edit_search_dialog (WEdit * edit, char **search_text)
     (void) edit;
 
     quick_widgets[2].result = &tsearch_create_bookmark;
-    quick_widgets[3].result = &treplace_insel;
+    quick_widgets[3].result = &treplace_in_mark;
     quick_widgets[4].result = &treplace_backwards;
     quick_widgets[5].result = &treplace_scanf;
     quick_widgets[6].result = &treplace_regexp;
@@ -1520,7 +1520,7 @@ edit_search_dialog (WEdit * edit, char **search_text)
 	    replace_regexp = treplace_regexp;
 	    replace_whole = treplace_whole;
 	    replace_case = treplace_case;
-	    replace_insel = treplace_insel;
+	    replace_in_mark = treplace_in_mark;
 	    search_create_bookmark = tsearch_create_bookmark;
 	} else {
 	    *search_text = NULL;
@@ -2011,7 +2011,7 @@ edit_replace_cmd (WEdit *edit, int again)
 
     replace_continue = replace_all;
 
-    if (replace_insel && !eval_marks(edit, &first_byte, &last_search)) {
+    if (replace_in_mark && !eval_marks(edit, &first_byte, &last_search)) {
 	if (replace_backwards) {
 	    if (edit->search_start > last_search) {
 		edit->search_start = last_search;
@@ -2164,7 +2164,7 @@ edit_replace_cmd (WEdit *edit, int again)
 		edit->search_start--;
 	    } else {
 		edit->search_start += i;
-		if (replace_insel) {
+		if (replace_in_mark) {
 		    eval_marks(edit, &first_byte, &last_search);
 		} else {
 		    last_search = edit->last_byte;
@@ -2267,7 +2267,7 @@ void edit_search_cmd (WEdit * edit, int again)
 		long first_byte = 0;
 		long last_byte = edit->last_byte;
 
-		if (replace_insel && !eval_marks(edit, &first_byte, &last_byte)) {
+		if (replace_in_mark && !eval_marks(edit, &first_byte, &last_byte)) {
 		    if (replace_backwards) {
 			if (edit->search_start > last_byte) {
 			    edit->search_start = last_byte;

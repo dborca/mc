@@ -2659,7 +2659,7 @@ edit_execute_cmd (WEdit *edit, int command, int char_for_insertion)
 	format_paragraph (edit, 1);
 	edit->force |= REDRAW_PAGE;
 	break;
-    case CK_Paragraph_Indent_Mode: {
+    case CK_Paragraph_Select: {
 	long start_mark, end_mark;
 	if (eval_marks (edit, &start_mark, &end_mark))
 	    break;

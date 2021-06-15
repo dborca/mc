@@ -156,7 +156,7 @@ menu_markcol_cmd (void)
 static void
 menu_block_indent_cmd (void)
 {
-    menu_cmd (CK_Paragraph_Indent_Mode);
+    menu_cmd (CK_Paragraph_Select);
 }
 
 static void

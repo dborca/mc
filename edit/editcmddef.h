@@ -99,9 +99,11 @@
 #define CK_Terminal		422
 #define CK_Terminal_App		423
 #define CK_ExtCmd		424
-#define CK_Paragraph_Indent_Mode	425
 
-#define CK_User_Menu		430
+#define CK_User_Menu		425
+#define CK_Paragraph_Select	426
+#define CK_Evaluate		427
+#define CK_Filter		428
 /* application control */
 #define CK_Save_Desktop		451
 #define CK_New_Window		452
@@ -164,9 +166,6 @@
 #define CK_Insert_Literal	851
 #define CK_Execute_Macro	852
 #define CK_Begin_End_Macro	853
-
-#define CK_Evaluate		998
-#define CK_Filter		999
 
 /*
    Process a block through a shell command: CK_Pipe_Block(i) executes shell_cmd[i].
