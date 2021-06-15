@@ -867,13 +867,16 @@ static menu_entry RightMenu[] = {
 static menu_entry FileMenu[] = {
     {' ', N_("&User menu          F2"), 'U', user_file_menu_cmd},
     {' ', N_("&View               F3"), 'V', view_cmd},
+    {' ', N_("v&Iew raw          F13"), 'I', view_simple_cmd},
     {' ', N_("Vie&w file...         "), 'W', view_file_cmd},
     {' ', N_("&Filtered view     M-!"), 'F', filtered_view_cmd},
     {' ', N_("&Edit               F4"), 'E', edit_cmd},
+    {' ', N_("edit &New          F14"), 'N', edit_cmd_new},
     {' ', N_("&Copy               F5"), 'C', copy_cmd},
     {' ', N_("c&Hmod           C-x c"), 'H', chmod_cmd},
     {' ', N_("&Link            C-x l"), 'L', link_cmd},
     {' ', N_("&SymLink         C-x s"), 'S', symlink_cmd},
+    {' ', N_("rel. symLin&K    C-x v"), 'K', relative_symlink_cmd},
     {' ', N_("edit s&Ymlink  C-x C-s"), 'Y', edit_symlink_cmd},
     {' ', N_("ch&Own           C-x o"), 'O', chown_cmd},
     {' ', N_("&Advanced chown       "), 'A', chown_advanced_cmd},
@@ -881,10 +884,6 @@ static menu_entry FileMenu[] = {
     {' ', N_("&Mkdir              F7"), 'M', mkdir_cmd},
     {' ', N_("&Delete             F8"), 'D', delete_cmd},
     {' ', N_("&Quick cd          M-c"), 'Q', quick_cd_cmd},
-    {' ', "", ' ', 0},
-    {' ', N_("select &Group      M-+"), 'G', select_cmd},
-    {' ', N_("u&Nselect group    M-\\"), 'N', unselect_cmd},
-    {' ', N_("reverse selec&Tion M-*"), 'T', reverse_selection_cmd},
     {' ', "", ' ', 0},
     {' ', N_("e&Xit              F10"), 'X', quit_cmd}
 };
@@ -903,6 +902,7 @@ static menu_entry CmdMenu[] = {
     {' ', N_("&View diff files      C-x C-y"), 'V', diff_view_cmd},
 #endif
     {' ', N_("e&Xternal panelize    C-x !"), 'X', external_panelize},
+    {' ', N_("director&Y size       C-@"), 'Y', single_dirsize_cmd},
     {' ', N_("show directory s&Izes"), 'I', dirsizes_cmd},
     {' ', "", ' ', 0},
     {' ', N_("command &History"), 'H', history_cmd},
@@ -914,24 +914,18 @@ static menu_entry CmdMenu[] = {
     {' ', N_("&Background jobs      C-x j"), 'B', jobs_cmd},
 #endif
 #ifdef USE_DLGSWITCH
-    {' ', N_("Dialo&g switcher      M-`"), 'G', dlgswitch_select},
+    {' ', N_("dialog &Switcher      M-`"), 'S', dlgswitch_select},
 #endif
     {' ', "", ' ', 0},
 #ifdef USE_EXT2FSLIB
     {' ', N_("&Undelete files (ext2fs only)"), 'U', undelete_cmd},
+#else
+    {' ', N_("&Evaluate             M-="), 'E', eval_cmd},
 #endif
-#ifdef LISTMODE_EDITOR
-    {' ', N_("&Listing format edit"), 'L', listmode_cmd},
-#endif
-#if defined (USE_EXT2FSLIB) || defined (LISTMODE_EDITOR)
     {' ', "", ' ', 0},
-#endif
-    {' ', N_("Edit &extension file"), 'E', ext_cmd},
-    {' ', N_("Edit &menu file"), 'M', edit_mc_menu_cmd},
-#ifdef USE_INTERNAL_EDIT
-    {' ', N_("Edit edi&tor menu file"), 'T', edit_user_menu_cmd},
-    {' ', N_("Edit &syntax file"), 'S', edit_syntax_cmd}
-#endif				/* USE_INTERNAL_EDIT */
+    {' ', N_("select &Group         M-+"), 'G', select_cmd},
+    {' ', N_("u&Nselect group       M-\\"), 'N', unselect_cmd},
+    {' ', N_("reverse selec&Tion    M-*"), 'T', reverse_selection_cmd},
 };
 
 /* Must keep in sync with the constants in menu_cmd */
@@ -944,6 +938,16 @@ static menu_entry OptMenu[] = {
 #ifdef USE_VFS
     {' ', N_("&Virtual FS..."), 'V', configure_vfs},
 #endif				/* !USE_VFS */
+#ifdef LISTMODE_EDITOR
+    {' ', N_("listing &Format edit"), 'F', listmode_cmd},
+#endif
+    {' ', "", ' ', 0},
+    {' ', N_("Edit &extension file"), 'E', ext_cmd},
+    {' ', N_("Edit &menu file"), 'M', edit_mc_menu_cmd},
+#ifdef USE_INTERNAL_EDIT
+    {' ', N_("Edit edi&tor menu file"), 'T', edit_user_menu_cmd},
+    {' ', N_("Edit s&yntax file"), 'Y', edit_syntax_cmd},
+#endif				/* USE_INTERNAL_EDIT */
     {' ', "", ' ', 0},
     {' ', N_("&Save setup"), 'S', save_setup_cmd}
 };

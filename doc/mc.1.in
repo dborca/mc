@@ -1013,27 +1013,6 @@ quick cd
 .\"Quick cd"
 command if you have full command line and want to cd somewhere.
 .PP
-.B Select group (+)
-.PP
-This is used to select (tag) a group of files. The Midnight Commander
-will prompt for a regular expression describing the group. When
-.I Shell Patterns
-are enabled, the regular expression is much like the filename globbing
-in the shell (* standing for zero or more characters and ?  standing
-for one character). If
-.I Shell Patterns
-is off, then the tagging of files is done with normal regular
-expressions (see ed (1)).
-.PP
-To mark directories instead of files, the expression must start or end
-with a '/'.
-.PP
-.B Unselect group (\\\\)
-.PP
-Used to unselect a group of files. This is the opposite of the
-.I "Select group"
-command.
-.PP
 .B Quit (F10, Shift-F10)
 .PP
 Terminate the Midnight Commander.  Shift-F10 is used when you want to
@@ -1100,17 +1079,24 @@ External panelize
 allows you to execute an external program, and make the output of that
 program the contents of the current panel.
 .PP
-.\"LINK2"
-Extension file edit
-.\"Extension File Edit"
-command allows you to specify programs to executed when you try to
-execute, view, edit and do a bunch of other thing on files
-with certain extensions (filename endings). The
-.\"LINK2"
-Menu file edit
-.\"Menu File Edit"
-command may be used for editing the user menu (which appears by
-pressing F2).
+.B Select group (+)
+is used to select (tag) a group of files. The Midnight Commander
+will prompt for a regular expression describing the group. When
+.I Shell Patterns
+are enabled, the regular expression is much like the filename globbing
+in the shell (* standing for zero or more characters and ?  standing
+for one character). If
+.I Shell Patterns
+is off, then the tagging of files is done with normal regular
+expressions (see ed (1)).
+.PP
+To mark directories instead of files, the expression must start or end
+with a '/'.
+.PP
+.B Unselect group (\\\\)
+is used to untag a group of files. This is the opposite of the
+.I "Select group"
+command.
 .\"NODE "    Directory Tree"
 .SH "    Directory Tree"
 The Directory Tree command shows a tree figure of the directories. You
@@ -1583,6 +1569,18 @@ The
 Virtual FS
 .\"Virtual FS"
 command pops up a dialog from which you specify some VFS related options.
+.PP
+.\"LINK2"
+Extension file edit
+.\"Extension File Edit"
+command allows you to specify programs to executed when you try to
+execute, view, edit and do a bunch of other thing on files
+with certain extensions (filename endings). The
+.\"LINK2"
+Menu file edit
+.\"Menu File Edit"
+command may be used for editing the user menu (which appears by
+pressing F2).
 .PP
 The
 .\"LINK2"
