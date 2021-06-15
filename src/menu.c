@@ -399,7 +399,7 @@ menubar_event    (Gpm_Event *event, void *data)
     int new_selection;
     int left_x, right_x, bottom_y;
 
-    if (!(event->type & (GPM_UP|GPM_DOWN|GPM_DRAG)))
+    if ((event->type & GPM_DOWN) || !(event->type & (GPM_UP|GPM_DOWN|GPM_DRAG)))
 	return MOU_NORMAL;
     
     if (!menubar->dropped){
@@ -412,9 +412,6 @@ menubar_event    (Gpm_Event *event, void *data)
 
     /* Mouse operations on the menubar */
     if (event->y == 1 || !was_active){
-	if (event->type & GPM_UP)
-	    return MOU_NORMAL;
-    
 	new_selection = 0;
 	while (new_selection < menubar->items 
 		&& event->x > menubar->menu[new_selection]->start_x
@@ -472,7 +469,7 @@ menubar_event    (Gpm_Event *event, void *data)
 	if (event->type & GPM_UP)
 	    menubar_execute (menubar, pos);
     } else
-	if (event->type & GPM_DOWN)
+	if (event->type & GPM_UP)
 	    menubar_finish (menubar);
 	 
     return MOU_NORMAL;
