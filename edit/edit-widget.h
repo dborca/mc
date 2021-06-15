@@ -32,6 +32,7 @@ typedef struct edit_key_map_type {
 
 struct WEdit {
     Widget widget;
+    struct WMenu *menubar;
 
     int num_widget_lines;
     int num_widget_columns;

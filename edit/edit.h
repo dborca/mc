@@ -114,9 +114,9 @@ struct Menu;
 
 int edit_drop_hotkey_menu (WEdit *e, int key);
 void edit_menu_cmd (WEdit *e);
-struct WMenu *edit_init_menu (void);
+struct WMenu *edit_init_menu (WEdit *edit);
 void edit_done_menu (struct WMenu *wmenu);
-void edit_reload_menu (void);
+void edit_reload_menu (WEdit *edit);
 void menu_save_mode_cmd (void);
 int edit_raw_key_query (const char *heading, const char *query, int cancel);
 int edit_file (const char *_file, int line);
@@ -273,7 +273,6 @@ extern int edit_key_emulation;
 
 extern WEdit *wedit;
 struct WMenu;
-extern struct WMenu *edit_menubar;
 
 extern int option_word_wrap_line_length;
 extern int option_typewriter_wrap;

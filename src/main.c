@@ -1139,7 +1139,7 @@ create_panels (void)
     the_hint->auto_adjust_cols = 0;
     the_hint->widget.cols = COLS;
 
-    the_menubar = menubar_new (0, 0, COLS, MenuBar, 5);
+    the_menubar = menubar_new (0, 0, COLS, MenuBar, 5, NULL);
 }
 
 static void

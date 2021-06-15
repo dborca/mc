@@ -570,7 +570,7 @@ edit_init_menu_emacs (struct Menu *EditMenuBar[])
 }
 
 struct WMenu *
-edit_init_menu (void)
+edit_init_menu (WEdit *edit)
 {
     struct Menu **EditMenuBar = g_new(struct Menu *, N_menus);
 
@@ -583,7 +583,7 @@ edit_init_menu (void)
 	edit_init_menu_emacs (EditMenuBar);
 	break;
     }
-    return menubar_new (0, 0, COLS, EditMenuBar, N_menus);
+    return menubar_new (0, 0, COLS, EditMenuBar, N_menus, edit);
 }
 
 void
@@ -598,11 +598,12 @@ edit_done_menu (struct WMenu *wmenu)
 
 
 void
-edit_reload_menu (void)
+edit_reload_menu (WEdit *edit)
 {
     struct WMenu *new_edit_menubar;
+    struct WMenu *edit_menubar = edit->menubar;
 
-    new_edit_menubar = edit_init_menu ();
+    new_edit_menubar = edit_init_menu (edit);
     dlg_replace_widget (&edit_menubar->widget, &new_edit_menubar->widget);
     edit_done_menu (edit_menubar);
     edit_menubar = new_edit_menubar;
@@ -612,6 +613,10 @@ edit_reload_menu (void)
 static void
 edit_drop_menu_cmd (WEdit *e, int which)
 {
+    struct WMenu *edit_menubar = e->menubar;
+    if (!edit_menubar)
+	return;
+
     if (edit_menubar->active)
 	return;
     edit_menubar->active = 1;

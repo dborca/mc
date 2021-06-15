@@ -50,7 +50,6 @@
 #endif
 
 WEdit *wedit;
-struct WMenu *edit_menubar;
 
 int column_highlighting = 0;
 
@@ -122,6 +121,7 @@ static int
 edit_mouse_event (Gpm_Event *event, void *x)
 {
     int result;
+    struct WMenu *edit_menubar = ((WEdit *)x)->menubar;
     if (edit_event ((WEdit *) x, event, &result))
 	return result;
     else
@@ -133,9 +133,11 @@ edit_adjust_size (Dlg_head *h)
 {
     WEdit *edit;
     WButtonBar *edit_bar;
+    struct WMenu *edit_menubar;
 
     edit = (WEdit *) find_widget_type (h, edit_callback);
     edit_bar = find_buttonbar (h);
+    edit_menubar = edit->menubar;
 
     widget_set_size (&edit->widget, 0, 0, LINES - 1, COLS);
     widget_set_size ((Widget *) edit_bar, LINES - 1, 0, 1, COLS);
@@ -179,8 +181,7 @@ edit_file_modified (WEdit *wedit)
 void
 edit_finish_editor(void *edit_dlg, WEdit *wedit)
 {
-    struct WMenu *menubar = (struct WMenu *)wedit->widget.next;
-    edit_done_menu (menubar);		/* editmenu.c */
+    edit_done_menu (wedit->menubar);	/* editmenu.c */
     destroy_dlg (edit_dlg);
     dlgswitch_remove_current();
 }
@@ -190,11 +191,9 @@ edit_run_editor(void *dlg, WEdit *widget)
 {
     Dlg_head *edit_dlg = dlg;
     wedit = widget;
-    edit_menubar = (struct WMenu *)widget->widget.next;
     /* XXX There are a lot of globals around here. If we came here from the dialog switcher -- not from edit_file(),
-     * take note that some of those globals may have changed while we were backgrounded. Proposed solutions include:
-     * - get rid of all those globals and put them into WEdit, or
-     * - implement dlgswitch_update_current(...) to track changes and update here accordingly: edit_reload_menu() etc.
+     * take note that some of those globals may have changed while we were backgrounded. Get rid of all those globals
+     * and put them inside WEdit.
      */
 
     run_dlg (edit_dlg);
@@ -234,20 +233,19 @@ edit_file (const char *_file, int line)
 
     edit_bar = buttonbar_new (1);
 
-    edit_menubar = edit_init_menu ();
+    wedit->menubar = edit_init_menu (wedit);
 
     add_widget (edit_dlg, edit_bar);
     add_widget (edit_dlg, wedit);
-    add_widget (edit_dlg, edit_menubar);
+    add_widget (edit_dlg, wedit->menubar);
 
 #ifdef USE_DLGSWITCH
-    g_assert((struct Widget *)edit_menubar == wedit->widget.next);
     dlgswitch_add(edit_dlg, DLG_TYPE_EDIT, _file, wedit);
     edit_run_editor(edit_dlg, wedit);
 #else
     run_dlg (edit_dlg);
 
-    edit_done_menu (edit_menubar);		/* editmenu.c */
+    edit_done_menu (wedit->menubar);		/* editmenu.c */
 
     destroy_dlg (edit_dlg);
 #endif

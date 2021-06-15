@@ -239,7 +239,7 @@ static void menubar_execute (WMenu *menubar, int entry)
        change_panel () work which is used in quick_view_cmd () -- Norbert
     */
     menubar_finish (menubar);
-    (*call_back) ();
+    (*call_back) (menubar->user);
     do_refresh ();
 }
 
@@ -533,13 +533,14 @@ destroy_menu (Menu *menu)
 }
 
 WMenu *
-menubar_new (int y, int x, int cols, Menu *menu[], int items)
+menubar_new (int y, int x, int cols, Menu *menu[], int items, void *user)
 {
     WMenu *menubar = g_new0 (WMenu, 1);	/* FIXME: subsel used w/o being set */
 
     init_widget (&menubar->widget, y, x, 1, cols,
 		 menubar_callback, menubar_event);
     menubar->menu = menu;
+    menubar->user = user;
     menubar->active = 0;
     menubar->dropped = 0;
     menubar->items = items;

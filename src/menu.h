@@ -3,7 +3,7 @@
 
 #include "widget.h"
 
-typedef void (*callfn) (void);
+typedef void (*callfn) ();
 
 typedef struct {
     char first_letter;
@@ -32,6 +32,7 @@ typedef struct WMenu {
     int    active;		/* If the menubar is in use */
     int    dropped;		/* If the menubar has dropped */
     Menu   **menu;		/* The actual menus */
+    void   *user;		/* User-supplied data */
     int    items;
     int    selected;		/* Selected menu on the top bar */
     int    subsel;		/* Selected entry on the submenu */
@@ -42,7 +43,7 @@ typedef struct WMenu {
 Menu  *create_menu     (const char *name, menu_entry *entries, int count,
 			const char *help_node);
 void   destroy_menu    (Menu *menu);
-WMenu *menubar_new     (int y, int x, int cols, Menu *menu[], int items);
+WMenu *menubar_new     (int y, int x, int cols, Menu *menu[], int items, void *);
 void   menubar_arrange (WMenu *menubar);
 
 #endif

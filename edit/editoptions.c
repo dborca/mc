@@ -216,7 +216,7 @@ edit_options_dialog (void)
     /* Reload menu if key emulation has changed */
     if (edit_key_emulation != tedit_key_emulation) {
 	edit_key_emulation = tedit_key_emulation;
-	edit_reload_menu ();
+	edit_reload_menu (wedit);
     }
 
     /* Load or unload syntax rules if the option has changed */
