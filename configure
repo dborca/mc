@@ -626,6 +626,8 @@ am__EXEEXT_TRUE
 LTLIBOBJS
 CONS_SAVER_FALSE
 CONS_SAVER_TRUE
+EVALUATOR_FALSE
+EVALUATOR_TRUE
 DLGSWITCH_FALSE
 DLGSWITCH_TRUE
 CHARSET_FALSE
@@ -842,6 +844,7 @@ with_diff
 enable_background
 enable_charset
 enable_dlgswitch
+enable_evaluator
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1492,6 +1495,7 @@ Optional Features:
   --enable-background      Support for background file operations [yes]
   --enable-charset         Support for charset selection and conversion [no]
   --enable-dlgswitch      Enable dialog switcher [yes]
+  --enable-evaluator      Enable expression evaluator [yes]
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -16019,6 +16023,22 @@ $as_echo "#define USE_DLGSWITCH 1" >>confdefs.h
 $as_echo "$as_me: enabling dialog switcher" >&6;}
 fi
 
+# Check whether --enable-evaluator was given.
+if test "${enable_evaluator+set}" = set; then :
+  enableval=$enable_evaluator;
+fi
+
+evaluator_msg="no"
+if test x$enable_evaluator != xno; then
+
+$as_echo "#define USE_EVALUATOR 1" >>confdefs.h
+
+	use_evaluator=yes
+	evaluator_msg="yes"
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: enabling expression evaluator" >&5
+$as_echo "$as_me: enabling expression evaluator" >&6;}
+fi
+
 if test -z "$ac_env_CFLAGS_set"; then
     if test -n "$GCC"; then
 	CFLAGS="$CFLAGS -Wall"
@@ -16128,6 +16148,14 @@ fi
 else
   DLGSWITCH_TRUE='#'
   DLGSWITCH_FALSE=
+fi
+
+ if test -n "$use_evaluator"; then
+  EVALUATOR_TRUE=
+  EVALUATOR_FALSE='#'
+else
+  EVALUATOR_TRUE='#'
+  EVALUATOR_FALSE=
 fi
 
  if test -n "$cons_saver"; then
@@ -16320,6 +16348,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${DLGSWITCH_TRUE}" && test -z "${DLGSWITCH_FALSE}"; then
   as_fn_error $? "conditional \"DLGSWITCH\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${EVALUATOR_TRUE}" && test -z "${EVALUATOR_FALSE}"; then
+  as_fn_error $? "conditional \"EVALUATOR\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CONS_SAVER_TRUE}" && test -z "${CONS_SAVER_FALSE}"; then
@@ -17987,4 +18019,5 @@ Configuration:
   Diff viewer:                ${diff_msg}
   Support for charset:        ${charset_msg}
   Dialog switcher:            ${dlgswitch_msg}
+  Expression evaluator:       ${evaluator_msg}
 "

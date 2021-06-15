@@ -738,6 +738,9 @@
 /* Define to enable dialog switcher */
 #undef USE_DLGSWITCH
 
+/* Define to enable expression evaluator */
+#undef USE_EVALUATOR
+
 /* Define to enable undelete support on ext2 */
 #undef USE_EXT2FSLIB
 

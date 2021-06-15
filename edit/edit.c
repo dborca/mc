@@ -43,6 +43,7 @@
 #include "../src/cmd.h"		/* view_other_cmd() */
 #include "../src/user.h"	/* user_menu_cmd() */
 #include "../src/wtools.h"	/* query_dialog() */
+#include "../src/eval.h"
 
 
 /*
@@ -2635,6 +2636,17 @@ edit_execute_cmd (WEdit *edit, int command, int char_for_insertion)
 	    edit_print_string (edit, ctime (&t));
 #endif
 	    edit->force |= REDRAW_PAGE;
+	    break;
+	}
+    case CK_Evaluate:{
+#ifdef USE_EVALUATOR
+	    char *str = do_eval();
+	    if (str) {
+		edit_print_string (edit, str);
+		free(str);
+	    }
+	    edit->force |= REDRAW_PAGE;
+#endif
 	    break;
 	}
     case CK_Goto:

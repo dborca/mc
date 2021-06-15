@@ -218,6 +218,7 @@ static const name_map_t command_names[] = {
     {"Begin-or-End-Macro", CK_Begin_End_Macro},
     {"Ext-mode", CK_Ext_Mode},
     {"CK_Paragraph_Indent_Mode", CK_Paragraph_Indent_Mode},
+    {"CK_Evaluate", CK_Evaluate},
 #if 0
     {"Focus-Next", CK_Focus_Next},
     {"Focus-Prev", CK_Focus_Prev},

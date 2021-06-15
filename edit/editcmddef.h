@@ -165,6 +165,7 @@
 #define CK_Execute_Macro	852
 #define CK_Begin_End_Macro	853
 
+#define CK_Evaluate		998
 #define CK_Filter		999
 
 /*

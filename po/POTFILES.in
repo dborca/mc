@@ -19,6 +19,7 @@ src/cmd.c
 src/command.c
 src/dir.c
 src/dlgswitch.c
+src/eval.c
 src/execute.c
 src/ext.c
 src/file.c

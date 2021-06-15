@@ -38,6 +38,7 @@ Version 4.6.3d.
 
 - Core functionality.
 	- Added --with-glib0 option to configure with included glib.
+	- Added 64bit arithmetic calculator to command line and editor.
 	- Added Dialog Switcher (Alt-` Alt-, Alt-.) for main, edit and view.
 	- Added Diff Viewer for text/binary files and directories: C-x C-y;
 	  mcdiff is a link to mc which brings it up in diff mode.

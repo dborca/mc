@@ -598,6 +598,19 @@ if test x$enable_dlgswitch != xno; then
 	AC_MSG_NOTICE([enabling dialog switcher])
 fi
 
+dnl
+dnl Expression evaluator.
+dnl
+AC_ARG_ENABLE([evaluator],
+        [  --enable-evaluator      Enable expression evaluator [[yes]]])
+evaluator_msg="no"
+if test x$enable_evaluator != xno; then
+	AC_DEFINE(USE_EVALUATOR, 1, [Define to enable expression evaluator])
+	use_evaluator=yes
+	evaluator_msg="yes"
+	AC_MSG_NOTICE([enabling expression evaluator])
+fi
+
 dnl If default CFLAGS is used with gcc, add -Wall
 if test -z "$ac_env_CFLAGS_set"; then
     if test -n "$GCC"; then
@@ -632,6 +645,7 @@ AM_CONDITIONAL(INCLUDED_SLANG, [test "x$with_screen" = xmcslang])
 AM_CONDITIONAL(INCLUDED_GLIB, [test "x$with_glib0" = xyes])
 AM_CONDITIONAL(CHARSET, [test -n "$have_charset"])
 AM_CONDITIONAL(DLGSWITCH, [test -n "$use_dlgswitch"])
+AM_CONDITIONAL(EVALUATOR, [test -n "$use_evaluator"])
 AM_CONDITIONAL(CONS_SAVER, [test -n "$cons_saver"])
 
 AC_CONFIG_FILES([
@@ -705,4 +719,5 @@ Configuration:
   Diff viewer:                ${diff_msg}
   Support for charset:        ${charset_msg}
   Dialog switcher:            ${dlgswitch_msg}
+  Expression evaluator:       ${evaluator_msg}
 "

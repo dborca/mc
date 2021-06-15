@@ -60,6 +60,7 @@
 #include "listmode.h"
 #include "execute.h"
 #include "ext.h"		/* For flush_extension_file() */
+#include "eval.h"
 
 /* Listbox for the command history feature */
 #include "widget.h"
@@ -789,6 +790,19 @@ treebox_cmd (void)
     }
 }
 
+static void
+eval_cmd (void)
+{
+#ifdef USE_EVALUATOR
+    char *str = do_eval();
+
+    if (str) {
+        command_insert (cmdline, str, 0);
+        free(str);
+    }
+#endif
+}
+
 #ifdef LISTMODE_EDITOR
 static void
 listmode_cmd (void)
@@ -916,10 +930,11 @@ static menu_entry CmdMenu[] = {
 #ifdef USE_DLGSWITCH
     {' ', N_("dialog &Switcher      M-`"), 'S', dlgswitch_select},
 #endif
-    {' ', "", ' ', 0},
 #ifdef USE_EXT2FSLIB
+    {' ', "", ' ', 0},
     {' ', N_("&Undelete files (ext2fs only)"), 'U', undelete_cmd},
-#else
+#elif defined USE_EVALUATOR
+    {' ', "", ' ', 0},
     {' ', N_("&Evaluate             M-="), 'E', eval_cmd},
 #endif
     {' ', "", ' ', 0},
@@ -1316,6 +1331,9 @@ static const key_map default_map[] = {
 
     /* Find file */
     {ALT ('?'), find_cmd},
+
+    /* Calculator */
+    {ALT ('='), eval_cmd},
 
     /* Panel refresh */
     {XCTRL ('r'), reread_cmd},

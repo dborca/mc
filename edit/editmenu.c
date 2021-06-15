@@ -286,6 +286,12 @@ menu_ctags_cmd (void)
 }
 
 static void
+menu_eval_cmd (void)
+{
+    menu_cmd (CK_Evaluate);
+}
+
+static void
 menu_undo_cmd (void)
 {
     menu_cmd (CK_Undo);
@@ -473,6 +479,9 @@ static menu_entry CmdMenu[] =
     {' ', N_("Delete macr&o...            "), 'O', menu_exec_macro_delete_cmd},
     {' ', "", ' ', 0},
     {' ', N_("Insert &date/time           "), 'D', menu_date_cmd},
+#ifdef USE_EVALUATOR
+    {' ', N_("E&valuate                M-="), 'V', menu_eval_cmd},
+#endif
     {' ', "", ' ', 0},
     {' ', N_("Format p&aragraph        M-p"), 'A', menu_format_paragraph},
     {' ', N_("'ispell' s&pell check    C-p"), 'P', menu_ispell_cmd},
@@ -499,6 +508,9 @@ static menu_entry CmdMenuEmacs[] =
     {' ', N_("Delete macr&o...            "), 'O', menu_exec_macro_delete_cmd},
     {' ', "", ' ', 0},
     {' ', N_("Insert &date/time           "), 'D', menu_date_cmd},
+#ifdef USE_EVALUATOR
+    {' ', N_("E&valuate                M-="), 'V', menu_eval_cmd},
+#endif
     {' ', "", ' ', 0},
     {' ', N_("Format p&aragraph        M-p"), 'A', menu_format_paragraph},
     {' ', N_("'ispell' s&pell check    M-$"), 'P', menu_ispell_cmd},

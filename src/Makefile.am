@@ -64,7 +64,7 @@ SRCS =	achown.c achown.h background.c background.h boxes.c boxes.h	\
 	tree.c tree.h treestore.c treestore.h tty.c tty.h user.c user.h	\
 	util.c util.h utilunix.c view.c view.h vfsdummy.h widget.c	\
 	widget.h win.c win.h wtools.c wtools.h unixcompat.h		\
-	x11conn.h x11conn.c ecs.h ecs.c
+	x11conn.h x11conn.c ecs.h ecs.c eval.c eval.h
 
 if CHARSET
 mc_SOURCES = $(SRCS) $(CHARSET_SRC)
