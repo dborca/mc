@@ -583,7 +583,7 @@ edit_init_menu (WEdit *edit)
 	edit_init_menu_emacs (EditMenuBar);
 	break;
     }
-    return menubar_new (0, 0, COLS, EditMenuBar, N_menus, edit);
+    return menubar_new (edit->widget.y, edit->widget.x, edit->widget.cols, EditMenuBar, N_menus, edit);
 }
 
 void

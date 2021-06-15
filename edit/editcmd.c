@@ -3013,22 +3013,25 @@ edit_completion_dialog (WEdit * edit, int max_len, int word_len,
     /* calculate the dialog metrics */
     compl_dlg_h = num_compl + 2;
     compl_dlg_w = max_len + 4;
-    start_x = edit->curs_col + edit->start_col - (compl_dlg_w / 2) + EDIT_TEXT_HORIZONTAL_OFFSET;
+    start_x = edit->curs_col + edit->start_col - (compl_dlg_w / 2);
     start_y = edit->curs_row + EDIT_TEXT_VERTICAL_OFFSET + 1;
 
     if (start_x < 0)
 	start_x = 0;
-    if (compl_dlg_w > COLS)
-	compl_dlg_w = COLS;
-    if (compl_dlg_h > LINES - 2)
-	compl_dlg_h = LINES - 2;
+    if (compl_dlg_w > edit->num_widget_columns)
+	compl_dlg_w = edit->num_widget_columns;
+    if (compl_dlg_h > edit->num_widget_lines)
+	compl_dlg_h = edit->num_widget_lines;
 
-    offset = start_x + compl_dlg_w - COLS;
+    offset = start_x + compl_dlg_w - edit->num_widget_columns;
     if (offset > 0)
 	start_x -= offset;
-    offset = start_y + compl_dlg_h - LINES;
+    offset = start_y + compl_dlg_h - edit->num_widget_lines - 1;
     if (offset > 0)
-	start_y -= (offset + 1);
+	start_y -= offset;
+
+    start_x += edit->widget.x;
+    start_y += edit->widget.y;
 
     /* create the dialog */
     compl_dlg =

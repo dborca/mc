@@ -364,8 +364,8 @@ edit_callback (Widget *w, widget_msg_t msg, int parm)
 
     case WIDGET_DRAW:
 	e->force |= REDRAW_COMPLETELY;
-	e->num_widget_lines = LINES - 2;
-	e->num_widget_columns = COLS;
+	e->num_widget_lines = w->lines - 1;
+	e->num_widget_columns = w->cols;
 	/* fallthrough */
 
     case WIDGET_FOCUS:
@@ -390,7 +390,7 @@ edit_callback (Widget *w, widget_msg_t msg, int parm)
 
     case WIDGET_CURSOR:
 	widget_move (&e->widget, e->curs_row + EDIT_TEXT_VERTICAL_OFFSET,
-		     e->curs_col + e->start_col + EDIT_TEXT_HORIZONTAL_OFFSET);
+		     e->curs_col + e->start_col);
 	return MSG_HANDLED;
 
     case WIDGET_DESTROY:
