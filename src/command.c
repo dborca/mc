@@ -234,28 +234,32 @@ enter (WInput *cmdline)
 	cmd_len = strlen (cmd);
 	command = g_malloc (cmd_len + 1);
 	for (i = j = 0; i < cmd_len; i++) {
-	    size_t s_len;
-	    if (cmd[i] == '\\') {
-		i++;
-		if (cmd[i] == '%') {
-		    i++;
-		    s = expand_format (NULL, cmd[i], 1);
-		    s_len = strlen (s);
-		    command = g_realloc (command, j + s_len + cmd_len - i + 1);
-		    strcpy (command + j, s);
-		    g_free (s);
-		    j += s_len;
-		    continue;
-		} else {
-		    command[j] = cmd[i - 1];
-		    j++;
-		    if (i == cmd_len) {
-			break;
-		    }
-		}
+	    // \\ => \\ and \% => %
+	    if (cmd[i] == '\\' && cmd[i + 1] == '\\') {
+		command[j++] = cmd[i++];
+		command[j] = cmd[i];
+		j++;
+		continue;
 	    }
-	    command[j] = cmd[i];
-	    j++;
+	    if (cmd[i] == '\\' && cmd[i + 1] == '%') {
+		i++;
+		command[j] = cmd[i];
+		j++;
+		continue;
+	    }
+	    if (cmd[i] == '%') {
+		size_t s_len;
+		i++;
+		s = expand_format (NULL, cmd[i], 1);
+		s_len = strlen (s);
+		command = g_realloc (command, j + s_len + cmd_len - i + 1);
+		memcpy (command + j, s, s_len);
+		g_free (s);
+		j += s_len;
+	    } else {
+		command[j] = cmd[i];
+		j++;
+	    }
 	}
 	command[j] = 0;
 	new_input (cmdline);
@@ -312,15 +316,14 @@ command_new (int y, int x, int cols)
 
 /*
  * Insert quoted text in input line.  The function is meant for the
- * command line, so the percent sign has no special meaning, unless
- * it is preceded by '\\'.  This is a change from earlier versions!
+ * command line, so the percent sign is quoted as well.
  */
 void
 command_insert (WInput * in, const char *text, int insert_extra_space)
 {
     char *quoted_text;
 
-    quoted_text = name_quote (text, 0);
+    quoted_text = name_quote (text, 1);
     stuff (in, quoted_text, insert_extra_space);
     g_free (quoted_text);
 }

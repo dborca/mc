@@ -68,9 +68,6 @@ Version 4.6.3d.
 	- Fixed ncurses attr_pair buffer overflow.
 	- Fixed mouse scroll in listbox.
 	- Avoid Alt-f and Alt-b shortcuts near input widgets.
-	- Changed behavior of % in command-line.  It is treated as a simple
-	  character, unless it is quoted with a backslash; in which case, it
-	  will be substituted with the usual MC macros.
 	- Prefill execute_menu_command() from history.
 
 - VFS.

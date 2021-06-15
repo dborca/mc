@@ -158,7 +158,7 @@ trim (const char *s, char *d, int len)
 char *
 name_quote_and_free (char *s)
 {
-    char *t = name_quote(s, 2);
+    char *t = name_quote(s, 3);
     g_free(s);
     return t;
 }
@@ -265,9 +265,8 @@ name_quote (const char *s, int quote_percent)
     for (; *s; s++, d++) {
 	switch (*s) {
 	case '%':
-	    if (quote_percent & 1)
-		*d++ = '%';
-	    break;
+	    if (!quote_percent)
+		break;
 	case '\'':
 	case '\\':
 	case '\r':
@@ -295,7 +294,7 @@ name_quote (const char *s, int quote_percent)
 	    break;
 	case '~':
 	case '#':
-	    if (d == ret && !(quote_percent & 2)) /* XXX hack: if called from completion, don't fix leading ~ */
+	    if (d == ret)
 		*d++ = '\\';
 	    break;
 	}
