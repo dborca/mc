@@ -183,7 +183,7 @@ expand_format (struct WEdit *edit_widget, char c, int quote)
     if (c == '%')
 	return g_strdup ("%");
 
-    if (edit_one_file != NULL)
+    if (edit_widget != NULL)
 	fname = edit_widget->filename;
     else {
 	if (islower ((unsigned char) c))
@@ -210,6 +210,7 @@ expand_format (struct WEdit *edit_widget, char c, int quote)
     case 'x':
 	return (*quote_func) (extension (fname), 0);
     case 'd':
+    case 'q':
 	{
 	    char *cwd;
 	    char *qstr;
@@ -218,8 +219,18 @@ expand_format (struct WEdit *edit_widget, char c, int quote)
 
 	    if (panel)
 		g_strlcpy(cwd, panel->cwd, MC_MAXPATHLEN + 1);
+	    else if (edit_widget)
+		g_strlcpy(cwd, edit_widget->dir ? edit_widget->dir : "", MC_MAXPATHLEN + 1);
 	    else
 		mc_get_current_wd(cwd, MC_MAXPATHLEN + 1);
+
+	    if (c_lc == 'q') {
+		char *q = concat_dir_and_file(cwd, fname);
+		if (q) {
+		    g_free(cwd);
+		    cwd = q;
+		}
+	    }
 
 	    qstr = (*quote_func) (cwd, 0);
 
@@ -418,6 +429,10 @@ static char *test_condition (WEdit *edit_widget, char *p, int *condition)
 	    break;
 	case 'f': /* file name pattern */
 	    p = extract_arg (p, arg, sizeof (arg));
+	    if (edit_widget) {
+		*condition = regexp_match (arg, edit_widget->filename, match_file, 0);
+		break;
+	    }
 	    *condition = panel && regexp_match (arg, panel->dir.list [panel->selected].fname, match_file, 0);
 	    break;
 	case 'y': /* syntax pattern */
@@ -429,6 +444,10 @@ static char *test_condition (WEdit *edit_widget, char *p, int *condition)
             break;
 	case 'd':
 	    p = extract_arg (p, arg, sizeof (arg));
+	    if (edit_widget) {
+		*condition = regexp_match (arg, edit_widget->dir ? edit_widget->dir : "", match_file, 0);
+		break;
+	    }
 	    *condition = panel && regexp_match (arg, panel->cwd, match_file, 0);
 	    break;
 	case 't':

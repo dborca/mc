@@ -398,9 +398,10 @@ d       Run gdb for current file
 + f \.c$ | f \.cc$
 c       Compile, link and run the current .c file
         export CFLAGS="-g -Wall -O2"
-        make || make %n || cc $CFLAGS -o %n %f
-        [ -r "%n" ] && (echo "*** press any key for run... ***"; read)
-        [ -x "%n" ] && ./%n %0{ Enter arguments: }
+        test -z "%d" || WDIR="-C %d"
+        make $WDIR || make $WDIR %n || cc $CFLAGS -o %d/%n %d/%f
+        [ -r %d/%n ] && (echo "*** press any key for run... ***"; read)
+        [ -x %d/%n ] && %d/%n %0{ Enter arguments: }
         (echo -ne "\n--- Press any key for return to edit. ---"; read)
 
 + f \.c$ | f \.h$

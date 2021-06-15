@@ -62,7 +62,7 @@ Version 4.6.3d.
 	- Made subshell pty fd to close-on-exec.
 	- Avoid translation if codepage selector is cancelled.
 	- Shell Patterns extension: handle pattern1|pattern2.
-	- Fixed %e expansion for editor scripts.
+	- Fixed %e expansion for editor scripts. Made %q equivalent to %d/%p.
 	- Fixed copy/move dialogs to avoid stealing Alt-d.
 	- Fixed completion in command line, with escaping.
 	- Fixed ncurses attr_pair buffer overflow.
