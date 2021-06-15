@@ -35,13 +35,6 @@
 /* XXX HAVE_MOUNT* conditions? add usage for dir? */
 
 
-static unsigned char
-get_hotkey (int n)
-{
-    return (n <= 9) ? '0' + n : 'a' + n - 10;
-}
-
-
 static void
 destroy_mnt_list (struct mount_entry *list)
 {
@@ -59,6 +52,8 @@ destroy_mnt_list (struct mount_entry *list)
 static void
 select_mnt (WPanel *p)
 {
+    int rv;
+    Listbox *listbox;
     struct mount_entry *list, *e;
     int rows, cols;
     int i;
@@ -78,18 +73,13 @@ select_mnt (WPanel *p)
 	rows++;
     }
 
-#if 0
-{
-    int rv;
-    Listbox *listbox;
-
-    listbox = create_listbox_window(cols + 2, rows, _(" Mountpoints "), "[Mountpoint selector]");
+    listbox = create_listbox_compact(&p->widget, cols + 2, rows, _(" Mountpoints "), "[Mountpoint selector]");
     if (listbox == NULL) {
 	destroy_mnt_list(list);
 	return;
     }
     for (i = 0, e = list; e != NULL; e = e->me_next, i++) {
-	LISTBOX_APPEND_TEXT(listbox, get_hotkey(i), e->me_mountdir, NULL);
+	LISTBOX_APPEND_TEXT(listbox, (i < 9) ? '1' + i : 'a' + i - 9, e->me_mountdir, NULL);
     }
     rv = run_listbox(listbox);
     if (rv != -1) {
@@ -100,48 +90,6 @@ select_mnt (WPanel *p)
 	    }
 	}
     }
-}
-#else
-{
-    char *q;
-    Dlg_head *query_dlg;
-    WListbox *query_list;
-    int y, x;
-    int h, w;
-
-    h = rows + 2;
-    w = cols + 4;
-    if (w > p->widget.cols) {
-	w = p->widget.cols;
-    }
-    if (h > p->widget.lines) {
-	h = p->widget.lines;
-    }
-    y = p->widget.y + (p->widget.lines - h) / 2;
-    x = p->widget.x + (p->widget.cols - w) / 2;
-    query_dlg = create_dlg(y, x, h, w, dialog_colors, NULL, "[Mountpoint selector]", _(" Mountpoints "), DLG_COMPACT);
-    if (query_dlg == NULL) {
-	destroy_mnt_list(list);
-	return;
-    }
-    query_list = listbox_new(1, 1, w - 2, h - 2, NULL);
-    if (query_list == NULL) {
-	destroy_dlg(query_dlg);
-	destroy_mnt_list(list);
-	return;
-    }
-    add_widget(query_dlg, query_list);
-    for (i = 0, e = list; e != NULL; e = e->me_next, i++) {
-	listbox_add_item(query_list, LISTBOX_APPEND_AT_END, get_hotkey(i), e->me_mountdir, NULL);
-    }
-    run_dlg(query_dlg);
-    if (query_dlg->ret_value != B_CANCEL) {
-	listbox_get_current(query_list, &q, NULL);
-	do_panel_cd(p, q, cd_exact);
-    }
-    destroy_dlg(query_dlg);
-}
-#endif
 
     destroy_mnt_list(list);
 }

@@ -3422,45 +3422,14 @@ edit_show_ctags(WEdit *edit)
 	g_array_sort(entries, tag_compar);
 	fclose(f);
     }
-    if (entries->len) {
+    while (entries->len) {
 	long l;
 	Listbox *listbox;
-	int xpos, ypos, lines;
-	const char *title = " Ctags ";
 
-	listbox = g_new (Listbox, 1);
-
-	/* Adjust sizes */
-	lines = entries->len;
-	if (lines > 20) {
-	    lines = 20;
+	listbox = create_listbox_compact(NULL, cols + 4, entries->len, _(" Ctags "), NULL);
+	if (listbox == NULL) {
+	    break;
 	}
-	if (lines > LINES - 6) {
-	    lines = LINES - 6;
-	}
-
-	cols += 4;
-	if (cols > 64) {
-	    cols = 64;
-	}
-	if (cols < sizeof (title) + 1) {
-	    cols = sizeof (title) + 1;
-	}
-	if (cols > COLS - 6) {
-	    cols = COLS - 6;
-	}
-
-	xpos = (COLS - cols) / 2;
-	ypos = (LINES - lines) / 2 - 2;
-
-	/* Create components */
-	listbox->dlg =
-	    create_dlg (ypos, xpos, lines + 2, cols + 2, dialog_colors, NULL,
-			NULL, title, DLG_CENTER | DLG_COMPACT);
-
-	listbox->list = listbox_new (1, 1, cols, lines, 0);
-
-	add_widget (listbox->dlg, listbox->list);
 
 	for (i = 0; i < entries->len; i++) {
 	    tag = g_array_index (entries, struct ctag_t, i);
@@ -3479,6 +3448,8 @@ edit_show_ctags(WEdit *edit)
 	    edit_move_to_line (edit, l - 1);
 	    edit->force |= REDRAW_COMPLETELY;
 	}
+
+	break;
     }
     g_array_free(entries, TRUE);
 }

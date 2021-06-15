@@ -59,13 +59,6 @@ static int dlgswitch_pending = 0;		/* Is there any dialogs that we have to run a
 static int dlgswitch_listbox = 0;		/* We are in dlgswitch selector, no point in allowing recursion */
 
 
-static unsigned char
-get_hotkey (int n)
-{
-    return (n <= 9) ? '0' + n : 'a' + n - 10;
-}
-
-
 int
 dlgswitch_remove_current (void)
 {
@@ -192,29 +185,17 @@ dlgswitch_update_path (const char *dir, const char *file)
 static int
 dlgswitch_get_title_len(struct DLG_NODE *e)
 {
-    int len;
     switch (e->type) {
 	case DLG_TYPE_VIEW:
-	    len = strlen(" View: ") + strlen(e->name);
-	    if (view_file_modified(e->u.view_data.wview)) {
-		len += strlen(" (*)");
-	    }
-	    break;
+	    return sizeof(" View: ") + strlen(e->name);
 #ifdef USE_INTERNAL_EDIT
 	case DLG_TYPE_EDIT:
-	    len = strlen(" Edit: ") + strlen(e->name);
-	    if (edit_file_modified(e->u.edit_data.wedit)) {
-		len += strlen(" (*)");
-	    }
-	    break;
+	    return sizeof(" Edit: ") + strlen(e->name);
 #endif
 	case DLG_TYPE_MC:
-	    len = strlen(" ") + strlen(e->name);
-	    break;
-	default:
-	    len = 0;
+	    return sizeof(" ") + strlen(e->name);
     }
-    return len;
+    return 0;
 }
 
 
@@ -224,39 +205,37 @@ dlgswitch_get_title(struct DLG_NODE *e)
     char *name;
     switch (e->type) {
 	case DLG_TYPE_VIEW:
-	    name = malloc(strlen(" View: ") + strlen(e->name) + 1);
+	    name = malloc(sizeof(" View: ") + strlen(e->name) + 1);
 	    if (name != NULL) {
 		strcpy(name, " View: ");
-		strcat(name, e->name);
 		if (view_file_modified(e->u.view_data.wview)) {
-		    strcat(name, " (*)");
+		    *name = '*';
 		}
 	    }
 	    break;
 #ifdef USE_INTERNAL_EDIT
 	case DLG_TYPE_EDIT:
-	    name = malloc(strlen(" Edit: ") + strlen(e->name) + 1 + strlen(" (*)"));
+	    name = malloc(sizeof(" Edit: ") + strlen(e->name) + 1);
 	    if (name != NULL) {
 		strcpy(name, " Edit: ");
-		strcat(name, e->name);
 		if (edit_file_modified(e->u.edit_data.wedit)) {
-		    strcat(name, " (*)");
+		    *name = '*';
 		}
 	    }
 	    break;
 #endif
 	case DLG_TYPE_MC:
-	    name = malloc(strlen(" ") + strlen(e->name) + 1);
+	    name = malloc(sizeof(" ") + strlen(e->name) + 1);
 	    if (name != NULL) {
 		strcpy(name, " ");
-		strcat(name, e->name);
 	    }
 	    break;
 	default:
 	    name = NULL;
     }
-    if (name != NULL && e == mc_cur_dlg) {
-	name[0] = '>';
+    if (name) {
+	strcat(name, e->name);
+	strcat(name, " ");
     }
     return name;
 }
@@ -347,15 +326,18 @@ dlgswitch_select (void)
 	rows++;
     }
 
-    listbox = create_listbox_window(cols + 2, rows, _(" Dialogs "), "[Dialog selector]");
+    listbox = create_listbox_compact(NULL, cols + 2, rows, _(" Dialogs "), "[Dialog selector]");
     if (listbox == NULL) {
 	dlgswitch_listbox = 0;
 	return;
     }
     for (i = 0, e = mc_dialogs; e != NULL; e = e->next, i++) {
 	char *text = dlgswitch_get_title(e);
-	LISTBOX_APPEND_TEXT(listbox, get_hotkey(i), text, NULL);
+	LISTBOX_APPEND_TEXT(listbox, (i < 9) ? '1' + i : 'a' + i - 9, text, NULL);
 	free(text);
+	if (e == mc_cur_dlg) {
+	    listbox_select_by_number(listbox->list, i);
+	}
     }
     rv = run_listbox(listbox);
     dlgswitch_listbox = 0;

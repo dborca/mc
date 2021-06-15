@@ -40,6 +40,50 @@
 
 
 Listbox *
+create_listbox_compact (Widget *w, int cols, int lines, const char *title, const char *help)
+{
+    int _xpos = 0;
+    int _ypos = 0;
+    int _cols = COLS;
+    int _lines = LINES;
+    int xpos, ypos, len;
+    Listbox *listbox = g_new (Listbox, 1);
+
+    if (w) {
+	_xpos = w->x;
+	_ypos = w->y;
+	_cols = w->cols;
+	_lines = w->lines;
+    }
+
+    /* Adjust sizes */
+    if (lines > _lines - 4) {
+	lines = _lines - 4;
+    }
+
+    if (title && (cols < (len = strlen (title) + 2)))
+	cols = len;
+
+    if (cols > _cols - 4) {
+	cols = _cols - 4;
+    }
+
+    xpos = _xpos + (_cols - cols) / 2;
+    ypos = _ypos + (_lines - lines) / 2 - 1;
+
+    /* Create components */
+    listbox->dlg =
+	create_dlg (ypos, xpos, lines + 2, cols + 2, dialog_colors, NULL,
+		    help, title, (w ? 0 : DLG_CENTER) | DLG_REVERSE | DLG_COMPACT);
+
+    listbox->list = listbox_new (1, 1, cols, lines, 0);
+
+    add_widget (listbox->dlg, listbox->list);
+
+    return listbox;
+}
+
+Listbox *
 create_listbox_window (int cols, int lines, const char *title, const char *help)
 {
     int xpos, ypos, len;

@@ -53,7 +53,7 @@ typedef struct WGauge {
 
 GList *history_get (const char *input_name);
 void history_put (const char *input_name, GList *h);
-char *show_hist (GList *history, int widget_y, int widget_x);
+char *show_hist (GList *history, int widget_x, int widget_y);
 
 typedef struct {
     Widget widget;
