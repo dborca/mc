@@ -2852,7 +2852,14 @@ regexp_view_search (WView *view, char *pattern, char *string,
 	    g_free (old_pattern);
 	    old_pattern = 0;
 	}
-	if (regcomp (&r, pattern, flags | REG_EXTENDED)) {
+	if (regcomp (&r, pattern, flags | REG_EXTENDED
+#ifdef REG_ENHANCED
+	    | REG_ENHANCED
+#endif
+#ifdef REG_ADVANCED
+	    | REG_ADVANCED
+#endif
+	)) {
 	    message (1, MSG_ERROR, _(" Invalid regular expression "));
 	    return -1;
 	}

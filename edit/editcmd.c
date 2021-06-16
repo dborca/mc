@@ -1566,6 +1566,12 @@ string_regexp_search (char *pattern, char *string, int match_type,
 	    old_pattern = 0;
 	}
 	if (regcomp (&r, pattern, REG_EXTENDED | (icase ? REG_ICASE : 0) |
+#ifdef REG_ENHANCED
+	    REG_ENHANCED |
+#endif
+#ifdef REG_ADVANCED
+	    REG_ADVANCED |
+#endif
 	    REG_NEWLINE)) {
 	    *found_len = 0;
 	    return -3;

@@ -167,13 +167,20 @@ find_parm_callback (struct Dlg_head *h, dlg_msg_t msg, int parm)
 	    || !(find_regex_cbox->state & C_BOOL))
 	    return MSG_HANDLED;
 
-	flags = REG_EXTENDED | REG_NOSUB;
+	flags = REG_EXTENDED | REG_NOSUB
+#ifdef REG_ENHANCED
+		| REG_ENHANCED
+#endif
+#ifdef REG_ADVANCED
+		| REG_ADVANCED
+#endif
+	;
 
 	if (!(case_sense->state & C_BOOL))
 	    flags |= REG_ICASE;
 
 	if (whole_words_cbox->state & C_BOOL) {
-	    /* XXX cannot use \b assertions, because Apple wants REG_ENHANCED :\ */
+	    /* XXX could use \b assertions instead? */
 	    flags &= ~REG_NOSUB;
 	}
 	if (regcomp (r, in_with->buffer, flags)) {

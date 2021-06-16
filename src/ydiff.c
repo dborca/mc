@@ -1878,7 +1878,14 @@ view_search (WDiff *view, int again)
 	    compiled = 0;
 	    regfree(&r);
 	}
-	if (regcomp(&r, searchopt_text, REG_EXTENDED | (searchopt_case ? 0 : REG_ICASE))) {
+	if (regcomp(&r, searchopt_text, REG_EXTENDED | (searchopt_case ? 0 : REG_ICASE)
+#ifdef REG_ENHANCED
+	    | REG_ENHANCED
+#endif
+#ifdef REG_ADVANCED
+	    | REG_ADVANCED
+#endif
+	)) {
 	    error_dialog(_("Error"), _(" Invalid regular expression "));
 	    return;
 	}
