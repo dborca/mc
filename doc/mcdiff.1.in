@@ -1,4 +1,4 @@
-.TH MCDIFF 1 "July 2010" "MC Version 4.6.3" "GNU Midnight Commander"
+.TH MCDIFF 1 "Oct 2021" "MC Version 4.6.3" "GNU Midnight Commander"
 .SH NAME
 mcdiff \- Internal diff viewer of GNU Midnight Commander.
 .SH USAGE

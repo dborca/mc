@@ -1,4 +1,4 @@
-Version 4.6.3d.
+Version 4.6.3e.
 
 - Editor.
 	- Added positive lookahead assertion \<...\> to syntax highlighting.
