@@ -115,9 +115,9 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES = a apt audio deb deba debd dpkg iso9660 findfs \
-	hp48 lslR mailfs patchfs rpms ualz uar uarj uha ulha urar uxar \
-	uzip uzoo
+CONFIG_CLEAN_FILES = a apt audio deb deba debd dpkg iso9660 fat findfs \
+	hp48 img4 lslR mailfs patchfs rpms ualz uar uarj uha ulha urar \
+	uxar uzip uzoo
 CONFIG_CLEAN_VPATH_FILES =
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -172,12 +172,13 @@ am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/a.in \
 	$(srcdir)/apt.in $(srcdir)/audio.in $(srcdir)/deb.in \
 	$(srcdir)/deba.in $(srcdir)/debd.in $(srcdir)/dpkg.in \
-	$(srcdir)/findfs.in $(srcdir)/hp48.in $(srcdir)/iso9660.in \
-	$(srcdir)/lslR.in $(srcdir)/mailfs.in $(srcdir)/patchfs.in \
-	$(srcdir)/rpms.in $(srcdir)/ualz.in $(srcdir)/uar.in \
-	$(srcdir)/uarj.in $(srcdir)/uha.in $(srcdir)/ulha.in \
-	$(srcdir)/urar.in $(srcdir)/uxar.in $(srcdir)/uzip.in \
-	$(srcdir)/uzoo.in $(top_srcdir)/config/mkinstalldirs README
+	$(srcdir)/fat.in $(srcdir)/findfs.in $(srcdir)/hp48.in \
+	$(srcdir)/img4.in $(srcdir)/iso9660.in $(srcdir)/lslR.in \
+	$(srcdir)/mailfs.in $(srcdir)/patchfs.in $(srcdir)/rpms.in \
+	$(srcdir)/ualz.in $(srcdir)/uar.in $(srcdir)/uarj.in \
+	$(srcdir)/uha.in $(srcdir)/ulha.in $(srcdir)/urar.in \
+	$(srcdir)/uxar.in $(srcdir)/uzip.in $(srcdir)/uzoo.in \
+	$(top_srcdir)/config/mkinstalldirs README
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALLOCA = @ALLOCA@
@@ -351,8 +352,10 @@ EXTFS_IN = \
 	debd.in			\
 	dpkg.in			\
 	iso9660.in		\
+	fat.in			\
 	findfs.in		\
 	hp48.in			\
+	img4.in			\
 	lslR.in			\
 	mailfs.in		\
 	patchfs.in		\
@@ -378,8 +381,10 @@ EXTFS_OUT = \
 	debd			\
 	dpkg			\
 	iso9660			\
+	fat			\
 	findfs			\
 	hp48			\
+	img4			\
 	lslR			\
 	mailfs			\
 	patchfs			\
@@ -445,9 +450,13 @@ dpkg: $(top_builddir)/config.status $(srcdir)/dpkg.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 iso9660: $(top_builddir)/config.status $(srcdir)/iso9660.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+fat: $(top_builddir)/config.status $(srcdir)/fat.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 findfs: $(top_builddir)/config.status $(srcdir)/findfs.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 hp48: $(top_builddir)/config.status $(srcdir)/hp48.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+img4: $(top_builddir)/config.status $(srcdir)/img4.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 lslR: $(top_builddir)/config.status $(srcdir)/lslR.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@

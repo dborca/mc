@@ -14,7 +14,8 @@ dir_list ()
     #   dr-x------ a
     #   -r-------- a/b
 
-    sort -u "$1" | $AWK -v uid=${UID-0} '
+    DATE=`ls -l "$1" | awk '{print $6, $7, $8}'`
+    sort -u "$1" | $AWK -v uid=${UID-0} -v date="$DATE" '
     function pr(end) {
         leng = length(last)
         perm = "dr-xr-xr-x"
@@ -28,7 +29,7 @@ dir_list ()
             }
         }
         if (end || last != $0) {
-            printf "%s 1 %-8d %-8d %8d 02-29-1972 23:59 %s\n", perm, uid, gid, size, last
+            printf "%s 1 %-8d %-8d %8d %s %s\n", perm, uid, gid, size, date, last
         }
     }
     NF {
@@ -51,4 +52,3 @@ case "$cmd" in
     list) dir_list "$@" ;;
     *)    exit 1 ;;
 esac
-exit 0

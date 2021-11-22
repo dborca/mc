@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# IMG4/IM4P parser
+# Written by Daniel Borca, 2021
+# Licensed under GNU GPL version 2 or later version.
+
+AWK=@AWK@
+IMG4=img4
+
+img4_list ()
+{
+    DATE=`ls -l "$1" | awk '{print $6, $7, $8}'`
+    $IMG4 -i "$1" -l | $AWK -v uid=${UID-0} -v date="$DATE" '{
+        if ($1 ~ /^DATA/ || $1 ~ /^(IM4M|INFO)\.der/) {
+            perm = "-"
+            printf "%sr--r--r-- 1 %-8d %-8d %8d %s %s\n", perm, uid, gid, $2, date, $1
+        } else {
+            perm = "l"
+            printf "%sr--r--r-- 1 %-8d %-8d %8d %s %s\n", perm, uid, gid, length($NF), date, $0
+        }
+    }'
+}
+
+img4_copyout ()
+{
+    case "$2" in
+        DATA)     $IMG4 -i "$1" -o "$3" -z ;;
+        IM4M.der) $IMG4 -i "$1" -m "$3" ;;
+        INFO.der) $IMG4 -i "$1" -e "$3" ;;
+        *)        exit 1 ;;
+    esac
+}
+
+cmd="$1"
+shift
+case "$cmd" in
+    list)    img4_list "$@" ;;
+    copyout) img4_copyout "$@" >/dev/null ;;
+    *)       exit 1 ;;
+esac

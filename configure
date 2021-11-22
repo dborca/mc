@@ -16167,7 +16167,7 @@ else
 fi
 
 
-ac_config_files="$ac_config_files Makefile mc.spec mc.qpg pkginfo prototype doc/Makefile vfs/Makefile vfs/extfs/Makefile lib/Makefile src/Makefile slang/Makefile slib/Makefile edit/Makefile syntax/Makefile m4/Makefile lib/mc.ext vfs/extfs/a vfs/extfs/apt vfs/extfs/audio vfs/extfs/deb vfs/extfs/deba vfs/extfs/debd vfs/extfs/dpkg vfs/extfs/iso9660 vfs/extfs/findfs vfs/extfs/hp48 vfs/extfs/lslR vfs/extfs/mailfs vfs/extfs/patchfs vfs/extfs/rpms vfs/extfs/ualz vfs/extfs/uar vfs/extfs/uarj vfs/extfs/uha vfs/extfs/ulha vfs/extfs/urar vfs/extfs/uxar vfs/extfs/uzip vfs/extfs/uzoo doc/mc.1 doc/mcedit.1 doc/mcview.1 doc/mcdiff.1 doc/mcserv.8 doc/es/mc.1 doc/es/Makefile doc/hu/mc.1 doc/hu/Makefile doc/it/mc.1 doc/it/Makefile doc/pl/mc.1 doc/pl/Makefile doc/ru/mc.1 doc/ru/Makefile doc/sr/mc.1 doc/sr/mcserv.8 doc/sr/Makefile intl/Makefile po/Makefile.in"
+ac_config_files="$ac_config_files Makefile mc.spec mc.qpg pkginfo prototype doc/Makefile vfs/Makefile vfs/extfs/Makefile lib/Makefile src/Makefile slang/Makefile slib/Makefile edit/Makefile syntax/Makefile m4/Makefile lib/mc.ext vfs/extfs/a vfs/extfs/apt vfs/extfs/audio vfs/extfs/deb vfs/extfs/deba vfs/extfs/debd vfs/extfs/dpkg vfs/extfs/iso9660 vfs/extfs/fat vfs/extfs/findfs vfs/extfs/hp48 vfs/extfs/img4 vfs/extfs/lslR vfs/extfs/mailfs vfs/extfs/patchfs vfs/extfs/rpms vfs/extfs/ualz vfs/extfs/uar vfs/extfs/uarj vfs/extfs/uha vfs/extfs/ulha vfs/extfs/urar vfs/extfs/uxar vfs/extfs/uzip vfs/extfs/uzoo doc/mc.1 doc/mcedit.1 doc/mcview.1 doc/mcdiff.1 doc/mcserv.8 doc/es/mc.1 doc/es/Makefile doc/hu/mc.1 doc/hu/Makefile doc/it/mc.1 doc/it/Makefile doc/pl/mc.1 doc/pl/Makefile doc/ru/mc.1 doc/ru/Makefile doc/sr/mc.1 doc/sr/mcserv.8 doc/sr/Makefile intl/Makefile po/Makefile.in"
 
 
 cat >confcache <<\_ACEOF
@@ -16984,8 +16984,10 @@ do
     "vfs/extfs/debd") CONFIG_FILES="$CONFIG_FILES vfs/extfs/debd" ;;
     "vfs/extfs/dpkg") CONFIG_FILES="$CONFIG_FILES vfs/extfs/dpkg" ;;
     "vfs/extfs/iso9660") CONFIG_FILES="$CONFIG_FILES vfs/extfs/iso9660" ;;
+    "vfs/extfs/fat") CONFIG_FILES="$CONFIG_FILES vfs/extfs/fat" ;;
     "vfs/extfs/findfs") CONFIG_FILES="$CONFIG_FILES vfs/extfs/findfs" ;;
     "vfs/extfs/hp48") CONFIG_FILES="$CONFIG_FILES vfs/extfs/hp48" ;;
+    "vfs/extfs/img4") CONFIG_FILES="$CONFIG_FILES vfs/extfs/img4" ;;
     "vfs/extfs/lslR") CONFIG_FILES="$CONFIG_FILES vfs/extfs/lslR" ;;
     "vfs/extfs/mailfs") CONFIG_FILES="$CONFIG_FILES vfs/extfs/mailfs" ;;
     "vfs/extfs/patchfs") CONFIG_FILES="$CONFIG_FILES vfs/extfs/patchfs" ;;

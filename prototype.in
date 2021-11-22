@@ -63,8 +63,10 @@ f none $datadir/mc/extfs/deba
 f none $datadir/mc/extfs/debd
 f none $datadir/mc/extfs/dpkg
 f none $datadir/mc/extfs/extfs.ini
+f none $datadir/mc/extfs/fat
 f none $datadir/mc/extfs/findfs
 f none $datadir/mc/extfs/hp48
+f none $datadir/mc/extfs/img4
 f none $datadir/mc/extfs/lslR
 f none $datadir/mc/extfs/mailfs
 f none $datadir/mc/extfs/patchfs

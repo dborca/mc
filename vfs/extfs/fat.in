@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# Mach-O fat
+# Written by Daniel Borca, 2021
+# Licensed under GNU GPL version 2 or later version.
+
+AWK=@AWK@
+LIPO=lipo
+
+fat_list ()
+{
+    DATE=`ls -l "$1" | awk '{print $6, $7, $8}'`
+    $LIPO -detailed_info "$1" | $AWK -v uid=${UID-0} -v date="$DATE" '
+    NF {
+        if ($1 == "size") {
+            size=$2
+        }
+        if ($0 ~ /^architecture/) {
+            if (name) {
+                printf "-r--r--r-- 1 %-8d %-8d %8d %s %s\n", uid, gid, size, date, name
+            }
+            name=$2
+            size=0
+        }
+    }
+    END {
+        if (name) {
+            printf "-r--r--r-- 1 %-8d %-8d %8d %s %s\n", uid, gid, size, date, name
+        } else {
+            exit 1
+        }
+    }
+    '
+}
+
+fat_copyout ()
+{
+    $LIPO -thin "$2" "$1" -output "$3"
+}
+
+cmd="$1"
+shift
+case "$cmd" in
+    list)    fat_list "$@" ;;
+    copyout) fat_copyout "$@" ;;
+    *)    exit 1 ;;
+esac

@@ -673,8 +673,10 @@ vfs/extfs/deba
 vfs/extfs/debd
 vfs/extfs/dpkg
 vfs/extfs/iso9660
+vfs/extfs/fat
 vfs/extfs/findfs
 vfs/extfs/hp48
+vfs/extfs/img4
 vfs/extfs/lslR
 vfs/extfs/mailfs
 vfs/extfs/patchfs

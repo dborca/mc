@@ -235,6 +235,9 @@ shell/.7z
 type/^ASCII\ mail\ text
 	Open=%cd %p#mailfs
 
+regex/\.im(g4|4p)$
+	Open=%cd %p#img4
+
 
 ### Sources ###
 
@@ -520,6 +523,9 @@ regex/\.([Tt][Ee][Xx])$
 # Apple bplist
 type/^Apple\ binary\ property\ list
 	View=%view{ascii} plutil -p %f
+
+regex/\.der$
+	View=%view{ascii} openssl asn1parse -i -inform DER -in %f
 
 
 ### Miscellaneous ###
