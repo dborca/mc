@@ -265,7 +265,7 @@ name_quote (const char *s, int quote_percent)
     for (; *s; s++, d++) {
 	switch (*s) {
 	case '%':
-	    if (!quote_percent)
+	    if (!(quote_percent & 1))
 		break;
 	case '\'':
 	case '\\':
@@ -294,7 +294,7 @@ name_quote (const char *s, int quote_percent)
 	    break;
 	case '~':
 	case '#':
-	    if (d == ret)
+	    if (d == ret && !(quote_percent & 2)) /* XXX hack: if called from completion, don't fix leading ~ */
 		*d++ = '\\';
 	    break;
 	}
