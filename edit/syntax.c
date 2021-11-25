@@ -214,7 +214,7 @@ compare_word_to_right (WEdit *edit, long i, const char *text,
 		    if (*p == *text && !p[1])	/* handle eg '+' and @+@ keywords properly */
 			break;
 		}
-		if (j && strchr ((char *) p + 1, c))	/* c exists further down, so it will get matched later */
+		if (j && p < q && strchr ((char *) p + 1, c))	/* c exists further down, so it will get matched later */
 		    break;
 		if (c == '\n' || c == '\t' || c == ' ') {
 		    if (!*p) {
