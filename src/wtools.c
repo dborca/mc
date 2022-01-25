@@ -397,7 +397,7 @@ quick_dialog_skip (QuickDialog *qd, int nskip)
 		button_new (ypos, xpos, qw->value,
 			    (qw->value ==
 			     B_ENTER) ? DEFPUSH_BUTTON : NORMAL_BUTTON,
-			    I18N (qw->text), 0);
+			    I18N (qw->text), qw->result ? *(bcback *)qw->result : 0);
 	    break;
 
 	    /* We use the hotkey pos as the field length */
