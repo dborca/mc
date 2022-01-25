@@ -2646,6 +2646,98 @@ Complete: show all
 is disabled, the dialog pops up only if you press
 .B Alt-Tab
 for the second time, for the first time MC just beeps.
+.\"NODE "Evaluate"
+.SH "Evaluate"
+Evaluate integer arithmetic expressions:
+.PP
+.B [variable = ] expression
+.PP
+The expression is calculated and optionally stored to a variable which
+can then be used later in a subsequent expression. The result is printed
+in various formats and can be pasted in the command-line or the editor.
+.PP
+There is no limit to the number of variables, but assigning to the same
+variable will overwrite the old value. The variable namespace is distinct
+from the function namespace. The UI allows inspecting as well as purging
+all the variables.
+.PP
+Supported operands are numbers, function calls and previously assigned
+variables. Numbers follow the Python semantics: a
+.I 0x
+prefix means a hexadecimal number,
+a
+.I 0b
+prefix means a binary number,
+a
+.I 0
+prefix means an octal number, everything else being a decimal number. They
+can be postfixed by
+.IR k "-ilo (1024), " M "-ega (1024k) or " G "-iga (1024M)."
+For example:
+.RI 4 k " = 4096, 1" M " = 1048576, etc."
+.PP
+Supported operators:
+.TP
+.B ()
+parentheses
+.TP
+.B ~ + -
+bitwise not, unary plus/minus
+.TP
+.B **
+exponentiation
+.TP
+.B * / %
+multiply, divide, modulo
+.TP
+.B + -
+add, subtract
+.TP
+.B << >>
+logical shift left/right
+.TP
+.B & ^ |
+logical bitwise and, xor, or (in this order of precedence).
+.PP
+A
+.I semicolon
+ends the expression and converts the remainder of the line into a comment.
+Strings appearing in the expression are considered to be comments and will
+be ignored. For example:
+.TP
+.IB "\(dqfoo\(dq " 1 " \(dqone\(dq " + " \(dqtwo\(dq " 2 " \(dqbar\(dq ; text"
+will be parsed as
+.BR "1 + 2" .
+.PP
+There are several built-in functions. Function arguments are arithmetic
+expressions (but can not be assignments):
+.TP
+.B abs(<expr>)
+.RB "Absolute value: " "abs(-5)" " = 5."
+.TP
+.B sqrt(<expr>)
+.RB "Integer square root: " "sqrt(2 * 5)" " = 3."
+.TP
+.B min(<expr>, <expr>, ...)
+.RB "Calculate minimum: " "min(1, 2, 3)" " = 1."
+.TP
+.B max(<expr>, <expr>, ...)
+Calculate maximum.
+.TP
+.B avg(<expr>, <expr>, ...)
+.RB "Arithmetic mean: " "avg(3, 5)" " = 4."
+.TP
+.B floor(<expr>, <expr>)
+.RB "Round down to nearest: " "floor(10, 3)" " = 9."
+.TP
+.B ceil(<expr>, <expr>)
+.RB "Round up to nearest: " "ceil(10, 3)" " = 12."
+.TP
+.B gcd(<expr>, <expr>)
+.RB "Greatest common divisor: " "gcd(6, 9)" " = 3."
+.TP
+.B lcm(<expr>, <expr>)
+.RB "Lowest common multiple: " "lcm(6, 9)" " = 18."
 .\"NODE "Diff Viewer"
 .SH "Diff Viewer"
 Side-by-side diff output.

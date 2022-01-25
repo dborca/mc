@@ -104,6 +104,17 @@ xstrndup(const char *s, size_t len)
     return p;
 }
 
+static LONG
+strton(const char *str, char **endptr, int base)
+{
+    const char *p = str;
+    if ((base | 2) == 2 && str[0] == '0' && (str[1] | 0x20) == 'b') {
+        p += 2;
+        base = 2;
+    }
+    return strtoull(p, endptr, base);
+}
+
 /*** lexer ******************************************************************/
 
 #define MAXTOK 128
@@ -130,6 +141,7 @@ enum TOKTYPE {
     T_COMMA,
     T_OPENBRACE,
     T_CLOSEBRACE,
+    T_ASSIGN,
 
     T_ID,
     T_INT,
@@ -193,6 +205,7 @@ tokenize(const char *s)
             case ',':
             case '(':
             case ')':
+            case '=':
                 break;
             case '<':
             case '>':
@@ -202,7 +215,10 @@ tokenize(const char *s)
                 }
             default:
             if (isdigit(*s)) {
-                strtoull(s, &p, 0);
+                strton(s, &p, 0);
+                if (*p == 'k' || *p == 'M' || *p == 'G') {
+                    p++;
+                }
                 if (isalnu_(*p)) {
                     goto err_syntax;
                 }
@@ -281,6 +297,8 @@ eval_token(const char *s)
         type = T_OPENBRACE;
     } else if (!strcmp(s, ")")) {
         type = T_CLOSEBRACE;
+    } else if (!strcmp(s, "=")) {
+        type = T_ASSIGN;
     } else if (isdigit(*s)) {
         type = T_INT;
     } else {
@@ -332,15 +350,16 @@ reverse_list(struct node *n)
     return prev;
 }
 
-#ifdef HAVE_MAIN
+static struct tuple_t {
+    struct tuple_t *next;
+    char *name;
+    LONG value;
+} *vars = NULL;
+
 static int
 varlist(const char *name, LONG *oldval, LONG newval)
 {
-    static struct tuple_t {
-        struct tuple_t *next;
-        char *name;
-        LONG value;
-    } *n, *vars = NULL;
+    struct tuple_t *n;
     if (!name) {
         while (vars) {
             n = vars->next;
@@ -350,23 +369,27 @@ varlist(const char *name, LONG *oldval, LONG newval)
         }
         return 0;
     }
-    if (oldval) {
-        for (n = vars; n; n = n->next) {
-            if (!strcmp(n->name, name)) {
-                *oldval = n->value;
-                return 1;
-            }
+    for (n = vars; n; n = n->next) {
+        if (!strcmp(n->name, name)) {
+            break;
         }
-        return 0;
     }
-    n = xmalloc(sizeof(struct tuple_t));
-    n->name = xstrdup(name);
+    if (oldval) {
+        if (!n) {
+            return 0;
+        }
+        *oldval = n->value;
+        return 1;
+    }
+    if (!n) {
+        n = xmalloc(sizeof(struct tuple_t));
+        n->name = xstrdup(name);
+        n->next = vars;
+        vars = n;
+    }
     n->value = newval;
-    n->next = vars;
-    vars = n;
-    return 0;
+    return 1;
 }
-#endif
 
 static unsigned LONG
 sqrti(unsigned LONG n, unsigned LONG *r)
@@ -391,6 +414,60 @@ sqrti(unsigned LONG n, unsigned LONG *r)
     return root;
 }
 
+static LONG
+gcd(LONG a, LONG b)
+{
+    int k;
+
+    /* gcd(0, b) == b; gcd(a, 0) == a; gcd(0, 0) == 0 */
+    if (a == 0) {
+        return b;
+    }
+    if (b == 0) {
+        return a;
+    }
+
+    /* find K, the greatest power of 2 that divides both a and b */
+    for (k = 0; ((a | b) & 1) == 0; k++) {
+        a >>= 1;
+        b >>= 1;
+    }
+
+    /* divide a by 2 until it becomes odd */
+    while ((a & 1) == 0) {
+        a >>= 1;
+    }
+
+    /* a is always odd here */
+    do {
+        /* if b is even, remove all factor of 2 in b */
+        while ((b & 1) == 0) {
+            b >>= 1;
+        }
+
+        /* a and b are both odd. Swap if necessary so a <= b, then set b = b - a (which is even) */
+        if (a > b) {
+            LONG t = a;
+            a = b;
+            b = t;
+        }
+
+        b -= a;
+    } while (b);
+
+    /* restore common factors of 2 */
+    return a << k;
+}
+
+static LONG
+lcm(LONG a, LONG b)
+{
+    if (a == 0 && b == 0) {
+        return 0;
+    }
+    return a / gcd(a, b) * b;
+}
+
 static void
 expect(const char *what)
 {
@@ -404,18 +481,18 @@ expect(const char *what)
     message(D_ERROR, MSG_ERROR, _("expected %s before %s"), what, sym);
 }
 
-static LONG R_rvalue_exp(int *ok, LONG M);
+static LONG R_rvalue_exp(int *ok);
 
 static LONG
-R_pow_exp(int *ok, LONG M)
+R_pow_exp(int *ok)
 {
     LONG n;
     ENTER();
-    n = R_rvalue_exp(ok, M);
+    n = R_rvalue_exp(ok);
     if (*ok && (IS(T_POW))) {
         LONG v;
         next_token(); /* skip '**' */
-        v = R_pow_exp(ok, M);
+        v = R_pow_exp(ok);
         if (*ok) {
             if (v < 0) {
                 message(D_ERROR, MSG_ERROR, _("negative powers not supported"));
@@ -434,16 +511,16 @@ R_pow_exp(int *ok, LONG M)
 }
 
 static LONG
-R_mul_exp(int *ok, LONG M)
+R_mul_exp(int *ok)
 {
     LONG n;
     ENTER();
-    n = R_pow_exp(ok, M);
+    n = R_pow_exp(ok);
     while (*ok && (IS(T_MUL) || IS(T_DIV) || IS(T_MOD))) {
         LONG v;
         enum TOKTYPE op = token.type;
         next_token(); /* skip '*' */
-        v = R_pow_exp(ok, M);
+        v = R_pow_exp(ok);
         if (*ok) {
             if (op == T_MUL) {
                 n *= v;
@@ -464,16 +541,16 @@ R_mul_exp(int *ok, LONG M)
 }
 
 static LONG
-R_add_exp(int *ok, LONG M)
+R_add_exp(int *ok)
 {
     LONG n;
     ENTER();
-    n = R_mul_exp(ok, M);
+    n = R_mul_exp(ok);
     while (*ok && (IS(T_ADD) || IS(T_SUB))) {
         LONG v;
         enum TOKTYPE op = token.type;
         next_token(); /* skip '+' */
-        v = R_mul_exp(ok, M);
+        v = R_mul_exp(ok);
         if (*ok) {
             if (op == T_ADD) {
                 n += v;
@@ -487,16 +564,16 @@ R_add_exp(int *ok, LONG M)
 }
 
 static LONG
-R_shift_exp(int *ok, LONG M)
+R_shift_exp(int *ok)
 {
     LONG n;
     ENTER();
-    n = R_add_exp(ok, M);
+    n = R_add_exp(ok);
     while (*ok && (IS(T_SHL) || IS(T_SHR))) {
         LONG v;
         enum TOKTYPE op = token.type;
         next_token(); /* skip '<<' */
-        v = R_add_exp(ok, M);
+        v = R_add_exp(ok);
         if (*ok) {
             if (op == T_SHL) {
                 n <<= v;
@@ -510,15 +587,15 @@ R_shift_exp(int *ok, LONG M)
 }
 
 static LONG
-R_and_exp(int *ok, LONG M)
+R_and_exp(int *ok)
 {
     LONG n;
     ENTER();
-    n = R_shift_exp(ok, M);
+    n = R_shift_exp(ok);
     while (*ok && IS(T_AND)) {
         LONG v;
         next_token(); /* skip '&' */
-        v = R_shift_exp(ok, M);
+        v = R_shift_exp(ok);
         if (*ok) {
             n &= v;
         }
@@ -528,15 +605,15 @@ R_and_exp(int *ok, LONG M)
 }
 
 static LONG
-R_xor_exp(int *ok, LONG M)
+R_xor_exp(int *ok)
 {
     LONG n;
     ENTER();
-    n = R_and_exp(ok, M);
+    n = R_and_exp(ok);
     while (*ok && IS(T_XOR)) {
         LONG v;
         next_token(); /* skip '^' */
-        v = R_and_exp(ok, M);
+        v = R_and_exp(ok);
         if (*ok) {
             n ^= v;
         }
@@ -546,15 +623,15 @@ R_xor_exp(int *ok, LONG M)
 }
 
 static LONG
-R_or_exp(int *ok, LONG M)
+R_or_exp(int *ok)
 {
     LONG n;
     ENTER();
-    n = R_xor_exp(ok, M);
+    n = R_xor_exp(ok);
     while (*ok && IS(T_OR)) {
         LONG v;
         next_token(); /* skip '|' */
-        v = R_xor_exp(ok, M);
+        v = R_xor_exp(ok);
         if (*ok) {
             n |= v;
         }
@@ -563,13 +640,35 @@ R_or_exp(int *ok, LONG M)
     return n;
 }
 
+static LONG
+R_assignment_exp(int *ok)
+{
+    LONG n;
+    char *lval = NULL;
+    ENTER();
+    /* we cannot tell here if we have lvalue or rvalue, so use magic */
+    if (IS(T_ID) && peek_token() == T_ASSIGN) {
+        lval = xstrdup(token.sym);
+        next_token(); /* skip ID */
+        next_token(); /* skip '=' */
+    }
+    n = R_or_exp(ok);
+    if (ok && lval) {
+        /* XXX should ban internal functions */
+        varlist(lval, NULL, n);
+    }
+    free(lval);
+    LEAVE();
+    return n;
+}
+
 static struct node *
-R_argument_exp_list(int *ok, LONG M)
+R_argument_exp_list(int *ok)
 {
     struct node *p = NULL;
     LONG n;
     ENTER();
-    n = R_or_exp(ok, M);
+    n = R_or_exp(ok);
     while (*ok) {
         struct node *q = xmalloc(sizeof(struct node));
         q->val = n;
@@ -579,14 +678,14 @@ R_argument_exp_list(int *ok, LONG M)
             break;
         }
         next_token(); /* skip ',' */
-        n = R_or_exp(ok, M);
+        n = R_or_exp(ok);
     }
     LEAVE();
     return p;
 }
 
 static LONG
-R_rvalue_exp(int *ok, LONG M)
+R_rvalue_exp(int *ok)
 {
     LONG n = 0;
     ENTER();
@@ -596,7 +695,7 @@ R_rvalue_exp(int *ok, LONG M)
         next_token(); /* skip ID */
         next_token(); /* skip '(' */
         if (!IS(T_CLOSEBRACE)) {
-            args = R_argument_exp_list(ok, M);
+            args = R_argument_exp_list(ok);
         }
         if (*ok) {
             if (!IS(T_CLOSEBRACE)) {
@@ -652,6 +751,51 @@ R_rvalue_exp(int *ok, LONG M)
                             }
                         }
                     }
+                } else if (!strcmp(func, "avg")) {
+                    if (!args) {
+                        message(D_ERROR, MSG_ERROR, _("function '%s' requires at least one argument"), func);
+                        *ok = 0;
+                    } else {
+                        size_t i = 0;
+                        n = 0;
+                        /*args = reverse_list(args);*/
+                        for (p = args; p; p = p->next) {
+                            n += p->val;
+                            i++;
+                        }
+                        n /= i;
+                    }
+                } else if (!strcmp(func, "floor") || !strcmp(func, "ceil")) {
+                    if (!args || !args->next || args->next->next) {
+                        message(D_ERROR, MSG_ERROR, _("function '%s' requires two arguments"), func);
+                        *ok = 0;
+                    } else {
+                        LONG a = args->val;
+                        n = args->next->val;
+                        if (!a) {
+                            message(D_ERROR, MSG_ERROR, _("division by zero"));
+                            *ok = 0;
+                        } else {
+                            if (!func[4]) {
+                                n += a - 1;
+                            }
+                            n = n / a * a;
+                        }
+                    }
+                } else if (!strcmp(func, "gcd")) {
+                    if (!args || !args->next || args->next->next) {
+                        message(D_ERROR, MSG_ERROR, _("function '%s' requires two arguments"), func);
+                        *ok = 0;
+                    } else {
+                        n = gcd(args->val, args->next->val);
+                    }
+                } else if (!strcmp(func, "lcm")) {
+                    if (!args || !args->next || args->next->next) {
+                        message(D_ERROR, MSG_ERROR, _("function '%s' requires two arguments"), func);
+                        *ok = 0;
+                    } else {
+                        n = lcm(args->val, args->next->val);
+                    }
                 } else {
                     message(D_ERROR, MSG_ERROR, _("unknown function '%s'"), func);
                     *ok = 0;
@@ -666,7 +810,7 @@ R_rvalue_exp(int *ok, LONG M)
         free(func);
     } else if (IS(T_OPENBRACE)) {
         next_token(); /* skip '(' */
-        n = R_or_exp(ok, M);
+        n = R_or_exp(ok);
         if (*ok) {
             if (!IS(T_CLOSEBRACE)) {
                 expect("')'");
@@ -677,35 +821,30 @@ R_rvalue_exp(int *ok, LONG M)
         }
     } else if (IS(T_ADD)) {
         next_token(); /* skip '+' */
-        n = R_rvalue_exp(ok, M);
+        n = R_rvalue_exp(ok);
     } else if (IS(T_SUB)) {
         next_token(); /* skip '-' */
-        n = -R_rvalue_exp(ok, M);
+        n = -R_rvalue_exp(ok);
     } else if (IS(T_NOT)) {
         next_token(); /* skip '~' */
-        n = ~R_rvalue_exp(ok, M);
+        n = ~R_rvalue_exp(ok);
     } else if (IS(T_ID)) {
-#ifdef HAVE_MAIN
-        char answer[256];
         if (!varlist(token.sym, &n, 0)) {
-            fprintf(stderr, "unknown variable '%s': ", token.sym);
-            fgets(answer, sizeof(answer), stdin);
-            n = strtoull(answer, NULL, 0);
-            varlist(token.sym, NULL, n);
-        }
-        fprintf(stderr, "%s = %"LFMT"d\n", token.sym, n);
-        next_token(); /* skip ID */
-#else
-        if (!strcmp(token.sym, "M") || !strcmp(token.sym, "m")) {
-            n = M;
-            next_token(); /* skip ID */
-        } else {
             message(D_ERROR, MSG_ERROR, _("unknown identifier: '%s'"), token.sym);
             *ok = 0;
         }
-#endif
+        next_token(); /* skip ID */
     } else if (IS(T_INT)) {
-        n = strtoull(token.sym, NULL, 0);
+        char *bp;
+        n = strton(token.sym, &bp, 0);
+        switch (*bp) {
+            case 'G':
+                n *= 1024;
+            case 'M':
+                n *= 1024;
+            case 'k':
+                n *= 1024;
+        }
         next_token(); /* skip number */
     } else {
         expect("expression");
@@ -716,7 +855,7 @@ R_rvalue_exp(int *ok, LONG M)
 }
 
 static LONG
-do_eval_expr(char *buf, int *ok, LONG M)
+do_eval_expr(char *buf, int *ok)
 {
     LONG n = 0;
     if (tokenize(buf) <= 0) {
@@ -725,7 +864,7 @@ do_eval_expr(char *buf, int *ok, LONG M)
     }
     *ok = 1;
     next_token();
-    n = R_or_exp(ok, M);
+    n = R_assignment_exp(ok);
     if (*ok && !IS(T_EOI)) {
         message(D_ERROR, MSG_ERROR, _("junk at '%s'"), token.sym);
         *ok = 0;
@@ -744,9 +883,9 @@ main(void)
     LONG val;
     char buf[BUFSIZ];
     while (fgets(buf, sizeof(buf), stdin)) {
-        val = do_eval_expr(buf, &ok, 0);
+        val = do_eval_expr(buf, &ok);
         if (ok) {
-            fprintf(stderr, "E = %"LFMT"d\n", val);
+            fprintf(stderr, "> %"LFMT"d\n", val);
         }
     }
     varlist(NULL, NULL, 0);
@@ -754,6 +893,76 @@ main(void)
     return 0;
 }
 #else
+static int
+show_vars (int action)
+{
+    int rv;
+    Widget w, *in;
+    char buf[256];
+    size_t l1, l2;
+    int rows, cols;
+    Listbox *listbox;
+    struct tuple_t *n = NULL;
+
+    if (action == B_USER + 3) {
+        varlist(NULL, NULL, 0);
+    }
+
+    if (!vars) {
+        goto done;
+    }
+
+    w.x = current_dlg->x;
+    w.y = current_dlg->y;
+    w.cols = current_dlg->cols;
+    w.lines = current_dlg->lines;
+
+    rows = 0;
+    cols = 11;
+    for (l1 = 0, l2 = 0, n = vars; n; n = n->next) {
+        size_t len = strlen(n->name);
+        if (l1 < len) {
+            l1 = len;
+        }
+        len = snprintf(buf, sizeof(buf), "0x%"LFMT"x", n->value);
+        if (l2 < len) {
+            l2 = len;
+        }
+        rows++;
+    }
+    if (cols < l1 + l2 + 5) {
+        cols = l1 + l2 + 5;
+    }
+
+    listbox = create_listbox_compact(&w, cols + 2, rows, _(" Variables "), NULL);
+    /*listbox = create_listbox_window (cols + 2, rows, _(" Variables "), NULL);*/
+    if (listbox == NULL) {
+        return 0;
+    }
+    for (n = vars; n; n = n->next) {
+        snprintf(buf, sizeof(buf), "%-*s = 0x%"LFMT"x", (int)l1, n->name, n->value);
+        LISTBOX_APPEND_TEXT(listbox, 0, buf, NULL);
+    }
+
+    rv = run_listbox(listbox);
+    if (rv != -1) {
+        for (n = vars; n && rv > 0; n = n->next) {
+            rv--;
+        }
+    }
+
+  done:
+    in = find_widget_type(current_dlg, input_callback);
+    if (in) {
+        if (n) {
+            stuff((WInput *)in, n->name, 1);
+        }
+        dlg_select_widget(in);
+    }
+
+    return 0;
+}
+
 char *
 do_eval(void)
 {
@@ -765,7 +974,7 @@ do_eval(void)
     static char result_neg[22];
     static char result_asc[9];
     static char result_bin[45];
-    static unsigned LONG M = 0;
+    bcback callback = show_vars;
 
     enum {
         EVAL_DLG_HEIGHT = 13,
@@ -773,11 +982,12 @@ do_eval(void)
     };
 
     static QuickWidget quick_widgets[] = {
-        { quick_button, 9, 12, 9, EVAL_DLG_HEIGHT, N_("&Cancel"), 0, B_CANCEL, 0, 0, NULL },
-        { quick_button, 7, 12, 9, EVAL_DLG_HEIGHT, N_("D&ec"), 0, B_USER + 2, 0, 0, NULL },
-        { quick_button, 5, 12, 9, EVAL_DLG_HEIGHT, N_("He&x"), 0, B_USER + 1, 0, 0, NULL },
-        { quick_button, 3, 12, 9, EVAL_DLG_HEIGHT, N_("&Mem"), 0, B_USER + 0, 0, 0, NULL },
-        { quick_button, 1, 12, 9, EVAL_DLG_HEIGHT, N_("&OK"), 0, B_ENTER, 0, 0, NULL },
+        { quick_button, 45, EVAL_DLG_WIDTH, 2, EVAL_DLG_HEIGHT, N_("V"), 0, B_USER + 2, 0, 0, NULL },
+        { quick_button, 50, EVAL_DLG_WIDTH, 2, EVAL_DLG_HEIGHT, N_("C"), 0, B_USER + 3, 0, 0, NULL },
+        { quick_button, 41, EVAL_DLG_WIDTH, 9, EVAL_DLG_HEIGHT, N_("&Cancel"), 0, B_CANCEL, 0, 0, NULL },
+        { quick_button, 30, EVAL_DLG_WIDTH, 9, EVAL_DLG_HEIGHT, N_("D&ec"), 0, B_USER + 1, 0, 0, NULL },
+        { quick_button, 19, EVAL_DLG_WIDTH, 9, EVAL_DLG_HEIGHT, N_("He&x"), 0, B_USER + 0, 0, 0, NULL },
+        { quick_button, 7, EVAL_DLG_WIDTH, 9, EVAL_DLG_HEIGHT, N_("&OK"), 0, B_ENTER, 0, 0, NULL },
         { quick_label, 2, EVAL_DLG_WIDTH, 7, EVAL_DLG_HEIGHT, N_(" Bin: "), 0, 0, 0, 0, 0 },
         { quick_label, 2, EVAL_DLG_WIDTH, 6, EVAL_DLG_HEIGHT, N_(" Oct: "), 0, 0, 0, 0, 0 },
         { quick_label, 2, EVAL_DLG_WIDTH, 5, EVAL_DLG_HEIGHT, N_(" Dec: "), 0, 0, 0, 0, 0 },
@@ -789,7 +999,6 @@ do_eval(void)
         { quick_label, 32, EVAL_DLG_WIDTH, 4, EVAL_DLG_HEIGHT, "", 0, 0, 0, 0, 0 },
         { quick_label, 8, EVAL_DLG_WIDTH, 4, EVAL_DLG_HEIGHT, "", 0, 0, 0, 0, 0 },
         { quick_input, 3, EVAL_DLG_WIDTH, 3, EVAL_DLG_HEIGHT, "", 52, 0, 0, 0, N_("Evaluate") },
-        { quick_label, 35, EVAL_DLG_WIDTH, 2, EVAL_DLG_HEIGHT, "", 0, 0, 0, 0, 0 },
         { quick_label, 2, EVAL_DLG_WIDTH, 2, EVAL_DLG_HEIGHT, N_(" Enter expression:"), 0, 0, 0, 0, 0 },
         NULL_QuickWidget
     };
@@ -797,26 +1006,21 @@ do_eval(void)
         EVAL_DLG_WIDTH, EVAL_DLG_HEIGHT, -1, 0, N_("Evaluate"), "[Evaluate]", quick_widgets, 0
     };
 
-    quick_widgets[15].str_result = &exp;
-    quick_widgets[15].text = last_eval_string;
+    quick_widgets[0].result = (int *)&callback;
+    quick_widgets[1].result = (int *)&callback;
+    quick_widgets[16].str_result = &exp;
+    quick_widgets[16].text = last_eval_string;
 
     while (1) {
         int ok, rv;
         LONG result;
-
-        char memo[256];
-        quick_widgets[16].text = "";
-        if (M) {
-            snprintf(memo, sizeof(memo), "M:0x%"LFMT"x", M);
-            quick_widgets[16].text = memo;
-        }
 
         rv = quick_dialog(&Quick_input);
         if (rv < B_USER && rv != B_ENTER) {
             break;
         }
 
-        result = do_eval_expr(exp, &ok, M);
+        result = do_eval_expr(exp, &ok);
 
         *result_hex = '\0';
         *result_dec = '\0';
@@ -828,9 +1032,6 @@ do_eval(void)
             int i;
             char *p;
             unsigned LONG tmp;
-            if (rv == B_USER) {
-                M = result;
-            }
             snprintf(result_hex, sizeof(result_hex), "0x%"LFMT"x", result);
             snprintf(result_dec, sizeof(result_dec), "%"LFMT"u", result);
             snprintf(result_oct, sizeof(result_oct), result ? "0%"LFMT"o" : "%"LFMT"o", result);
@@ -863,25 +1064,23 @@ do_eval(void)
             }
         } else if (exp && *exp) {
             strcpy(result_neg, "Error");
-        } else if (rv == B_USER) {
-            M = 0;
         }
 
         g_free(last_eval_string);
-        quick_widgets[15].text = last_eval_string = exp;
+        quick_widgets[16].text = last_eval_string = exp;
         exp = NULL;
 
-        quick_widgets[9].text = result_bin;
-        quick_widgets[10].text = result_oct;
-        quick_widgets[11].text = result_neg;
-        quick_widgets[12].text = result_dec;
-        quick_widgets[13].text = result_asc;
-        quick_widgets[14].text = result_hex;
+        quick_widgets[10].text = result_bin;
+        quick_widgets[11].text = result_oct;
+        quick_widgets[12].text = result_neg;
+        quick_widgets[13].text = result_dec;
+        quick_widgets[14].text = result_asc;
+        quick_widgets[15].text = result_hex;
 
         switch (rv) {
-            case B_USER + 1:
+            case B_USER + 0:
                 return ok ? strdup(result_hex) : NULL;
-            case B_USER + 2:
+            case B_USER + 1:
                 return ok ? strdup(result_dec) : NULL;
         }
     }
