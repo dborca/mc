@@ -60,6 +60,7 @@
 #include "win.h"
 #include "execute.h"
 #include "main.h"		/* slow_terminal */
+#include "eval.h"
 #include "view.h"
 
 #include "charsets.h"
@@ -3480,6 +3481,12 @@ view_handle_key (WView *view, int c)
 	view->dpy_start = view->marks[view->marker];
 	view->dirty++;
 	return MSG_HANDLED;
+
+#ifdef USE_EVALUATOR
+    case ALT ('='):
+	free(do_eval());
+	return MSG_HANDLED;
+#endif
 
     case 'F':
 	if (!view_is_in_panel(view)) {
