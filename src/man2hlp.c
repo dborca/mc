@@ -204,6 +204,10 @@ string_len (const char *buffer)
 	if (c >= 0 && c < 32)
 	    continue;
 	/* Attempt to handle backslash quoting */
+	if (backslash_flag && c == 0x28 && buffer[0] == 'd' && buffer[1] == 'q') {
+	    c = '\"';
+	    buffer += 2;
+	}
 	if (c == '\\' && !backslash_flag) {
 	    backslash_flag = 1;
 	    continue;
@@ -265,6 +269,10 @@ print_string (char *buffer)
 		/* Attempt to handle backslash quoting */
 		while (*(buffer)) {
 		    c = *buffer++;
+		    if (backslash_flag && c == 0x28 && buffer[0] == 'd' && buffer[1] == 'q') {
+			c = '\"';
+			buffer += 2;
+		    }
 		    if (c == '\\' && !backslash_flag) {
 			backslash_flag = 1;
 			continue;
@@ -528,6 +536,10 @@ handle_command (char *buffer)
 
 	/* Attempt to handle backslash quoting */
 	for (w = &buffer[1]; *p; p++) {
+	    /*if (backslash_flag && *p == 0x28 && p[1] == 'd' && p[2] == 'q') {
+		p += 2;
+		*p = '\"';
+	    }*/
 	    if (*p == '\\' && !backslash_flag) {
 		backslash_flag = 1;
 		continue;
