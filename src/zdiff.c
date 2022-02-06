@@ -710,7 +710,7 @@ cvt_mget(const char *name, const char *link, int isdir, char *buf, int width, in
 
 
 static void
-free_pair (void *p)
+_free_pair (void *p)
 {
     LNODE *n = p;
     if (n->name[0] != NULL) {
@@ -779,7 +779,7 @@ redo_diff (WDiff *view)
     arr_init(&view->z, sizeof(LNODE), 256);
     rv = diff_file(view, view->dir[0], NULL, view->dir[1], NULL, view->recursive, NULL, printer);
     if (rv != 0 || view->z.error) {
-	arr_free(&view->z, free_pair);
+	arr_free(&view->z, _free_pair);
 	return -1;
     }
     return calc_diffs(&view->z);
@@ -956,7 +956,7 @@ view_init (WDiff *view, int recursive, const char *dir1, const char *dir2)
 static void
 view_fini (WDiff *view)
 {
-    arr_free(&view->z, free_pair);
+    arr_free(&view->z, _free_pair);
 }
 
 
