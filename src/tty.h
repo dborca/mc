@@ -21,6 +21,7 @@
 #        include <curses.h>
 #    endif
 #ifdef WANT_TERM_H
+#    define NCURSES_INTERNALS
 #    include <term.h>
 #endif /* WANT_TERM_H */
 #endif /* USE_NCURSES */
