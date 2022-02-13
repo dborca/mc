@@ -597,6 +597,7 @@ tar_read_header (struct vfs_class *me, struct vfs_s_super *archive,
 				  LINK_NO_FOLLOW, 0);
 	    if (inode == NULL) {
 		message (1, MSG_ERROR, _("Inconsistent tar archive"));
+		return STATUS_BADCHECKSUM;
 	    } else {
 		entry = vfs_s_new_entry (me, p, inode);
 		vfs_s_insert_entry (me, parent, entry);
