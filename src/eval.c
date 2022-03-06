@@ -63,6 +63,8 @@ message(int flags, char *title, const char *fmt, ...)
 #include "charsets.h"
 #endif
 
+static int signed_op = 0;
+
 /*** util *******************************************************************/
 
 #ifdef EVAL_DEBUG
@@ -134,6 +136,7 @@ enum TOKTYPE {
     T_SUB,
     T_SHL,
     T_SHR,
+    T_ASR,
     T_AND,
     T_XOR,
     T_OR,
@@ -211,6 +214,9 @@ tokenize(const char *s)
             case '>':
                 if (s[1] == s[0]) {
                     s++;
+                    if (s[1] == s[0]) {
+                        s++;
+                    }
                     break;
                 }
             default:
@@ -281,10 +287,14 @@ eval_token(const char *s)
         type = T_ADD;
     } else if (!strcmp(s, "-")) {
         type = T_SUB;
+    } else if (!strcmp(s, "<<<")) {
+        type = T_SHL;
+    } else if (!strcmp(s, ">>>")) {
+        type = T_SHR;
     } else if (!strcmp(s, "<<")) {
         type = T_SHL;
     } else if (!strcmp(s, ">>")) {
-        type = T_SHR;
+        type = T_ASR;
     } else if (!strcmp(s, "&")) {
         type = T_AND;
     } else if (!strcmp(s, "^")) {
@@ -396,7 +406,7 @@ sqrti(unsigned LONG n, unsigned LONG *r)
 {
     unsigned LONG root = 0;
     unsigned LONG remainder = n;
-    unsigned LONG place = (unsigned LONG)1 << (sizeof(unsigned LONG) * 8 - 2);
+    unsigned LONG place = (unsigned LONG)1 << (sizeof(n) * 8 - 2);
 
     while (place > remainder) {
         place = place >> 2;
@@ -414,8 +424,25 @@ sqrti(unsigned LONG n, unsigned LONG *r)
     return root;
 }
 
-static LONG
-gcd(LONG a, LONG b)
+static unsigned LONG
+cbrti(unsigned LONG x)
+{
+    int s;
+    unsigned LONG b;
+    unsigned int y = 0;
+    for (s = sizeof(x) * 8 / 3 * 3; s >= 0; s -= 3) {
+        y += y;
+        b = 3 * y * ((unsigned LONG)y + 1) + 1;
+        if ((x >> s) >= b) {
+            x -= b << s;
+            y++;
+        }
+    }
+    return y;
+}
+
+static unsigned LONG
+gcd(unsigned LONG a, unsigned LONG b)
 {
     int k;
 
@@ -459,13 +486,244 @@ gcd(LONG a, LONG b)
     return a << k;
 }
 
-static LONG
-lcm(LONG a, LONG b)
+static unsigned LONG
+bfill(unsigned LONG n)
 {
+    size_t i;
+    if (n) {
+        n--;
+        for (i = 1; i < sizeof(n) * 8; i *= 2) {
+            n |= n >> i;
+        }
+    }
+    return n;
+}
+
+static LONG
+fn_abs(const char *func, struct node *args, int *ok)
+{
+    LONG n = args->val;
+    if (n < 0) {
+        n = -n;
+    }
+    return n;
+}
+
+static LONG
+fn_sqrt(const char *func, struct node *args, int *ok)
+{
+    unsigned LONG r;
+    LONG n = args->val;
+    if (n < 0 && signed_op) {
+        message(D_ERROR, MSG_ERROR, _("negative square root"));
+        *ok = 0;
+        return 0;
+    }
+    return sqrti(n, &r);
+}
+
+static LONG
+fn_cbrt(const char *func, struct node *args, int *ok)
+{
+    LONG n = args->val;
+    if (n < 0 && signed_op) {
+        return -cbrti(-n);
+    }
+    return cbrti(n);
+}
+
+static LONG
+fn_min(const char *func, struct node *args, int *ok)
+{
+    struct node *p;
+    unsigned LONG n = args->val;
+    for (p = args->next; p; p = p->next) {
+        if (signed_op) {
+            if ((LONG)n > p->val) {
+                n = p->val;
+            }
+        } else {
+            if (n > p->val) {
+                n = p->val;
+            }
+        }
+    }
+    return n;
+}
+
+static LONG
+fn_max(const char *func, struct node *args, int *ok)
+{
+    struct node *p;
+    unsigned LONG n = args->val;
+    for (p = args->next; p; p = p->next) {
+        if (signed_op) {
+            if ((LONG)n < p->val) {
+                n = p->val;
+            }
+        } else {
+            if (n < p->val) {
+                n = p->val;
+            }
+        }
+    }
+    return n;
+}
+
+static LONG
+fn_avg(const char *func, struct node *args, int *ok)
+{
+    int i;
+    struct node *p;
+    LONG n = 0;
+    for (i = 0, p = args; p; p = p->next, i++) {
+        n += p->val;
+    }
+    return n / i;
+}
+
+static LONG
+fn_floor(const char *func, struct node *args, int *ok)
+{
+    unsigned LONG a = args->val;
+    unsigned LONG n = args->next->val;
+    if (!a) {
+        message(D_ERROR, MSG_ERROR, _("division by zero"));
+        *ok = 0;
+    } else {
+        n = n / a * a;
+    }
+    return n;
+}
+
+static LONG
+fn_ceil(const char *func, struct node *args, int *ok)
+{
+    unsigned LONG a = args->val;
+    unsigned LONG n = args->next->val;
+    if (!a) {
+        message(D_ERROR, MSG_ERROR, _("division by zero"));
+        *ok = 0;
+    } else {
+        n += a - 1;
+        n = n / a * a;
+    }
+    return n;
+}
+
+static LONG
+fn_gcd(const char *func, struct node *args, int *ok)
+{
+    return gcd(args->val, args->next->val);
+}
+
+static LONG
+fn_lcm(const char *func, struct node *args, int *ok)
+{
+    unsigned LONG a = args->val;
+    unsigned LONG b = args->next->val;
     if (a == 0 && b == 0) {
         return 0;
     }
     return a / gcd(a, b) * b;
+}
+
+static LONG
+fn_floor2(const char *func, struct node *args, int *ok)
+{
+    unsigned LONG n = args->val;
+    if (n) {
+        unsigned LONG k = n;
+        n = bfill(n);
+        if (n + 1 == 0 || n + 1 > k) {
+            n /= 2;
+        }
+        n++;
+    }
+    return n;
+}
+
+static LONG
+fn_ceil2(const char *func, struct node *args, int *ok)
+{
+    return bfill(args->val) + 1;
+}
+
+static LONG
+fn_bits(const char *func, struct node *args, int *ok)
+{
+    int bits;
+    unsigned LONG n = args->val;
+    for (bits = 0; n; bits++) {
+        n >>= 1;
+    }
+    return bits;
+}
+
+static LONG
+fn_cdq(const char *func, struct node *args, int *ok)
+{
+    return (int)args->val;
+}
+
+static LONG
+fn_error(const char *func, struct node *args, int *ok)
+{
+    message(D_ERROR, MSG_ERROR, _("unknown function '%s'"), func);
+    *ok = 0;
+    return 0;
+}
+
+static LONG
+builtin_call(const char *func, struct node *args, int *ok)
+{
+    static const struct {
+        const char *name;
+        int nargs;
+        int flags;
+        LONG (*call)(const char *name, struct node *args, int *ok);
+    } tab[] = {
+        { "abs",   1, 0, fn_abs },
+        { "sqrt",  1, 0, fn_sqrt },
+        { "cbrt",  1, 0, fn_cbrt },
+        { "min",   2, 1, fn_min },
+        { "max",   2, 1, fn_max },
+        { "avg",   1, 1, fn_avg },
+        { "floor", 2, 0, fn_floor },
+        { "ceil",  2, 0, fn_ceil },
+        { "gcd",   2, 0, fn_gcd },
+        { "lcm",   2, 0, fn_lcm },
+        { "floor2", 1, 0, fn_floor2 },
+        { "ceil2", 1, 0, fn_ceil2 },
+        { "bits",  1, 0, fn_bits },
+        { "cdq",   1, 0, fn_cdq },
+        { NULL,   -1, 0, fn_error }
+    };
+
+    size_t i;
+    int n, nargs;
+    struct node *p;
+    for (i = 0; tab[i].name && strcmp(func, tab[i].name); i++) {
+        continue;
+    }
+    for (n = 0, p = args; p; p = p->next, n++) {
+        continue;
+    }
+    nargs = tab[i].nargs;
+    if (nargs >= 0 && nargs != n) {
+        if (tab[i].flags) {
+            if (nargs > n) {
+                message(D_ERROR, MSG_ERROR, _("function '%s' requires at least %d arguments"), func, nargs);
+                *ok = 0;
+                return 0;
+            }
+        } else {
+            message(D_ERROR, MSG_ERROR, _("function '%s' requires %d arguments"), func, nargs);
+            *ok = 0;
+            return 0;
+        }
+    }
+    return tab[i].call(func, args, ok);
 }
 
 static void
@@ -490,19 +748,26 @@ R_pow_exp(int *ok)
     ENTER();
     n = R_rvalue_exp(ok);
     if (*ok && (IS(T_POW))) {
-        LONG v;
+        LONG k;
         next_token(); /* skip '**' */
-        v = R_pow_exp(ok);
+        k = R_pow_exp(ok);
         if (*ok) {
-            if (v < 0) {
+            if (k < 0) {
                 message(D_ERROR, MSG_ERROR, _("negative powers not supported"));
                 *ok = 0;
             } else {
-                LONG val = 1;
-                while (v--) {
-                    val *= n;
+                LONG p = n;
+                n = 1;
+                while (n) {
+                    if (k & 1) {
+                        n *= p;
+                    }
+                    k >>= 1;
+                    if (k == 0) {
+                        break;
+                    }
+                    p *= p;
                 }
-                n = val;
             }
         }
     }
@@ -526,9 +791,17 @@ R_mul_exp(int *ok)
                 n *= v;
             } else if (v) {
                 if (op == T_DIV) {
-                    n /= v;
+                    if (signed_op) {
+                        n /= v;
+                    } else {
+                        n = (unsigned LONG)n / v;
+                    }
                 } else {
-                    n %= v;
+                    if (signed_op) {
+                        n %= v;
+                    } else {
+                        n = (unsigned LONG)n % v;
+                    }
                 }
             } else {
                 message(D_ERROR, MSG_ERROR, _("division by zero"));
@@ -569,16 +842,29 @@ R_shift_exp(int *ok)
     LONG n;
     ENTER();
     n = R_add_exp(ok);
-    while (*ok && (IS(T_SHL) || IS(T_SHR))) {
+    while (*ok && (IS(T_SHL) || IS(T_SHR) || IS(T_ASR))) {
         LONG v;
         enum TOKTYPE op = token.type;
         next_token(); /* skip '<<' */
         v = R_add_exp(ok);
         if (*ok) {
-            if (op == T_SHL) {
-                n <<= v;
+            if (v < 0) {
+                message(D_ERROR, MSG_ERROR, _("negative shift count"));
+                *ok = 0;
             } else {
-                n >>= v;
+                v &= sizeof(LONG) * 8 - 1;
+                switch (op) {
+                    case T_SHL:
+                        n <<= v;
+                        break;
+                    case T_SHR:
+                        n = (unsigned LONG)n >> v;
+                        break;
+                    case T_ASR:
+                        n >>= v;
+                        break;
+                    default:; /* silence */
+                }
             }
         }
     }
@@ -653,7 +939,7 @@ R_assignment_exp(int *ok)
         next_token(); /* skip '=' */
     }
     n = R_or_exp(ok);
-    if (ok && lval) {
+    if (*ok && lval) {
         /* XXX should ban internal functions */
         varlist(lval, NULL, n);
     }
@@ -703,103 +989,7 @@ R_rvalue_exp(int *ok)
                 *ok = 0;
             } else {
                 next_token(); /* skip ')' */
-                if (!strcmp(func, "abs")) {
-                    if (!args || args->next) {
-                        message(D_ERROR, MSG_ERROR, _("function '%s' requires one argument"), func);
-                        *ok = 0;
-                    } else {
-                        n = args->val;
-                        if (n < 0) {
-                            n = -n;
-                        }
-                    }
-                } else if (!strcmp(func, "sqrt")) {
-                    if (!args || args->next) {
-                        message(D_ERROR, MSG_ERROR, _("function '%s' requires one argument"), func);
-                        *ok = 0;
-                    } else {
-                        unsigned LONG r;
-                        n = args->val;
-                        if (n < 0) {
-                            message(D_ERROR, _("Warning"), _("negative number treated as unsigned 0x%"LFMT"x"), n);
-                        }
-                        n = sqrti(n, &r);
-                    }
-                } else if (!strcmp(func, "min")) {
-                    if (!args || !args->next) {
-                        message(D_ERROR, MSG_ERROR, _("function '%s' requires at least two arguments"), func);
-                        *ok = 0;
-                    } else {
-                        /*args = reverse_list(args);*/
-                        n = args->val;
-                        for (p = args->next; p; p = p->next) {
-                            if (n > p->val) {
-                                n = p->val;
-                            }
-                        }
-                    }
-                } else if (!strcmp(func, "max")) {
-                    if (!args || !args->next) {
-                        message(D_ERROR, MSG_ERROR, _("function '%s' requires at least two arguments"), func);
-                        *ok = 0;
-                    } else {
-                        /*args = reverse_list(args);*/
-                        n = args->val;
-                        for (p = args->next; p; p = p->next) {
-                            if (n < p->val) {
-                                n = p->val;
-                            }
-                        }
-                    }
-                } else if (!strcmp(func, "avg")) {
-                    if (!args) {
-                        message(D_ERROR, MSG_ERROR, _("function '%s' requires at least one argument"), func);
-                        *ok = 0;
-                    } else {
-                        size_t i = 0;
-                        n = 0;
-                        /*args = reverse_list(args);*/
-                        for (p = args; p; p = p->next) {
-                            n += p->val;
-                            i++;
-                        }
-                        n /= i;
-                    }
-                } else if (!strcmp(func, "floor") || !strcmp(func, "ceil")) {
-                    if (!args || !args->next || args->next->next) {
-                        message(D_ERROR, MSG_ERROR, _("function '%s' requires two arguments"), func);
-                        *ok = 0;
-                    } else {
-                        LONG a = args->val;
-                        n = args->next->val;
-                        if (!a) {
-                            message(D_ERROR, MSG_ERROR, _("division by zero"));
-                            *ok = 0;
-                        } else {
-                            if (!func[4]) {
-                                n += a - 1;
-                            }
-                            n = n / a * a;
-                        }
-                    }
-                } else if (!strcmp(func, "gcd")) {
-                    if (!args || !args->next || args->next->next) {
-                        message(D_ERROR, MSG_ERROR, _("function '%s' requires two arguments"), func);
-                        *ok = 0;
-                    } else {
-                        n = gcd(args->val, args->next->val);
-                    }
-                } else if (!strcmp(func, "lcm")) {
-                    if (!args || !args->next || args->next->next) {
-                        message(D_ERROR, MSG_ERROR, _("function '%s' requires two arguments"), func);
-                        *ok = 0;
-                    } else {
-                        n = lcm(args->val, args->next->val);
-                    }
-                } else {
-                    message(D_ERROR, MSG_ERROR, _("unknown function '%s'"), func);
-                    *ok = 0;
-                }
+                n = builtin_call(func, args, ok);
             }
         }
         while (args) {
@@ -883,9 +1073,28 @@ main(void)
     LONG val;
     char buf[BUFSIZ];
     while (fgets(buf, sizeof(buf), stdin)) {
+        if (!strncmp(buf, "@sig", 4)) {
+            signed_op ^= 1;
+            printf("signed_op = %d\n", signed_op);
+            continue;
+        }
+        if (!strncmp(buf, "@var", 4)) {
+            struct tuple_t *n;
+            for (n = vars; n; n = n->next) {
+                printf("%s = 0x%"LFMT"x\n", n->name, n->value);
+            }
+            continue;
+        }
+        if (!strncmp(buf, "@clr", 4)) {
+            varlist(NULL, NULL, 0);
+            continue;
+        }
+        if (!strncmp(buf, "@bye", 4)) {
+            break;
+        }
         val = do_eval_expr(buf, &ok);
         if (ok) {
-            fprintf(stderr, "> %"LFMT"d\n", val);
+            fprintf(stderr, "> 0x%"LFMT"x (%"LFMT"d)\n", val, val);
         }
     }
     varlist(NULL, NULL, 0);
@@ -988,6 +1197,7 @@ do_eval(void)
         { quick_button, 30, EVAL_DLG_WIDTH, 9, EVAL_DLG_HEIGHT, N_("D&ec"), 0, B_USER + 1, 0, 0, NULL },
         { quick_button, 19, EVAL_DLG_WIDTH, 9, EVAL_DLG_HEIGHT, N_("He&x"), 0, B_USER + 0, 0, 0, NULL },
         { quick_button, 7, EVAL_DLG_WIDTH, 9, EVAL_DLG_HEIGHT, N_("&OK"), 0, B_ENTER, 0, 0, NULL },
+        { quick_checkbox, 1, 3, 8, EVAL_DLG_HEIGHT, N_(" &Signed arithmetic "), 11, 0, &signed_op, NULL, NULL },
         { quick_label, 2, EVAL_DLG_WIDTH, 7, EVAL_DLG_HEIGHT, N_(" Bin: "), 0, 0, 0, 0, 0 },
         { quick_label, 2, EVAL_DLG_WIDTH, 6, EVAL_DLG_HEIGHT, N_(" Oct: "), 0, 0, 0, 0, 0 },
         { quick_label, 2, EVAL_DLG_WIDTH, 5, EVAL_DLG_HEIGHT, N_(" Dec: "), 0, 0, 0, 0, 0 },
@@ -1008,8 +1218,8 @@ do_eval(void)
 
     quick_widgets[0].result = (int *)&callback;
     quick_widgets[1].result = (int *)&callback;
-    quick_widgets[16].str_result = &exp;
-    quick_widgets[16].text = last_eval_string;
+    quick_widgets[17].str_result = &exp;
+    quick_widgets[17].text = last_eval_string;
 
     while (1) {
         int ok, rv;
@@ -1067,15 +1277,15 @@ do_eval(void)
         }
 
         g_free(last_eval_string);
-        quick_widgets[16].text = last_eval_string = exp;
+        quick_widgets[17].text = last_eval_string = exp;
         exp = NULL;
 
-        quick_widgets[10].text = result_bin;
-        quick_widgets[11].text = result_oct;
-        quick_widgets[12].text = result_neg;
-        quick_widgets[13].text = result_dec;
-        quick_widgets[14].text = result_asc;
-        quick_widgets[15].text = result_hex;
+        quick_widgets[11].text = result_bin;
+        quick_widgets[12].text = result_oct;
+        quick_widgets[13].text = result_neg;
+        quick_widgets[14].text = result_dec;
+        quick_widgets[15].text = result_asc;
+        quick_widgets[16].text = result_hex;
 
         switch (rv) {
             case B_USER + 0:

@@ -2676,6 +2676,9 @@ can be postfixed by
 For example:
 .RI 4 k " = 4096, 1" M " = 1048576, etc."
 .PP
+All operations are performed using unsigned arithmetic, unless specifically
+stated. The signed/unsigned conversion is assumed to be two's complement.
+.PP
 Supported operators:
 .TP
 .B ()
@@ -2685,16 +2688,19 @@ parentheses
 bitwise not, unary plus/minus
 .TP
 .B **
-exponentiation
+exponentiation (power is always signed)
 .TP
 .B * / %
-multiply, divide, modulo
+multiply, divide, remainder (can be signed)
 .TP
 .B + -
 add, subtract
 .TP
-.B << >>
+.B <<< >>>
 logical shift left/right
+.TP
+.B << >>
+arithmetic shift left/right (always signed)
 .TP
 .B & ^ |
 logical bitwise and, xor, or (in this order of precedence).
@@ -2710,19 +2716,22 @@ will be parsed as
 .BR "1 + 2" .
 .PP
 There are several built-in functions. Function arguments are arithmetic
-expressions (but can not be assignments):
+expressions, but can not be assignments:
 .TP
 .B abs(<expr>)
-.RB "Absolute value: " "abs(-5)" " = 5."
+.RB "Absolute: " "abs(-5)" " = 5 (input is always signed)."
 .TP
 .B sqrt(<expr>)
 .RB "Integer square root: " "sqrt(2 * 5)" " = 3."
 .TP
+.B cbrt(<expr>)
+.RB "Integer cube root: " "cbrt(9)" " = 2 (can be signed)."
+.TP
 .B min(<expr>, <expr>, ...)
-.RB "Calculate minimum: " "min(1, 2, 3)" " = 1."
+.RB "Minimum value: " "min(1, 2, 3)" " = 1 (can be signed)."
 .TP
 .B max(<expr>, <expr>, ...)
-Calculate maximum.
+.RB "Maximum value: " "max(3, -1)" " = 0xffffffffffffffff (can be signed, in which case the result is 3)."
 .TP
 .B avg(<expr>, <expr>, ...)
 .RB "Arithmetic mean: " "avg(3, 5)" " = 4."
@@ -2738,6 +2747,18 @@ Calculate maximum.
 .TP
 .B lcm(<expr>, <expr>)
 .RB "Lowest common multiple: " "lcm(6, 9)" " = 18."
+.TP
+.B floor2(<expr>)
+.RB "Round down to power of 2: " "floor2(6)" " = 4."
+.TP
+.B ceil2(<expr>)
+.RB "Round to next power of 2: " "ceil2(6)" " = 8."
+.TP
+.B bits(<expr>)
+.RB "Bit width: " "bits(9)" " = 4."
+.TP
+.B cdq(<expr>)
+.RB "Convert int to native: " "cdq(1 << 31)" " = 0xffffffff80000000."
 .\"NODE "Diff Viewer"
 .SH "Diff Viewer"
 Side-by-side diff output.
