@@ -3249,6 +3249,9 @@ parse_ctags_line(const char *src, char *line, char *end, unsigned int *linenum, 
         if (!strncmp(line, "enum ", 5)) {
             *type = 'g';
         }
+        if (!strncmp(line, "macro ", 6)) {
+            *type = 'd';
+        }
         SKIP_NS(line, end);
         /* retry */
         n = strtol(line, &bp, 10);
@@ -3369,25 +3372,37 @@ edit_show_ctags(WEdit *edit)
 {
     int i;
     FILE *f;
+    int vfs = 0;
     int cols = 0;
     char line[1024];
     GArray *entries = NULL;
+    char *filename = edit->filename;
     char *(*parse)(const char *src, char *line, char *end, unsigned int *linenum, int *type);
     if (edit->modified) {
 	if (edit_query_dialog2 (_ ("Warning"), _ (" Current text was modified without a file save. "), _ ("C&ontinue"), _ ("&Cancel"))) {
 	    return;
 	}
     }
-    i = system(catstrs ("ctags --format=2 --fields=ks -n -f ", home_dir, PATH_SEP_STR TAGS_FILE, " \"", edit->filename, "\" 2>/dev/null", (char *) NULL));
+    if (!vfs_file_is_local(filename)) {
+	filename = mc_getlocalcopy(filename);
+	vfs = 3;
+    } else if (*filename != PATH_SEP && edit->dir) {
+	filename = concat_dir_and_file (edit->dir, filename);
+	vfs = 1;
+    }
+    if (!filename) {
+	return;
+    }
+    i = system(catstrs ("ctags --format=2 --fields=ks -n -f ", home_dir, PATH_SEP_STR TAGS_FILE, " \"", filename, "\" 2>/dev/null", (char *) NULL));
     if (i == 0) {
 	parse = parse_ctags_line_v2;
 	f = fopen(catstrs (home_dir, PATH_SEP_STR TAGS_FILE, (char *) NULL), "r");
     } else {
 	parse = parse_ctags_line;
-	f = popen(catstrs ("ctags -dwx \"", edit->filename, "\" 2>/dev/null", (char *) NULL), "r");
+	f = popen(catstrs ("ctags -dwx \"", filename, "\" 2>/dev/null", (char *) NULL), "r");
     }
     if (!f) {
-	return;
+	goto done;
     }
     entries = g_array_new(FALSE, FALSE, sizeof(struct ctag_t));
     while (fgets(line, sizeof(line), f)) {
@@ -3413,7 +3428,7 @@ edit_show_ctags(WEdit *edit)
 	    p--;
 	}
 	*p = '\0';
-	tag.symbol = parse(edit->filename, line, p, &tag.linenum, &tag.type);
+	tag.symbol = parse(filename, line, p, &tag.linenum, &tag.type);
 	if (!tag.symbol) {
 	    continue;
 	}
@@ -3458,4 +3473,11 @@ edit_show_ctags(WEdit *edit)
 	break;
     }
     g_array_free(entries, TRUE);
+  done:
+    if (vfs & 2) {
+	mc_ungetlocalcopy(edit->filename, filename, FALSE);
+    }
+    if (vfs & 1) {
+	g_free(filename);
+    }
 }
