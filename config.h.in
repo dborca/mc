@@ -509,6 +509,9 @@
 /* Define to 1 if you have the `tcsetattr' function. */
 #undef HAVE_TCSETATTR
 
+/* Define to 1 if `Nttyb.c_lflag' is a member of `TERMINAL'. */
+#undef HAVE_TERMINAL_NTTYB_C_LFLAG
+
 /* Define to 1 if you have the <termios.h> header file. */
 #undef HAVE_TERMIOS_H
 

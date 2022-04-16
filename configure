@@ -10678,6 +10678,21 @@ $as_echo "#define STDC_HEADERS 1" >>confdefs.h
 fi
 
 
+ac_fn_c_check_member "$LINENO" "TERMINAL" "Nttyb.c_lflag" "ac_cv_member_TERMINAL_Nttyb_c_lflag" "
+#define NCURSES_INTERNALS
+#include <term.h>
+
+"
+if test "x$ac_cv_member_TERMINAL_Nttyb_c_lflag" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_TERMINAL_NTTYB_C_LFLAG 1
+_ACEOF
+
+
+fi
+
+
 ac_fn_c_check_member "$LINENO" "struct stat" "st_blksize" "ac_cv_member_struct_stat_st_blksize" "$ac_includes_default"
 if test "x$ac_cv_member_struct_stat_st_blksize" = xyes; then :
 

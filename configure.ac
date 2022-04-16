@@ -186,6 +186,11 @@ AC_HEADER_SYS_WAIT
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 
+AC_CHECK_MEMBERS([TERMINAL.Nttyb.c_lflag], , , [
+#define NCURSES_INTERNALS
+#include <term.h>
+])
+
 dnl Missing structure components
 AC_CHECK_MEMBERS([struct stat.st_blksize, struct stat.st_rdev])
 AC_STRUCT_ST_BLOCKS

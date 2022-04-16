@@ -82,15 +82,19 @@ tty_enable_interrupt_key(void)
     sigaction (SIGINT, &act, NULL);
 
 #ifndef HAVE_SLANG
+#ifdef HAVE_TERMINAL_NTTYB_C_LFLAG
     /* unmask the terminal signals, but avoid cbreak() because of ^Z */
-#ifdef HAVE_TERMIOS_H
-    /*cur_term->Nttyb.c_cc[VINTR] = 3;           ^C */
-    cur_term->Nttyb.c_cc[VSUSP] = NULL_VALUE; /* ignore ^Z */
-    cur_term->Nttyb.c_lflag |= ISIG;          /* enable interrupts */
-#else
-    cur_term->Nttyb.s.sg_flags |= CBREAK;
+    /* cur_term->Nttyb.c_cc[VINTR] = CTRL('C'); */
+#ifdef VDSUSP
+    cur_term->Nttyb.c_cc[VDSUSP] = NULL_VALUE;
 #endif
+    cur_term->Nttyb.c_cc[VSUSP] = NULL_VALUE;
+    cur_term->Nttyb.c_cc[VQUIT] = NULL_VALUE;
+    cur_term->Nttyb.c_lflag |= ISIG;          /* enable interrupts */
     _nc_set_tty_mode(&cur_term->Nttyb);
+#else
+    cbreak();
+#endif
 #endif
 }
 
@@ -101,13 +105,17 @@ tty_disable_interrupt_key(void)
 
 #ifndef HAVE_SLANG
     /* mask the terminal signals */
-#ifdef HAVE_TERMIOS_H
-    cur_term->Nttyb.c_cc[VSUSP] = 26; /* ^Z */
+#ifdef HAVE_TERMINAL_NTTYB_C_LFLAG
     cur_term->Nttyb.c_lflag &= ~ISIG; /* disable interrupts */
-#else
-    cur_term->Nttyb.s.sg_flags |= RAW;
+#ifdef VDSUSP
+    cur_term->Nttyb.c_cc[VDSUSP] = CTRL('Y');
 #endif
+    cur_term->Nttyb.c_cc[VSUSP] = CTRL('Z');
+    cur_term->Nttyb.c_cc[VQUIT] = CTRL('\\');
     _nc_set_tty_mode(&cur_term->Nttyb);
+#else
+    raw();
+#endif
 #endif
 
     act.sa_handler = SIG_IGN;
