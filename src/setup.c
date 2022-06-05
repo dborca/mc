@@ -59,6 +59,10 @@
 #   include "../edit/edit.h"
 #endif
 
+#ifdef USE_EVALUATOR
+extern int eval_prec_scaler;
+#endif
+
 
 extern char **find_ignore_dirs;
 
@@ -219,6 +223,9 @@ static const struct {
     { "editor_edit_confirm_save", &edit_confirm_save },
     { "editor_syntax_highlighting", &option_syntax_highlighting },
 #endif /* USE_INTERNAL_EDIT */
+#ifdef USE_EVALUATOR
+    { "eval_prec_scaler", &eval_prec_scaler },
+#endif
 
     { "nice_rotating_dash", &nice_rotating_dash },
     { "horizontal_split",   &horizontal_split },

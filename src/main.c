@@ -800,7 +800,7 @@ eval_cmd (void)
     char *str = do_eval();
 
     if (str) {
-        command_insert (cmdline, str, 0);
+        stuff(cmdline, str, 1);
         free(str);
     }
 #endif

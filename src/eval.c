@@ -21,15 +21,6 @@
 #include <config.h>
 #include <ctype.h>
 #include <stdio.h>
-
-#ifdef HAVE_LONG_LONG
-#define LONG long long
-#define LFMT "ll"
-#else
-#define LONG long
-#define LFMT "l"
-#endif
-
 #ifdef HAVE_MAIN
 #include <assert.h>
 #include <stdarg.h>
@@ -37,6 +28,7 @@
 #include <string.h>
 
 #define _(string) string
+#define N_(string) string
 #define MSG_ERROR ((char *)-1)
 
 enum {
@@ -61,7 +53,42 @@ message(int flags, char *title, const char *fmt, ...)
 #include "charsets.h"
 #endif
 
+#ifdef HAVE_LONG_LONG
+#define LONG long long
+#define LFMT "ll"
+int eval_prec_scaler = 4;
+#else
+#define LONG long
+#define LFMT "l"
+int eval_prec_scaler = 3;
+#endif
+
+#define SET_SCALER() \
+    do { \
+        FIXED_ONE = 1; \
+        if (signed_op == 2) { \
+            int i; \
+            if (eval_prec_scaler < 1) { \
+                eval_prec_scaler = 1; \
+            } \
+            if (eval_prec_scaler > 9) { \
+                eval_prec_scaler = 9; \
+            } \
+            for (i = 0; i < eval_prec_scaler; i++) { \
+                FIXED_ONE *= 10; \
+            } \
+        } \
+    } while (0)
+
 static int signed_op = 0;
+
+static LONG FIXED_ONE = 1;
+
+static const char *eval_mode_str[] = {
+    N_("Unsigned"),
+    N_(" Signed "),
+    N_(" Scaled ")
+};
 
 /*** util *******************************************************************/
 
@@ -104,10 +131,42 @@ xstrndup(const char *s, size_t len)
     return p;
 }
 
+static char *
+ftoa(LONG n)
+{
+    static char tmp[22];
+    char *p = tmp;
+    unsigned LONG q;
+    if (n < 0) {
+        *p++ = '-';
+        n = -n;
+    }
+    q = (unsigned LONG)n / FIXED_ONE;
+    snprintf(p, sizeof(tmp) - 1, "%"LFMT"u.%0*"LFMT"d", q, eval_prec_scaler, n - q * FIXED_ONE);
+    return tmp;
+}
+
 static LONG
 strton(const char *str, char **endptr, int base)
 {
     const char *p = str;
+    if (FIXED_ONE > 1) {
+        LONG n;
+        if (base && base != 10) {
+            *endptr = (char *)str;
+            return 0;
+        }
+        n = strtoull(str, endptr, 10) * FIXED_ONE;
+        if (**endptr == '.') {
+            LONG div = 1;
+            while (isdigit(*++(*endptr))) {
+                LONG ch = **endptr - '0';
+                div *= 10;
+                n += ch * FIXED_ONE / div;
+            }
+        }
+        return n;
+    }
     if ((base | 2) == 2 && str[0] == '0' && (str[1] | 0x20) == 'b') {
         p += 2;
         base = 2;
@@ -345,19 +404,6 @@ struct node {
     LONG val;
 };
 
-static void *
-reverse_list(struct node *n)
-{
-    struct node *next, *prev = NULL;
-    while (n) {
-        next = n->next;
-        n->next = prev;
-        prev = n;
-        n = next;
-    }
-    return prev;
-}
-
 static struct tuple_t {
     struct tuple_t *next;
     char *name;
@@ -517,7 +563,7 @@ fn_sqrt(const char *func, struct node *args, int *ok)
         *ok = 0;
         return 0;
     }
-    return sqrti(n, &r);
+    return sqrti(n * FIXED_ONE, &r);
 }
 
 static LONG
@@ -525,9 +571,9 @@ fn_cbrt(const char *func, struct node *args, int *ok)
 {
     LONG n = args->val;
     if (n < 0 && signed_op) {
-        return -cbrti(-n);
+        return -cbrti(-n * FIXED_ONE * FIXED_ONE);
     }
-    return cbrti(n);
+    return cbrti(n * FIXED_ONE * FIXED_ONE);
 }
 
 static LONG
@@ -672,6 +718,9 @@ fn_error(const char *func, struct node *args, int *ok)
     return 0;
 }
 
+#define FUN_VARARG 1
+#define FUN_NOFRAC 2
+
 static LONG
 builtin_call(const char *func, struct node *args, int *ok)
 {
@@ -681,27 +730,27 @@ builtin_call(const char *func, struct node *args, int *ok)
         int flags;
         LONG (*call)(const char *name, struct node *args, int *ok);
     } tab[] = {
-        { "abs",   1, 0, fn_abs },
-        { "sqrt",  1, 0, fn_sqrt },
-        { "cbrt",  1, 0, fn_cbrt },
-        { "min",   2, 1, fn_min },
-        { "max",   2, 1, fn_max },
-        { "avg",   1, 1, fn_avg },
-        { "floor", 2, 0, fn_floor },
-        { "ceil",  2, 0, fn_ceil },
-        { "gcd",   2, 0, fn_gcd },
-        { "lcm",   2, 0, fn_lcm },
-        { "floor2", 1, 0, fn_floor2 },
-        { "ceil2", 1, 0, fn_ceil2 },
-        { "bits",  1, 0, fn_bits },
-        { "cdq",   1, 0, fn_cdq },
-        { NULL,   -1, 0, fn_error }
+        { "abs",    1, 0,          fn_abs },
+        { "sqrt",   1, 0,          fn_sqrt },
+        { "cbrt",   1, 0,          fn_cbrt },
+        { "min",    2, FUN_VARARG, fn_min },
+        { "max",    2, FUN_VARARG, fn_max },
+        { "avg",    1, FUN_VARARG, fn_avg },
+        { "floor",  2, 0,          fn_floor },
+        { "ceil",   2, 0,          fn_ceil },
+        { "gcd",    2, 0,          fn_gcd },
+        { "lcm",    2, 0,          fn_lcm },
+        { "floor2", 1, FUN_NOFRAC, fn_floor2 },
+        { "ceil2",  1, FUN_NOFRAC, fn_ceil2 },
+        { "bits",   1, FUN_NOFRAC, fn_bits },
+        { "cdq",    1, FUN_NOFRAC, fn_cdq },
+        { NULL,    -1, 0,          fn_error }
     };
 
     size_t i;
     int n, nargs;
     struct node *p;
-    for (i = 0; tab[i].name && strcmp(func, tab[i].name); i++) {
+    for (i = 0; tab[i].name && (strcmp(func, tab[i].name) || (FIXED_ONE > 1 && tab[i].flags & FUN_NOFRAC)); i++) {
         continue;
     }
     for (n = 0, p = args; p; p = p->next, n++) {
@@ -709,7 +758,7 @@ builtin_call(const char *func, struct node *args, int *ok)
     }
     nargs = tab[i].nargs;
     if (nargs >= 0 && nargs != n) {
-        if (tab[i].flags) {
+        if (tab[i].flags & FUN_VARARG) {
             if (nargs > n) {
                 message(D_ERROR, MSG_ERROR, _("function '%s' requires at least %d arguments"), func, nargs);
                 *ok = 0;
@@ -755,16 +804,25 @@ R_pow_exp(int *ok)
                 *ok = 0;
             } else {
                 LONG p = n;
-                n = 1;
+                n = FIXED_ONE;
+                if (FIXED_ONE > 1) {
+                    LONG q = k;
+                    k /= FIXED_ONE;
+                    if (k * FIXED_ONE != q) {
+                        message(D_ERROR, MSG_ERROR, _("fraction powers not supported"));
+                        *ok = 0;
+                        n = 0;
+                    }
+                }
                 while (n) {
                     if (k & 1) {
-                        n *= p;
+                        n = n * p / FIXED_ONE;
                     }
                     k >>= 1;
                     if (k == 0) {
                         break;
                     }
-                    p *= p;
+                    p = p * p / FIXED_ONE;
                 }
             }
         }
@@ -786,13 +844,13 @@ R_mul_exp(int *ok)
         v = R_pow_exp(ok);
         if (*ok) {
             if (op == T_MUL) {
-                n *= v;
+                n = n * v / FIXED_ONE;
             } else if (v) {
                 if (op == T_DIV) {
                     if (signed_op) {
-                        n /= v;
+                        n = n * FIXED_ONE / v;
                     } else {
-                        n = (unsigned LONG)n / v;
+                        n = (unsigned LONG)n * FIXED_ONE / v;
                     }
                 } else {
                     if (signed_op) {
@@ -843,6 +901,11 @@ R_shift_exp(int *ok)
     while (*ok && (IS(T_SHL) || IS(T_SHR) || IS(T_ASR))) {
         LONG v;
         enum TOKTYPE op = token.type;
+        if (FIXED_ONE > 1) {
+            message(D_ERROR, MSG_ERROR, _("bitwise op not supported"));
+            *ok = 0;
+            break;
+        }
         next_token(); /* skip '<<' */
         v = R_add_exp(ok);
         if (*ok) {
@@ -855,11 +918,13 @@ R_shift_exp(int *ok)
                     case T_SHL:
                         n <<= v;
                         break;
+                    case T_ASR:
+                        if (signed_op) {
+                            n >>= v;
+                            break;
+                        }
                     case T_SHR:
                         n = (unsigned LONG)n >> v;
-                        break;
-                    case T_ASR:
-                        n >>= v;
                         break;
                     default:; /* silence */
                 }
@@ -878,6 +943,11 @@ R_and_exp(int *ok)
     n = R_shift_exp(ok);
     while (*ok && IS(T_AND)) {
         LONG v;
+        if (FIXED_ONE > 1) {
+            message(D_ERROR, MSG_ERROR, _("bitwise op not supported"));
+            *ok = 0;
+            break;
+        }
         next_token(); /* skip '&' */
         v = R_shift_exp(ok);
         if (*ok) {
@@ -896,6 +966,11 @@ R_xor_exp(int *ok)
     n = R_and_exp(ok);
     while (*ok && IS(T_XOR)) {
         LONG v;
+        if (FIXED_ONE > 1) {
+            message(D_ERROR, MSG_ERROR, _("bitwise op not supported"));
+            *ok = 0;
+            break;
+        }
         next_token(); /* skip '^' */
         v = R_and_exp(ok);
         if (*ok) {
@@ -914,6 +989,11 @@ R_or_exp(int *ok)
     n = R_xor_exp(ok);
     while (*ok && IS(T_OR)) {
         LONG v;
+        if (FIXED_ONE > 1) {
+            message(D_ERROR, MSG_ERROR, _("bitwise op not supported"));
+            *ok = 0;
+            break;
+        }
         next_token(); /* skip '|' */
         v = R_xor_exp(ok);
         if (*ok) {
@@ -1016,6 +1096,10 @@ R_rvalue_exp(int *ok)
     } else if (IS(T_NOT)) {
         next_token(); /* skip '~' */
         n = ~R_rvalue_exp(ok);
+        if (FIXED_ONE > 1) {
+            message(D_ERROR, MSG_ERROR, _("bitwise op not supported"));
+            *ok = 0;
+        }
     } else if (IS(T_ID)) {
         if (!varlist(token.sym, &n, 0)) {
             message(D_ERROR, MSG_ERROR, _("unknown identifier: '%s'"), token.sym);
@@ -1071,28 +1155,37 @@ main(void)
     LONG val;
     char buf[BUFSIZ];
     while (fgets(buf, sizeof(buf), stdin)) {
-        if (!strncmp(buf, "@sig", 4)) {
-            signed_op ^= 1;
-            printf("signed_op = %d\n", signed_op);
+        if (!strncmp(buf, "@m", 2)) {
+            signed_op = (signed_op + 1) % 3;
+            SET_SCALER();
+            printf("mode = %s\n", eval_mode_str[signed_op]);
             continue;
         }
-        if (!strncmp(buf, "@var", 4)) {
+        if (!strncmp(buf, "@v", 2)) {
             struct tuple_t *n;
             for (n = vars; n; n = n->next) {
-                printf("%s = 0x%"LFMT"x\n", n->name, n->value);
+                if (FIXED_ONE > 1) {
+                    printf("%s = %s\n", n->name, ftoa(n->value));
+                } else {
+                    printf("%s = 0x%"LFMT"x\n", n->name, n->value);
+                }
             }
             continue;
         }
-        if (!strncmp(buf, "@clr", 4)) {
+        if (!strncmp(buf, "@c", 2)) {
             varlist(NULL, NULL, 0);
             continue;
         }
-        if (!strncmp(buf, "@bye", 4)) {
+        if (!strncmp(buf, "@q", 2)) {
             break;
         }
         val = do_eval_expr(buf, &ok);
         if (ok) {
-            fprintf(stderr, "> 0x%"LFMT"x (%"LFMT"d)\n", val, val);
+            if (FIXED_ONE > 1) {
+                fprintf(stderr, "> 0x%"LFMT"x (%s)\n", val, ftoa(val));
+            } else {
+                fprintf(stderr, "> 0x%"LFMT"x (%"LFMT"d)\n", val, val);
+            }
         }
     }
     varlist(NULL, NULL, 0);
@@ -1131,7 +1224,11 @@ show_vars (int action)
         if (l1 < len) {
             l1 = len;
         }
-        len = snprintf(buf, sizeof(buf), "0x%"LFMT"x", n->value);
+        if (FIXED_ONE > 1) {
+            len = strlen(ftoa(n->value));
+        } else {
+            len = snprintf(buf, sizeof(buf), "0x%"LFMT"x", n->value);
+        }
         if (l2 < len) {
             l2 = len;
         }
@@ -1147,7 +1244,11 @@ show_vars (int action)
         return 0;
     }
     for (n = vars; n; n = n->next) {
-        snprintf(buf, sizeof(buf), "%-*s = 0x%"LFMT"x", (int)l1, n->name, n->value);
+        if (FIXED_ONE > 1) {
+            snprintf(buf, sizeof(buf), "%-*s = %s", (int)l1, n->name, ftoa(n->value));
+        } else {
+            snprintf(buf, sizeof(buf), "%-*s = 0x%"LFMT"x", (int)l1, n->name, n->value);
+        }
         LISTBOX_APPEND_TEXT(listbox, 0, buf, NULL);
     }
 
@@ -1170,6 +1271,51 @@ show_vars (int action)
     return 0;
 }
 
+static int
+switch_mode (int action)
+{
+
+    Widget w, *in;
+    Listbox *listbox;
+    int rv, i, rows, cols;
+
+    rows = 3;
+    cols = 0;
+
+    for (i = 0; i < rows; i++) {
+        int len = strlen(eval_mode_str[i]);
+        if (cols < len) {
+            cols = len;
+        }
+    }
+
+    w.x = current_dlg->x;
+    w.y = current_dlg->y;
+    w.cols = current_dlg->cols;
+    w.lines = current_dlg->lines;
+
+    listbox = create_listbox_compact(&w, cols + 2, rows, NULL, NULL);
+
+    for (i = 0; i < rows; i++) {
+        LISTBOX_APPEND_TEXT(listbox, 0, eval_mode_str[i], NULL);
+    }
+    listbox_select_by_number(listbox->list, signed_op);
+
+    rv = run_listbox(listbox);
+    if (rv != -1) {
+        WButton *b = (WButton *)current_dlg->current;
+        button_set_text(b, eval_mode_str[signed_op = rv]);
+    }
+
+    SET_SCALER();
+
+    in = find_widget_type(current_dlg, input_callback);
+    if (in) {
+        dlg_select_widget(in);
+    }
+    return 1;
+}
+
 char *
 do_eval(void)
 {
@@ -1177,11 +1323,12 @@ do_eval(void)
     static char *last_eval_string;
     static char result_hex[19];
     static char result_oct[24];
-    static char result_dec[21];
+    static char result_dec[22];
     static char result_neg[22];
     static char result_asc[9];
     static char result_bin[45];
-    bcback callback = show_vars;
+    bcback vars_cb = show_vars;
+    bcback mode_cb = switch_mode;
 
     enum {
         EVAL_DLG_HEIGHT = 13,
@@ -1195,7 +1342,7 @@ do_eval(void)
         { quick_button, 30, EVAL_DLG_WIDTH, 9, EVAL_DLG_HEIGHT, N_("D&ec"), 0, B_USER + 1, 0, 0, NULL },
         { quick_button, 19, EVAL_DLG_WIDTH, 9, EVAL_DLG_HEIGHT, N_("He&x"), 0, B_USER + 0, 0, 0, NULL },
         { quick_button, 7, EVAL_DLG_WIDTH, 9, EVAL_DLG_HEIGHT, N_("&OK"), 0, B_ENTER, 0, 0, NULL },
-        { quick_checkbox, 1, 3, 8, EVAL_DLG_HEIGHT, N_(" &Signed arithmetic "), 11, 0, &signed_op, NULL, NULL },
+        { quick_button, 23, EVAL_DLG_WIDTH, 8, EVAL_DLG_HEIGHT, "mode", 0, B_USER + 4, 0, 0, NULL },
         { quick_label, 2, EVAL_DLG_WIDTH, 7, EVAL_DLG_HEIGHT, N_(" Bin: "), 0, 0, 0, 0, 0 },
         { quick_label, 2, EVAL_DLG_WIDTH, 6, EVAL_DLG_HEIGHT, N_(" Oct: "), 0, 0, 0, 0, 0 },
         { quick_label, 2, EVAL_DLG_WIDTH, 5, EVAL_DLG_HEIGHT, N_(" Dec: "), 0, 0, 0, 0, 0 },
@@ -1214,8 +1361,9 @@ do_eval(void)
         EVAL_DLG_WIDTH, EVAL_DLG_HEIGHT, -1, 0, N_("Evaluate"), "[Evaluate]", quick_widgets, 0
     };
 
-    quick_widgets[0].result = (int *)&callback;
-    quick_widgets[1].result = (int *)&callback;
+    quick_widgets[0].result = (int *)&vars_cb;
+    quick_widgets[1].result = (int *)&vars_cb;
+    quick_widgets[6].result = (int *)&mode_cb;
     quick_widgets[17].str_result = &exp;
     quick_widgets[17].text = last_eval_string;
 
@@ -1223,6 +1371,7 @@ do_eval(void)
         int ok, rv;
         LONG result;
 
+        quick_widgets[6].text = eval_mode_str[signed_op];
         rv = quick_dialog(&Quick_input);
         if (rv < B_USER && rv != B_ENTER) {
             break;
@@ -1236,12 +1385,14 @@ do_eval(void)
         *result_bin = '\0';
         *result_asc = '\0';
         *result_neg = '\0';
-        if (ok) {
+        if (ok && FIXED_ONE > 1) {
+            snprintf(result_dec, sizeof(result_dec), "%s", ftoa(result));
+        } else if (ok) {
             int i;
             char *p;
             unsigned LONG tmp;
             snprintf(result_hex, sizeof(result_hex), "0x%"LFMT"x", result);
-            snprintf(result_dec, sizeof(result_dec), "%"LFMT"u", result);
+            snprintf(result_dec, sizeof(result_dec), signed_op ? "%"LFMT"d" : "%"LFMT"u", result);
             snprintf(result_oct, sizeof(result_oct), result ? "0%"LFMT"o" : "%"LFMT"o", result);
             tmp = result;
             p = result_bin + sizeof(result_bin) - 1;
@@ -1268,7 +1419,7 @@ do_eval(void)
                 tmp >>= 8;
             }
             if (result < 0) {
-                snprintf(result_neg, sizeof(result_dec), "%"LFMT"d", result);
+                snprintf(result_neg, sizeof(result_neg), signed_op ? "%"LFMT"u" : "%"LFMT"d", result);
             }
         } else if (exp && *exp) {
             strcpy(result_neg, "Error");

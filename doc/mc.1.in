@@ -2678,6 +2678,12 @@ For example:
 .PP
 All operations are performed using unsigned arithmetic, unless specifically
 stated. The signed/unsigned conversion is assumed to be two's complement.
+In Scaled mode, all numbers are signed decimal and the bitwise operations
+are disabled (see
+.\"LINK2"
+Special Settings
+.\"Special Settings"
+for more information).
 .PP
 Supported operators:
 .TP
@@ -2696,11 +2702,10 @@ multiply, divide, remainder (can be signed)
 .B + -
 add, subtract
 .TP
-.B <<< >>>
-logical shift left/right
-.TP
 .B << >>
-arithmetic shift left/right (always signed)
+shift left/right (can be signed; use
+.B >>>
+for logical shift)
 .TP
 .B & ^ |
 logical bitwise and, xor, or (in this order of precedence).
@@ -2758,7 +2763,7 @@ expressions, but can not be assignments:
 .RB "Bit width: " "bits(9)" " = 4."
 .TP
 .B cdq(<expr>)
-.RB "Convert int to native: " "cdq(1 << 31)" " = 0xffffffff80000000."
+.RB "Convert int to long long: " "cdq(1 << 31)" " = 0xffffffff80000000."
 .\"NODE "Diff Viewer"
 .SH "Diff Viewer"
 Side-by-side diff output.
@@ -3706,6 +3711,10 @@ contents of the selected directory.
 .I fish_directory_timeout
 This variable holds the lifetime of a directory cache entry in seconds. The
 default value is 900 seconds.
+.TP
+.I eval_prec_scaler
+This variable holds the precision used by the evaluator's Scaled mode. The
+default value is 4.
 .\"NODE "Terminal databases"
 .SH "Terminal databases"
 The Midnight Commander provides a way to fix your system terminal
