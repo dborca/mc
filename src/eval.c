@@ -22,8 +22,6 @@
 #include <ctype.h>
 #include <stdio.h>
 
-#ifdef USE_EVALUATOR
-
 #ifdef HAVE_LONG_LONG
 #define LONG long long
 #define LFMT "ll"
@@ -1298,6 +1296,4 @@ do_eval(void)
     g_free (exp);
     return NULL;
 }
-#endif
-
 #endif

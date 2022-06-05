@@ -60,7 +60,6 @@
 #include "win.h"
 #include "execute.h"
 #include "main.h"		/* slow_terminal */
-#include "eval.h"
 #include "view.h"
 
 #include "charsets.h"
@@ -68,6 +67,10 @@
 
 #ifdef USE_DLGSWITCH
 #include "dlgswitch.h"
+#endif
+
+#ifdef USE_EVALUATOR
+#include "eval.h"
 #endif
 
 /* Block size for reading files in parts */

@@ -46,7 +46,6 @@
 #include "tty.h"		/* LINES */
 #include "dialog.h"		/* Widget */
 #include "view.h"		/* mc_internal_viewer() */
-#include "zdiff.h"		/* view_diff_cmd() */
 #include "wtools.h"		/* message() */
 #include "widget.h"		/* push_history() */
 #include "key.h"		/* application_keypad_mode() */
@@ -69,6 +68,10 @@
 
 #ifdef USE_INTERNAL_EDIT
 #   include "../edit/edit.h"
+#endif
+
+#ifdef USE_DIFF_VIEW
+#include "zdiff.h"		/* view_diff_cmd() */
 #endif
 
 #ifdef USE_DLGSWITCH

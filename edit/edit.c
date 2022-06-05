@@ -43,7 +43,10 @@
 #include "../src/cmd.h"		/* view_other_cmd() */
 #include "../src/user.h"	/* user_menu_cmd() */
 #include "../src/wtools.h"	/* query_dialog() */
+
+#ifdef USE_EVALUATOR
 #include "../src/eval.h"
+#endif
 
 
 /*

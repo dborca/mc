@@ -60,7 +60,6 @@
 #include "listmode.h"
 #include "execute.h"
 #include "ext.h"		/* For flush_extension_file() */
-#include "eval.h"
 
 /* Listbox for the command history feature */
 #include "widget.h"
@@ -97,6 +96,10 @@
 
 #ifdef USE_DLGSWITCH
 #include "dlgswitch.h"
+#endif
+
+#ifdef USE_EVALUATOR
+#include "eval.h"
 #endif
 
 /* When the modes are active, left_panel, right_panel and tree_panel */

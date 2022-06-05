@@ -31,8 +31,6 @@
 #include "dlgswitch.h"
 
 
-#ifdef USE_DLGSWITCH
-
 #define LOG(format, ...) /*fprintf (stderr, format, ## __VA_ARGS__)*/
 
 
@@ -482,4 +480,3 @@ dlgswitch_got_winch (void)
 	}
     }
 }
-#endif
