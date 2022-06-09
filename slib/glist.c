@@ -8,7 +8,7 @@ g_list_free (GList *list)
   while (list)
     {
       GList *next = list->next;
-      free(list);
+      g_free(list);
       list = next;
     }
 }
