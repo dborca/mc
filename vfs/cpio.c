@@ -139,7 +139,7 @@ static void cpio_free_archive(struct vfs_class *me, struct vfs_s_super *super)
 
     if(super->u.arch.fd != -1)
 	mc_close(super->u.arch.fd);
-	super->u.arch.fd = -1;
+    super->u.arch.fd = -1;
     for (l = super->u.arch.deferred; l; l = lnext) {
 	lnext = l->next;
 	g_free (l);

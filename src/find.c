@@ -468,10 +468,10 @@ find_add_match (Dlg_head *h, const char *dir, const char *file)
 	listbox_select_last (find_list, 1);
     else
 	listbox_select_last (find_list, 0);
-	/* Updates the current listing */
-	send_message (&find_list->widget, WIDGET_DRAW, 0);
-	if (p == 7)
-	    mc_refresh ();
+    /* Updates the current listing */
+    send_message (&find_list->widget, WIDGET_DRAW, 0);
+    if (p == 7)
+	mc_refresh ();
 }
 
 /*
