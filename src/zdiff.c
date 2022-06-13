@@ -607,6 +607,9 @@ diff_file (WDiff *view, const char *r0, const char *f0, const char *r1, const ch
 		return printer(ctx, ERR_CH, f0, f1, l0, l1, 0);
 	    }
 	    if (!strcmp(l0, l1)) {
+		if (view->hideident) {
+		    return 0;
+		}
 		return printer(ctx, EQU_CH, f0, f1, l0, l1, 0);
 	    }
 	    return printer(ctx, CHG_CH, f0, f1, l0, l1, 0);
