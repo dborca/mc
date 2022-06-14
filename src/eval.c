@@ -413,7 +413,7 @@ static struct tuple_t {
 static int
 varlist(const char *name, LONG *oldval, LONG newval)
 {
-    struct tuple_t *n;
+    struct tuple_t *n, *prev;
     if (!name) {
         while (vars) {
             n = vars->next;
@@ -423,7 +423,7 @@ varlist(const char *name, LONG *oldval, LONG newval)
         }
         return 0;
     }
-    for (n = vars; n; n = n->next) {
+    for (prev = NULL, n = vars; n; prev = n, n = n->next) {
         if (!strcmp(n->name, name)) {
             break;
         }
@@ -434,6 +434,11 @@ varlist(const char *name, LONG *oldval, LONG newval)
         }
         *oldval = n->value;
         return 1;
+    }
+    if (n && prev) {
+        prev->next = n->next;
+        n->next = vars;
+        vars = n;
     }
     if (!n) {
         n = xmalloc(sizeof(struct tuple_t));
@@ -1234,8 +1239,8 @@ show_vars (int action)
         }
         rows++;
     }
-    if (cols < l1 + l2 + 5) {
-        cols = l1 + l2 + 5;
+    if (cols < l1 + l2 + 3) {
+        cols = l1 + l2 + 3;
     }
 
     listbox = create_listbox_compact(&w, cols + 2, rows, _(" Variables "), NULL);
