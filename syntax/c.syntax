@@ -142,6 +142,7 @@ context exclusive /\* \*/ brown
 
 context exclusive // \n brown
     spellcheck
+    keyword \\\n brown
     keyword whole BUG   brightred
     keyword whole FIXME brightred
     keyword whole NOTE  brightred

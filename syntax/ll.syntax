@@ -1,0 +1,170 @@
+#
+# LLVM Assembly
+#
+
+context default lightgray
+
+# structures, unions
+    keyword whole %struct.\[.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\] white
+    keyword whole %union.\[.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\] white
+# local identifiers (registers, etc.)
+    keyword whole %\[.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\] brightmagenta
+# global identifiers
+    keyword whole @llvm.\[.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\] cyan
+    keyword whole @\[.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz\] brightcyan
+
+# attribute group
+    keyword whole #\[0123456789\] brown
+# alignment specification
+    keyword whole align\[\s\t\]\[0123456789\] brown
+
+# high level directives
+    keyword whole linestart declare red
+    keyword whole linestart define brightred
+    keyword whole linestart attributes red
+    keyword whole linestart target red
+    keyword whole linestart source_filename red
+
+# types
+    keyword whole i1 white
+    keyword whole i8 white
+    keyword whole i16 white
+    keyword whole i32 white
+    keyword whole i64 white
+    keyword whole float white
+    keyword whole double white
+    keyword whole void white
+
+# instructions
+    keyword whole add yellow
+    keyword whole addrspacecast yellow
+    keyword whole alloca yellow
+    keyword whole and yellow
+    keyword whole ashr yellow
+    keyword whole atomicrmw yellow
+    keyword whole bitcast yellow
+    keyword whole br yellow
+    keyword whole call yellow
+    keyword whole callbr yellow
+    keyword whole catchpad yellow
+    keyword whole catchret yellow
+    keyword whole catchswitch yellow
+    keyword whole cleanuppad yellow
+    keyword whole cleanupret yellow
+    keyword whole cmpxchg yellow
+    keyword whole extractelement yellow
+    keyword whole extractvalue yellow
+    keyword whole fadd yellow
+    keyword whole fcmp yellow
+    keyword whole fdiv yellow
+    keyword whole fence yellow
+    keyword whole fmul yellow
+    keyword whole fneg yellow
+    keyword whole fpext yellow
+    keyword whole fptosi yellow
+    keyword whole fptoui yellow
+    keyword whole fptrunc yellow
+    keyword whole freeze yellow
+    keyword whole frem yellow
+    keyword whole fsub yellow
+    keyword whole getelementptr yellow
+    keyword whole icmp yellow
+    keyword whole indirectbr yellow
+    keyword whole insertelement yellow
+    keyword whole insertvalue yellow
+    keyword whole inttoptr yellow
+    keyword whole invoke yellow
+    keyword whole landingpad yellow
+    keyword whole load yellow
+    keyword whole lshr yellow
+    keyword whole mul yellow
+    keyword whole or yellow
+    keyword whole phi yellow
+    keyword whole ptrtoint yellow
+    keyword whole resume yellow
+    keyword whole ret yellow
+    keyword whole sdiv yellow
+    keyword whole select yellow
+    keyword whole sext yellow
+    keyword whole shl yellow
+    keyword whole shufflevector yellow
+    keyword whole sitofp yellow
+    keyword whole srem yellow
+    keyword whole store yellow
+    keyword whole sub yellow
+    keyword whole switch yellow
+    keyword whole trunc yellow
+    keyword whole udiv yellow
+    keyword whole uitofp yellow
+    keyword whole unreachable yellow
+    keyword whole urem yellow
+    keyword whole va_arg yellow
+    keyword whole xor yellow
+    keyword whole zext yellow
+
+# predicates for comparison instructions
+    keyword whole eq yellow
+    keyword whole ne yellow
+    keyword whole ugt yellow
+    keyword whole uge yellow
+    keyword whole ult yellow
+    keyword whole ule yellow
+    keyword whole sgt yellow
+    keyword whole sge yellow
+    keyword whole slt yellow
+    keyword whole sle yellow
+
+# other keywords (bitcast...to, tail call, etc.)
+    keyword whole type yellow
+    keyword whole to yellow
+    keyword whole section brown
+
+    keyword whole label brown
+    keyword whole nsw brown
+    keyword whole nuw brown
+    keyword whole notail brown
+    keyword whole tail brown
+
+# various attributes
+    keyword whole appending brown
+    keyword whole constant brown
+    keyword whole dereferenceable(\[0123456789\]) brown
+    keyword whole exact brown
+    keyword whole external yellow
+    keyword whole externally_initialized brown
+    keyword whole global yellow
+    keyword whole hidden brown
+    keyword whole immarg brown
+    keyword whole inbounds brown
+    keyword whole internal brown
+    keyword whole linkonce_odr brown
+    keyword whole local_unnamed_addr brown
+    keyword whole noalias brown
+    keyword whole nocapture brown
+    keyword whole nonnull brown
+    keyword whole noundef brown
+    keyword whole private brown
+    keyword whole readonly brown
+    keyword whole thread_local brown
+    keyword whole unnamed_addr brown
+    keyword whole writeonly brown
+
+# common symbols
+    keyword ; brown
+    keyword ! brown
+    keyword . white
+    keyword \* white
+
+context " " green
+    keyword \\\{0123456789abcdefABCDEF\}\{0123456789abcdefABCDEF\} brightgreen
+
+context ' ' brightgreen
+
+context exclusive ; \n brown
+
+context exclusive ! \n brown
+
+context exclusive linestart target = brightred
+
+#context exclusive linestart attributes = brown
+##    keyword whole #\[0123456789\] brown

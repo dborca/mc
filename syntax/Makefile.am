@@ -19,6 +19,7 @@ SYNTAXFILES =			\
 	js.syntax		\
 	latex.syntax		\
 	lisp.syntax		\
+	ll.syntax		\
 	lsm.syntax		\
 	lua.syntax		\
 	m4.syntax		\

@@ -118,6 +118,7 @@ context default lightgray
 
 # NASM/TASM Macroses
     keyword whole %ifdef  brightred
+    keyword whole %ifndef brightred
     keyword whole %define brightred
     keyword whole %else brightred
     keyword whole %elif brightred
@@ -386,6 +387,12 @@ context default lightgray
 
 context " " green
 context ' ' brightgreen
+context ` ` green
+    keyword \\` brightgreen
+    keyword \\\\ brightgreen
+    keyword \\\{abtnvfr\} brightgreen
+    keyword \\\{0123\}\{01234567\}\{01234567\} brightgreen
+
 context exclusive ; \n brown
     spellcheck
 
