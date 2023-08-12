@@ -2659,7 +2659,9 @@ in various formats and can be pasted in the command-line or the editor.
 There is no limit to the number of variables, but assigning to the same
 variable will overwrite the old value. The variable namespace is distinct
 from the function namespace. The UI allows inspecting as well as purging
-all the variables.
+all the variables. Individual variables can be deleted with:
+.TP
+.B #unset name [name ...]
 .PP
 Supported operands are numbers, function calls and previously assigned
 variables. Numbers follow the Python semantics: a
@@ -2794,6 +2796,15 @@ expressions, but can not be assignments:
 .TP
 .B sext(<expr>, <bits>)
 .RB "Sign-extend from the given number of bits to native: " "sext(4, 3)" " = 0xfffffffffffffffc."
+.PP
+Custom functions can be defined using the following syntax:
+.TP
+.B #define name(args...) <body>
+.RB "Example: " "#define g(x) x ? x * g(x-1) : 1" "."
+.PP
+To undefine such functions, use:
+.TP
+.B #undef name [name ...]
 .\"NODE "Diff Viewer"
 .SH "Diff Viewer"
 Side-by-side diff output.

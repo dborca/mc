@@ -244,6 +244,10 @@ enum TOKTYPE {
     T_CLOSEBRACE,
     T_ASSIGN,
 
+    T_DEFINE,
+    T_UNDEF,
+    T_UNSET,
+
     T_ID,
     T_INT,
 
@@ -323,6 +327,16 @@ tokenize(const char *s)
                 if (s[1] == '=') {
                     s++;
                 }
+                break;
+            case '#':
+                while (isalph_(s[1])) {
+                    s++;
+                }
+                /*if (strncmp(last, "#define", s + 1 - last) &&
+                    strncmp(last, "#undef", s + 1 - last) &&
+                    strncmp(last, "#unset", s + 1 - last)) {
+                    goto err_syntax;
+                }*/
                 break;
             default:
             if (isdigit(*s)) {
@@ -436,6 +450,14 @@ eval_token(const char *s)
         type = T_CLOSEBRACE;
     } else if (!strcmp(s, "=")) {
         type = T_ASSIGN;
+    } else if (!strcmp(s, "#define")) {
+        type = T_DEFINE;
+    } else if (!strcmp(s, "#undef")) {
+        type = T_UNDEF;
+    } else if (!strcmp(s, "#unset")) {
+        type = T_UNSET;
+    } else if (*s == '#') {
+        type = T_INVALID;
     } else if (isdigit(*s)) {
         type = T_INT;
     } else {
@@ -465,6 +487,38 @@ peek_token(void)
     return type;
 }
 
+static size_t
+copy_tokens(char **copy)
+{
+    int i, n = ntok - itok;
+    for (i = itok; i < ntok; i++) {
+        *copy++ = xstrdup(tokens[i]);
+    }
+    return n;
+}
+
+static void
+replace_tokens(int *old_itok, int *old_ntok, char **old_tokens, struct TOKEN *old_tok, char **new_tokens, int new_ntok)
+{
+    *old_itok = itok;
+    *old_ntok = ntok;
+    *old_tok = token;
+    memcpy(old_tokens, tokens, new_ntok * sizeof(char *));
+    memcpy(tokens, new_tokens, new_ntok * sizeof(char *));
+    itok = 0;
+    ntok = new_ntok;
+    next_token();
+}
+
+static void
+restore_tokens(int old_itok, int old_ntok, char **old_tokens, struct TOKEN *old_tok)
+{
+    memcpy(tokens, old_tokens, ntok * sizeof(char *));
+    token = *old_tok;
+    itok = old_itok;
+    ntok = old_ntok;
+}
+
 /*** eval *******************************************************************/
 
 #define IS(t) (token.type == (t))
@@ -481,7 +535,7 @@ static struct tuple_t {
 } *vars = NULL;
 
 static int
-varlist(const char *name, LONG *oldval, LONG newval)
+varlist(const char *name, LONG *oldval, LONG newval, int existing)
 {
     struct tuple_t *n;
     if (!name) {
@@ -506,6 +560,9 @@ varlist(const char *name, LONG *oldval, LONG newval)
         return 1;
     }
     if (!n) {
+        if (existing) {
+            return 0;
+        }
         n = xmalloc(sizeof(struct tuple_t));
         n->name = xstrdup(name);
         n->next = vars;
@@ -514,6 +571,18 @@ varlist(const char *name, LONG *oldval, LONG newval)
     n->value = newval;
     return 1;
 }
+
+static struct func_t {
+    struct func_t *next;
+    char *name;
+    char *args[MAXTOK];
+    size_t narg;
+    char *expr[MAXTOK];
+    size_t ntok;
+    int signed_op;
+} *user = NULL;
+
+static int call_depth = 0;
 
 static unsigned LONG
 sqrti(unsigned LONG n, unsigned LONG *r)
@@ -788,9 +857,62 @@ fn_sext(const char *func, struct node *args, int *ok)
     return n << bits >> bits;
 }
 
+static LONG R_assignment_exp(int *ok, int existing, int dry);
+
 static LONG
 fn_default(const char *func, struct node *args, int *ok)
 {
+    struct func_t *f = user;
+    if (call_depth > 1000) {
+        message(D_ERROR, MSG_ERROR, _("nested call too deep"));
+        *ok = 0;
+        return 0;
+    }
+    while (f) {
+        if (!strcmp(f->name, func)) {
+            LONG n = 0;
+            size_t i;
+            struct tuple_t *old_vars;
+
+            if (f->signed_op != signed_op) {
+                message(D_ERROR, MSG_ERROR, _("function '%s' was defined in a different mode"), func);
+                *ok = 0;
+                return 0;
+            }
+
+            /* XXX works as long as the function body does not create new vars */
+            for (old_vars = vars, i = f->narg; i > 0 && args; args = args->next) {
+                struct tuple_t *v = xmalloc(sizeof(struct tuple_t));
+                v->name = xstrdup(f->args[--i]);
+                v->value = args->val;
+                v->next = vars;
+                vars = v;
+            }
+
+            if (i || args) {
+                message(D_ERROR, MSG_ERROR, _("function '%s' requires %zu parameters"), func, f->narg);
+                *ok = 0;
+            } else {
+                int itok, ntok;
+                struct TOKEN tok;
+                char *tokens[MAXTOK];
+                replace_tokens(&itok, &ntok, tokens, &tok, f->expr, f->ntok);
+                call_depth++;
+                n = R_assignment_exp(ok, 1, 0);
+                call_depth--;
+                restore_tokens(itok, ntok, tokens, &tok);
+            }
+
+            while (vars != old_vars) {
+                struct tuple_t *v = vars;
+                vars = vars->next;
+                free(v->name);
+                free(v);
+            }
+            return n;
+        }
+        f = f->next;
+    }
     message(D_ERROR, MSG_ERROR, _("unknown function '%s'"), func);
     *ok = 0;
     return 0;
@@ -799,44 +921,44 @@ fn_default(const char *func, struct node *args, int *ok)
 #define FUN_VARARG 1
 #define FUN_NOFRAC 2
 
-static LONG
-builtin_call(const char *func, struct node *args, int *ok)
-{
-    static const struct {
-        const char *name;
-        int nargs;
-        int flags;
-        LONG (*call)(const char *name, struct node *args, int *ok);
-    } tab[] = {
-        { "abs",    1, 0,          fn_abs },
-        { "sqrt",   1, 0,          fn_sqrt },
-        { "cbrt",   1, 0,          fn_cbrt },
-        { "min",    2, FUN_VARARG, fn_min },
-        { "max",    2, FUN_VARARG, fn_max },
-        { "avg",    1, FUN_VARARG, fn_avg },
-        { "floor",  2, 0,          fn_floor },
-        { "ceil",   2, 0,          fn_ceil },
-        { "gcd",    2, 0,          fn_gcd },
-        { "lcm",    2, 0,          fn_lcm },
-        { "floor2", 1, FUN_NOFRAC, fn_floor2 },
-        { "ceil2",  1, FUN_NOFRAC, fn_ceil2 },
-        { "bits",   1, FUN_NOFRAC, fn_bits },
-        { "sext",   2, FUN_NOFRAC, fn_sext },
-        { NULL,    -1, 0,          fn_default }
-    };
+static const struct {
+    const char *name;
+    int nargs;
+    int flags;
+    LONG (*call)(const char *name, struct node *args, int *ok);
+} builtins[] = {
+    { "abs",    1, 0,          fn_abs },
+    { "sqrt",   1, 0,          fn_sqrt },
+    { "cbrt",   1, 0,          fn_cbrt },
+    { "min",    2, FUN_VARARG, fn_min },
+    { "max",    2, FUN_VARARG, fn_max },
+    { "avg",    1, FUN_VARARG, fn_avg },
+    { "floor",  2, 0,          fn_floor },
+    { "ceil",   2, 0,          fn_ceil },
+    { "gcd",    2, 0,          fn_gcd },
+    { "lcm",    2, 0,          fn_lcm },
+    { "floor2", 1, FUN_NOFRAC, fn_floor2 },
+    { "ceil2",  1, FUN_NOFRAC, fn_ceil2 },
+    { "bits",   1, FUN_NOFRAC, fn_bits },
+    { "sext",   2, FUN_NOFRAC, fn_sext },
+    { NULL,    -1, 0,          fn_default }
+};
 
+static LONG
+builtin_call(const char *func, struct node *args, int *ok, int dry)
+{
     size_t i;
     int n, nargs;
     struct node *p;
-    for (i = 0; tab[i].name && (strcmp(func, tab[i].name) || (FIXED_ONE > 1 && tab[i].flags & FUN_NOFRAC)); i++) {
+    for (i = 0; builtins[i].name && (strcmp(func, builtins[i].name) || (FIXED_ONE > 1 && builtins[i].flags & FUN_NOFRAC)); i++) {
         continue;
     }
     for (n = 0, p = args; p; p = p->next, n++) {
         continue;
     }
-    nargs = tab[i].nargs;
+    nargs = builtins[i].nargs;
     if (nargs >= 0 && nargs != n) {
-        if (tab[i].flags & FUN_VARARG) {
+        if (builtins[i].flags & FUN_VARARG) {
             if (nargs > n) {
                 message(D_ERROR, MSG_ERROR, _("function '%s' requires at least %d arguments"), func, nargs);
                 *ok = 0;
@@ -848,34 +970,34 @@ builtin_call(const char *func, struct node *args, int *ok)
             return 0;
         }
     }
-    return tab[i].call(func, args, ok);
+    return dry ? 0 : builtins[i].call(func, args, ok);
 }
 
 static void
 expect(const char *what)
 {
     const char *sym = token.sym;
-    if (IS(T_INVALID)) {
+    /*if (IS(T_INVALID)) {
         return;
-    }
+    }*/
     if (IS(T_EOI)) {
         sym = "end of input";
     }
     message(D_ERROR, MSG_ERROR, _("expected %s before %s"), what, sym);
 }
 
-static LONG R_rvalue_exp(int *ok);
+static LONG R_rvalue_exp(int *ok, int dry);
 
 static LONG
-R_pow_exp(int *ok)
+R_pow_exp(int *ok, int dry)
 {
     LONG n;
     ENTER();
-    n = R_rvalue_exp(ok);
+    n = R_rvalue_exp(ok, dry);
     if (*ok && (IS(T_POW))) {
         LONG k;
         next_token(); /* skip '**' */
-        k = R_pow_exp(ok);
+        k = R_pow_exp(ok, dry);
         if (*ok) {
             LONG p;
             int neg = 0;
@@ -921,18 +1043,18 @@ R_pow_exp(int *ok)
 }
 
 static LONG
-R_mul_exp(int *ok)
+R_mul_exp(int *ok, int dry)
 {
     LONG n;
     ENTER();
-    n = R_pow_exp(ok);
+    n = R_pow_exp(ok, dry);
     while (*ok && (IS(T_MUL) || IS(T_DIV) || IS(T_MOD))) {
         LONG v;
         enum TOKTYPE op = token.type;
         next_token(); /* skip '*' */
-        v = R_pow_exp(ok);
+        v = R_pow_exp(ok, dry);
         if (*ok) {
-            if (op == T_MUL) {
+            if (op == T_MUL || dry) {
                 n = n * v / FIXED_ONE;
             } else if (v) {
                 if (op == T_DIV) {
@@ -959,16 +1081,16 @@ R_mul_exp(int *ok)
 }
 
 static LONG
-R_add_exp(int *ok)
+R_add_exp(int *ok, int dry)
 {
     LONG n;
     ENTER();
-    n = R_mul_exp(ok);
+    n = R_mul_exp(ok, dry);
     while (*ok && (IS(T_ADD) || IS(T_SUB))) {
         LONG v;
         enum TOKTYPE op = token.type;
         next_token(); /* skip '+' */
-        v = R_mul_exp(ok);
+        v = R_mul_exp(ok, dry);
         if (*ok) {
             if (op == T_ADD) {
                 n += v;
@@ -982,11 +1104,11 @@ R_add_exp(int *ok)
 }
 
 static LONG
-R_shift_exp(int *ok)
+R_shift_exp(int *ok, int dry)
 {
     LONG n;
     ENTER();
-    n = R_add_exp(ok);
+    n = R_add_exp(ok, dry);
     while (*ok && (IS(T_SHL) || IS(T_SHR) || IS(T_ASR))) {
         LONG v;
         enum TOKTYPE op = token.type;
@@ -996,7 +1118,7 @@ R_shift_exp(int *ok)
             break;
         }
         next_token(); /* skip '<<' */
-        v = R_add_exp(ok);
+        v = R_add_exp(ok, dry);
         if (*ok) {
             if (v < 0) {
                 message(D_ERROR, MSG_ERROR, _("negative shift count"));
@@ -1025,16 +1147,16 @@ R_shift_exp(int *ok)
 }
 
 static LONG
-R_rel_exp(int *ok)
+R_rel_exp(int *ok, int dry)
 {
     LONG n;
     ENTER();
-    n = R_shift_exp(ok);
+    n = R_shift_exp(ok, dry);
     while (*ok && (IS(T_LT) || IS(T_GT) || IS(T_LE) || IS(T_GE))) {
         LONG v;
         enum TOKTYPE op = token.type;
         next_token(); /* skip '>=' */
-        v = R_shift_exp(ok);
+        v = R_shift_exp(ok, dry);
         if (*ok) {
             switch (op) {
                 case T_LT:
@@ -1075,16 +1197,16 @@ R_rel_exp(int *ok)
 }
 
 static LONG
-R_eq_exp(int *ok)
+R_eq_exp(int *ok, int dry)
 {
     LONG n;
     ENTER();
-    n = R_rel_exp(ok);
+    n = R_rel_exp(ok, dry);
     while (*ok && (IS(T_EQ) || IS(T_NE))) {
         LONG v;
         enum TOKTYPE op = token.type;
         next_token(); /* skip '==' */
-        v = R_rel_exp(ok);
+        v = R_rel_exp(ok, dry);
         if (*ok) {
             n = op == T_NE ^ n == v ? FIXED_ONE : 0;
         }
@@ -1094,11 +1216,11 @@ R_eq_exp(int *ok)
 }
 
 static LONG
-R_and_exp(int *ok)
+R_and_exp(int *ok, int dry)
 {
     LONG n;
     ENTER();
-    n = R_eq_exp(ok);
+    n = R_eq_exp(ok, dry);
     while (*ok && IS(T_AND)) {
         LONG v;
         if (FIXED_ONE > 1) {
@@ -1107,7 +1229,7 @@ R_and_exp(int *ok)
             break;
         }
         next_token(); /* skip '&' */
-        v = R_eq_exp(ok);
+        v = R_eq_exp(ok, dry);
         if (*ok) {
             n &= v;
         }
@@ -1117,11 +1239,11 @@ R_and_exp(int *ok)
 }
 
 static LONG
-R_xor_exp(int *ok)
+R_xor_exp(int *ok, int dry)
 {
     LONG n;
     ENTER();
-    n = R_and_exp(ok);
+    n = R_and_exp(ok, dry);
     while (*ok && IS(T_XOR)) {
         LONG v;
         if (FIXED_ONE > 1) {
@@ -1130,7 +1252,7 @@ R_xor_exp(int *ok)
             break;
         }
         next_token(); /* skip '^' */
-        v = R_and_exp(ok);
+        v = R_and_exp(ok, dry);
         if (*ok) {
             n ^= v;
         }
@@ -1140,11 +1262,11 @@ R_xor_exp(int *ok)
 }
 
 static LONG
-R_or_exp(int *ok)
+R_or_exp(int *ok, int dry)
 {
     LONG n;
     ENTER();
-    n = R_xor_exp(ok);
+    n = R_xor_exp(ok, dry);
     while (*ok && IS(T_OR)) {
         LONG v;
         if (FIXED_ONE > 1) {
@@ -1153,7 +1275,7 @@ R_or_exp(int *ok)
             break;
         }
         next_token(); /* skip '|' */
-        v = R_xor_exp(ok);
+        v = R_xor_exp(ok, dry);
         if (*ok) {
             n |= v;
         }
@@ -1163,15 +1285,15 @@ R_or_exp(int *ok)
 }
 
 static LONG
-R_land_exp(int *ok)
+R_land_exp(int *ok, int dry)
 {
     LONG n;
     ENTER();
-    n = R_or_exp(ok);
+    n = R_or_exp(ok, dry);
     if (*ok && IS(T_LAND)) {
         LONG v;
         next_token(); /* skip '&&' */
-        v = R_or_exp(ok);
+        v = R_or_exp(ok, dry || !n);
         if (*ok) {
             n = n && v ? FIXED_ONE : 0;
         }
@@ -1181,15 +1303,15 @@ R_land_exp(int *ok)
 }
 
 static LONG
-R_lor_exp(int *ok)
+R_lor_exp(int *ok, int dry)
 {
     LONG n;
     ENTER();
-    n = R_land_exp(ok);
+    n = R_land_exp(ok, dry);
     if (*ok && IS(T_LOR)) {
         LONG v;
         next_token(); /* skip '||' */
-        v = R_land_exp(ok);
+        v = R_land_exp(ok, dry || n);
         if (*ok) {
             n = n || v ? FIXED_ONE : 0;
         }
@@ -1199,21 +1321,21 @@ R_lor_exp(int *ok)
 }
 
 static LONG
-R_cond_exp(int *ok)
+R_cond_exp(int *ok, int dry)
 {
     LONG n, pri, sec;
     ENTER();
-    n = R_lor_exp(ok);
+    n = R_lor_exp(ok, dry);
     if (*ok && IS(T_QUEST)) {
         next_token(); /* skip '?' */
-        pri = R_cond_exp(ok);
+        pri = R_assignment_exp(ok, 1, dry || !n);
         if (*ok) {
             if (!IS(T_COLON)) {
                 expect("':'");
                 *ok = 0;
             } else {
                 next_token(); /* skip ':' */
-                sec = R_cond_exp(ok);
+                sec = R_cond_exp(ok, dry || n);
                 if (*ok) {
                     n = n ? pri : sec;
                 }
@@ -1225,12 +1347,12 @@ R_cond_exp(int *ok)
 }
 
 static struct node *
-R_argument_exp_list(int *ok)
+R_argument_exp_list(int *ok, int dry)
 {
     struct node *p = NULL;
     LONG n;
     ENTER();
-    n = R_cond_exp(ok);
+    n = R_cond_exp(ok, dry);
     while (*ok) {
         struct node *q = xmalloc(sizeof(struct node));
         q->val = n;
@@ -1240,14 +1362,14 @@ R_argument_exp_list(int *ok)
             break;
         }
         next_token(); /* skip ',' */
-        n = R_cond_exp(ok);
+        n = R_cond_exp(ok, dry);
     }
     LEAVE();
     return p;
 }
 
 static LONG
-R_rvalue_exp(int *ok)
+R_rvalue_exp(int *ok, int dry)
 {
     LONG n = 0;
     ENTER();
@@ -1257,7 +1379,7 @@ R_rvalue_exp(int *ok)
         next_token(); /* skip ID */
         next_token(); /* skip '(' */
         if (!IS(T_CLOSEBRACE)) {
-            args = R_argument_exp_list(ok);
+            args = R_argument_exp_list(ok, dry);
         }
         if (*ok) {
             if (!IS(T_CLOSEBRACE)) {
@@ -1265,7 +1387,7 @@ R_rvalue_exp(int *ok)
                 *ok = 0;
             } else {
                 next_token(); /* skip ')' */
-                n = builtin_call(func, args, ok);
+                n = builtin_call(func, args, ok, dry);
             }
         }
         while (args) {
@@ -1276,7 +1398,7 @@ R_rvalue_exp(int *ok)
         free(func);
     } else if (IS(T_OPENBRACE)) {
         next_token(); /* skip '(' */
-        n = R_cond_exp(ok);
+        n = R_cond_exp(ok, dry);
         if (*ok) {
             if (!IS(T_CLOSEBRACE)) {
                 expect("')'");
@@ -1287,22 +1409,22 @@ R_rvalue_exp(int *ok)
         }
     } else if (IS(T_ADD)) {
         next_token(); /* skip '+' */
-        n = R_rvalue_exp(ok);
+        n = R_rvalue_exp(ok, dry);
     } else if (IS(T_SUB)) {
         next_token(); /* skip '-' */
-        n = -R_rvalue_exp(ok);
+        n = -R_rvalue_exp(ok, dry);
     } else if (IS(T_NOT)) {
         next_token(); /* skip '~' */
-        n = ~R_rvalue_exp(ok);
+        n = ~R_rvalue_exp(ok, dry);
         if (FIXED_ONE > 1) {
             message(D_ERROR, MSG_ERROR, _("bitwise op not supported"));
             *ok = 0;
         }
     } else if (IS(T_LNOT)) {
         next_token(); /* skip '!' */
-        n = R_rvalue_exp(ok) ? 0 : FIXED_ONE;
+        n = R_rvalue_exp(ok, dry) ? 0 : FIXED_ONE;
     } else if (IS(T_ID)) {
-        if (!varlist(token.sym, &n, 0)) {
+        if (!dry && !varlist(token.sym, &n, 0, 0)) {
             message(D_ERROR, MSG_ERROR, _("unknown identifier: '%s'"), token.sym);
             *ok = 0;
         }
@@ -1327,11 +1449,11 @@ R_rvalue_exp(int *ok)
         *ok = 0;
     }
     LEAVE();
-    return n;
+    return dry ? 0 : n;
 }
 
 static LONG
-R_assignment_exp(int *ok)
+R_assignment_exp(int *ok, int existing, int dry)
 {
     LONG n;
     char *lval = NULL;
@@ -1342,13 +1464,165 @@ R_assignment_exp(int *ok)
         next_token(); /* skip ID */
         next_token(); /* skip '=' */
     }
-    n = R_cond_exp(ok);
-    if (*ok && lval) {
+    n = R_cond_exp(ok, dry);
+    if (*ok && lval && !dry) {
         /* XXX should ban internal functions */
-        varlist(lval, NULL, n);
+        if (!varlist(lval, NULL, n, existing)) {
+            message(D_ERROR, MSG_ERROR, _("unknown identifier: '%s'"), lval);
+            *ok = 0;
+        }
     }
     free(lval);
     LEAVE();
+    return n;
+}
+
+static void
+kill_func(struct func_t *f)
+{
+    size_t i;
+    for (i = 0; i < f->ntok; i++) {
+        free(f->expr[i]);
+    }
+    for (i = 0; i < f->narg; i++) {
+        free(f->args[i]);
+    }
+    free(f->name);
+    free(f);
+}
+
+static int
+add_func(int *ok)
+{
+    size_t i;
+    struct func_t *f, *prev;
+
+    if (!IS(T_ID) || peek_token() != T_OPENBRACE) {
+        expect("function definition");
+        *ok = 0;
+        return 0;
+    }
+
+    for (i = 0; builtins[i].name; i++) {
+        if (!strcmp(builtins[i].name, token.sym)) {
+            message(D_ERROR, MSG_ERROR, _("cannot alter builtin '%s'"), token.sym);
+            *ok = 0;
+            return 0;
+        }
+    }
+
+    f = xmalloc(sizeof(struct func_t));
+    f->name = NULL;
+    f->narg = 0;
+    f->ntok = 0;
+    f->signed_op = signed_op;
+
+    f->name = xstrdup(token.sym);
+    next_token(); /* skip identifier */
+    next_token(); /* skip '(' */
+    if (!IS(T_CLOSEBRACE)) {
+        while (1) {
+            if (!IS(T_ID)) {
+                goto err;
+            }
+            f->args[f->narg++] = xstrdup(token.sym);
+            next_token(); /* skip parameter */
+            if (!IS(T_COMMA)) {
+                break;
+            }
+            next_token(); /* skip ',' */
+        }
+        if (!IS(T_CLOSEBRACE)) {
+            goto err;
+        }
+    }
+
+    f->ntok = copy_tokens(f->expr);
+
+    next_token(); /* skip ')' */
+    R_assignment_exp(ok, 1, 1);
+    if (*ok == 0) {
+        goto errq;
+    }
+    if (!IS(T_EOI)) {
+        goto err;
+    }
+
+    f->next = user;
+    user = f;
+
+    for (prev = user, f = f->next; f; prev = f, f = f->next) {
+        if (!strcmp(f->name, user->name)) {
+            prev->next = f->next;
+            kill_func(f);
+            break;
+        }
+    }
+    return 1;
+
+  err:
+    message(D_ERROR, MSG_ERROR, _("bad function definition"));
+    *ok = 0;
+  errq:
+    kill_func(f);
+    return 0;
+}
+
+static LONG
+handle_defines(int *ok)
+{
+    LONG n = 0;
+    if (IS(T_DEFINE)) {
+        next_token(); /* skip '#define' */
+        return add_func(ok);
+    }
+    if (IS(T_UNDEF)) {
+        next_token(); /* skip '#undef' */
+        while (IS(T_ID)) {
+            struct func_t *f, *prev;
+            for (prev = NULL, f = user; f; prev = f, f = f->next) {
+                if (!strcmp(f->name, token.sym)) {
+                    if (prev == NULL) {
+                        user = f->next;
+                    } else {
+                        prev->next = f->next;
+                    }
+                    kill_func(f);
+                    n++;
+                    break;
+                }
+            }
+            next_token(); /* skip ID */
+        }
+        if (!IS(T_EOI)) {
+            expect("function name");
+        }
+        return n;
+    }
+    if (IS(T_UNSET)) {
+        next_token(); /* skip '#unset' */
+        while (IS(T_ID)) {
+            struct tuple_t *v, *prev;
+            for (prev = NULL, v = vars; v; prev = v, v = v->next) {
+                if (!strcmp(v->name, token.sym)) {
+                    if (prev == NULL) {
+                        vars = v->next;
+                    } else {
+                        prev->next = v->next;
+                    }
+                    free(v->name);
+                    free(v);
+                    n++;
+                    break;
+                }
+            }
+            next_token(); /* skip ID */
+        }
+        if (!IS(T_EOI)) {
+            expect("variable name");
+        }
+        return n;
+    }
     return n;
 }
 
@@ -1362,7 +1636,12 @@ do_eval_expr(char *buf, int *ok)
     }
     *ok = 1;
     next_token();
-    n = R_assignment_exp(ok);
+    if (IS(T_DEFINE) || IS(T_UNDEF) || IS(T_UNSET)) {
+        n = handle_defines(ok);
+        free_tokens(0);
+        return n * FIXED_ONE;
+    }
+    n = R_assignment_exp(ok, 0, 0);
     if (*ok && !IS(T_EOI)) {
         message(D_ERROR, MSG_ERROR, _("junk at '%s'"), token.sym);
         *ok = 0;
@@ -1387,6 +1666,25 @@ main(void)
             printf("mode = %s\n", eval_mode_str[signed_op]);
             continue;
         }
+        if (!strncmp(buf, "@f", 2)) {
+            size_t i;
+            struct func_t *f;
+            for (f = user; f; f = f->next) {
+                printf("%s(", f->name);
+                for (i = 0; i < f->narg; i++) {
+                    if (i) {
+                        printf(", ");
+                    }
+                    printf("%s", f->args[i]);
+                }
+                printf(") =");
+                for (i = 0; i < f->ntok; i++) {
+                    printf(" %s", f->expr[i]);
+                }
+                printf("\n");
+            }
+            continue;
+        }
         if (!strncmp(buf, "@v", 2)) {
             struct tuple_t *n;
             for (n = vars; n; n = n->next) {
@@ -1399,7 +1697,7 @@ main(void)
             continue;
         }
         if (!strncmp(buf, "@c", 2)) {
-            varlist(NULL, NULL, 0);
+            varlist(NULL, NULL, 0, 0);
             continue;
         }
         if (!strncmp(buf, "@q", 2)) {
@@ -1414,7 +1712,12 @@ main(void)
             }
         }
     }
-    varlist(NULL, NULL, 0);
+    varlist(NULL, NULL, 0, 0);
+    while (user) {
+        struct func_t *f = user;
+        user = user->next;
+        kill_func(f);
+    }
     free_tokens(1);
     return 0;
 }
@@ -1425,16 +1728,19 @@ show_vars (int action)
     int rv;
     Widget w, *in;
     char buf[256];
+    char *longbuf;
     size_t l1, l2;
     int rows, cols;
     Listbox *listbox;
+    struct func_t *f;
     struct tuple_t *n = NULL;
 
     if (action == B_USER + 3) {
-        varlist(NULL, NULL, 0);
+        varlist(NULL, NULL, 0, 0);
+        goto done;
     }
 
-    if (!vars) {
+    if (!vars && !user) {
         goto done;
     }
 
@@ -1443,7 +1749,7 @@ show_vars (int action)
     w.cols = current_dlg->cols;
     w.lines = current_dlg->lines;
 
-    rows = 0;
+    rows = vars && user;
     cols = 11;
     for (l1 = 0, l2 = 0, n = vars; n; n = n->next) {
         size_t len = strlen(n->name);
@@ -1463,6 +1769,23 @@ show_vars (int action)
     if (cols < l1 + l2 + 3) {
         cols = l1 + l2 + 3;
     }
+    for (f = user; f; f = f->next) {
+        size_t i, len = strlen(f->name);
+        if (!f->narg) {
+            len += 2;
+        }
+        for (i = 0; i < f->narg; i++) {
+            len += strlen(f->args[i]) + 2;
+        }
+        len += 2;
+        for (i = 0; i < f->ntok; i++) {
+            len += strlen(f->expr[i]) + 1;
+        }
+        if (cols < len) {
+            cols = len;
+        }
+        rows++;
+    }
 
     listbox = create_listbox_compact(&w, cols + 2, rows, _(" Variables "), NULL);
     /*listbox = create_listbox_window (cols + 2, rows, _(" Variables "), NULL);*/
@@ -1477,6 +1800,41 @@ show_vars (int action)
         }
         LISTBOX_APPEND_TEXT(listbox, 0, buf, NULL);
     }
+    longbuf = xmalloc(cols + 1);
+    if (vars && user) {
+        memset(longbuf, '-', cols);
+        longbuf[cols] = '\0';
+        LISTBOX_APPEND_TEXT(listbox, 0, longbuf, NULL);
+    }
+    for (f = user; f; f = f->next) {
+        size_t i, len;
+        char *cp = longbuf;
+        len = strlen(f->name);
+        memcpy(cp, f->name, len);
+        cp += len;
+        *cp++ = '(';
+        for (i = 0; i < f->narg; i++) {
+            if (i) {
+                *cp++ = ',';
+                *cp++ = ' ';
+            }
+            len = strlen(f->args[i]);
+            memcpy(cp, f->args[i], len);
+            cp += len;
+        }
+        *cp++ = ')';
+        *cp++ = ' ';
+        *cp++ = '=';
+        for (i = 0; i < f->ntok; i++) {
+            *cp++ = ' ';
+            len = strlen(f->expr[i]);
+            memcpy(cp, f->expr[i], len);
+            cp += len;
+        }
+        *cp = '\0';
+        LISTBOX_APPEND_TEXT(listbox, 0, longbuf, NULL);
+    }
+    free(longbuf);
 
     rv = run_listbox(listbox);
     if (rv != -1) {
