@@ -606,7 +606,7 @@ edit_reload_menu (WEdit *edit)
     new_edit_menubar = edit_init_menu (edit);
     dlg_replace_widget (&edit_menubar->widget, &new_edit_menubar->widget);
     edit_done_menu (edit_menubar);
-    edit_menubar = new_edit_menubar;
+    edit->menubar = new_edit_menubar;
 }
 
 
