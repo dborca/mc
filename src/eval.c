@@ -66,7 +66,7 @@ int eval_prec_scaler = 3;
 #define SET_SCALER() \
     do { \
         FIXED_ONE = 1; \
-        if (signed_op == 2) { \
+        if (signed_op >= 2) { \
             int i; \
             if (eval_prec_scaler < 1) { \
                 eval_prec_scaler = 1; \
@@ -87,7 +87,15 @@ static LONG FIXED_ONE = 1;
 static const char *eval_mode_str[] = {
     N_("Unsigned"),
     N_(" Signed "),
-    N_(" Scaled ")
+    N_(" Scaled "),
+    N_(" Scale2 "),
+};
+
+static const char *eval_mode_hot[] = {
+    N_("Un&signed"),
+    N_(" &Signed "),
+    N_(" &Scaled "),
+    N_(" &Scale2 "),
 };
 
 /*** util *******************************************************************/
@@ -134,7 +142,7 @@ xstrndup(const char *s, size_t len)
 static char *
 ftoa(LONG n)
 {
-    static char tmp[22];
+    static char tmp[32];
     char *p = tmp;
     unsigned LONG q;
     if (n < 0) {
@@ -143,6 +151,19 @@ ftoa(LONG n)
     }
     q = (unsigned LONG)n / FIXED_ONE;
     snprintf(p, sizeof(tmp) - 1, "%"LFMT"u.%0*"LFMT"d", q, eval_prec_scaler, n - q * FIXED_ONE);
+    if (signed_op > 2) {
+        char *dot = strchr(tmp, '.');
+        char *end = strchr(dot, '\0');
+        char *sep = dot++;
+        while (end > dot + 1 && end[-1] == '0') {
+            end--;
+        }
+        while ((sep -= 3) > p) {
+            memmove(sep + 1, sep, end++ - sep);
+            *sep = '\'';
+        }
+        *end = '\0';
+    }
     return tmp;
 }
 
@@ -161,8 +182,14 @@ strton(const char *str, char **endptr, int base)
             LONG div = 1;
             while (isdigit(*++(*endptr))) {
                 LONG ch = **endptr - '0';
+                if (div > FIXED_ONE / 10) {
+                    n += signed_op > 2 && ch >= 5;
+                    while (isdigit(*++(*endptr))) {
+                    }
+                    break;
+                }
                 div *= 10;
-                n += ch * FIXED_ONE / div;
+                n += ch * (FIXED_ONE / div);
             }
         }
         return n;
@@ -279,7 +306,7 @@ tokenize(const char *s)
             default:
             if (isdigit(*s)) {
                 strton(s, &p, 0);
-                if (*p == 'k' || *p == 'M' || *p == 'G') {
+                if (*p == 'k' || *p == 'M' || *p == 'G' || (signed_op > 2 && *p == '%')) {
                     p++;
                 }
                 if (isalnu_(*p)) {
@@ -413,7 +440,7 @@ static struct tuple_t {
 static int
 varlist(const char *name, LONG *oldval, LONG newval)
 {
-    struct tuple_t *n, *prev;
+    struct tuple_t *n;
     if (!name) {
         while (vars) {
             n = vars->next;
@@ -423,7 +450,7 @@ varlist(const char *name, LONG *oldval, LONG newval)
         }
         return 0;
     }
-    for (prev = NULL, n = vars; n; prev = n, n = n->next) {
+    for (n = vars; n; n = n->next) {
         if (!strcmp(n->name, name)) {
             break;
         }
@@ -434,11 +461,6 @@ varlist(const char *name, LONG *oldval, LONG newval)
         }
         *oldval = n->value;
         return 1;
-    }
-    if (n && prev) {
-        prev->next = n->next;
-        n->next = vars;
-        vars = n;
     }
     if (!n) {
         n = xmalloc(sizeof(struct tuple_t));
@@ -585,14 +607,14 @@ static LONG
 fn_min(const char *func, struct node *args, int *ok)
 {
     struct node *p;
-    unsigned LONG n = args->val;
+    LONG n = args->val;
     for (p = args->next; p; p = p->next) {
         if (signed_op) {
-            if ((LONG)n > p->val) {
+            if (n > p->val) {
                 n = p->val;
             }
         } else {
-            if (n > p->val) {
+            if ((unsigned LONG)n > (unsigned LONG)p->val) {
                 n = p->val;
             }
         }
@@ -604,14 +626,14 @@ static LONG
 fn_max(const char *func, struct node *args, int *ok)
 {
     struct node *p;
-    unsigned LONG n = args->val;
+    LONG n = args->val;
     for (p = args->next; p; p = p->next) {
         if (signed_op) {
-            if ((LONG)n < p->val) {
+            if (n < p->val) {
                 n = p->val;
             }
         } else {
-            if (n < p->val) {
+            if ((unsigned LONG)n < (unsigned LONG)p->val) {
                 n = p->val;
             }
         }
@@ -716,7 +738,7 @@ fn_cdq(const char *func, struct node *args, int *ok)
 }
 
 static LONG
-fn_error(const char *func, struct node *args, int *ok)
+fn_default(const char *func, struct node *args, int *ok)
 {
     message(D_ERROR, MSG_ERROR, _("unknown function '%s'"), func);
     *ok = 0;
@@ -749,7 +771,7 @@ builtin_call(const char *func, struct node *args, int *ok)
         { "ceil2",  1, FUN_NOFRAC, fn_ceil2 },
         { "bits",   1, FUN_NOFRAC, fn_bits },
         { "cdq",    1, FUN_NOFRAC, fn_cdq },
-        { NULL,    -1, 0,          fn_error }
+        { NULL,    -1, 0,          fn_default }
     };
 
     size_t i;
@@ -804,30 +826,41 @@ R_pow_exp(int *ok)
         next_token(); /* skip '**' */
         k = R_pow_exp(ok);
         if (*ok) {
+            LONG p;
+            int neg = 0;
             if (k < 0) {
-                message(D_ERROR, MSG_ERROR, _("negative powers not supported"));
-                *ok = 0;
-            } else {
-                LONG p = n;
-                n = FIXED_ONE;
-                if (FIXED_ONE > 1) {
-                    LONG q = k;
-                    k /= FIXED_ONE;
-                    if (k * FIXED_ONE != q) {
-                        message(D_ERROR, MSG_ERROR, _("fraction powers not supported"));
-                        *ok = 0;
-                        n = 0;
-                    }
+                neg = 1;
+                k = -k;
+            }
+            p = n;
+            n = FIXED_ONE;
+            if (FIXED_ONE > 1) {
+                LONG q = k;
+                k /= FIXED_ONE;
+                if (k * FIXED_ONE != q) {
+                    message(D_ERROR, MSG_ERROR, _("fraction powers not supported"));
+                    *ok = 0;
+                    n = 0;
                 }
-                while (n) {
-                    if (k & 1) {
-                        n = n * p / FIXED_ONE;
-                    }
-                    k >>= 1;
-                    if (k == 0) {
-                        break;
-                    }
-                    p = p * p / FIXED_ONE;
+            }
+            while (n) {
+                if (k & 1) {
+                    n = n * p / FIXED_ONE;
+                }
+                k >>= 1;
+                if (k == 0) {
+                    break;
+                }
+                p = p * p / FIXED_ONE;
+            }
+            if (*ok && neg) {
+                if (!n) {
+                    message(D_ERROR, MSG_ERROR, _("division by zero"));
+                    *ok = 0;
+                } else if (signed_op) {
+                    n = FIXED_ONE * FIXED_ONE / n;
+                } else {
+                    n = (unsigned LONG)FIXED_ONE * FIXED_ONE / n;
                 }
             }
         }
@@ -1009,28 +1042,6 @@ R_or_exp(int *ok)
     return n;
 }
 
-static LONG
-R_assignment_exp(int *ok)
-{
-    LONG n;
-    char *lval = NULL;
-    ENTER();
-    /* we cannot tell here if we have lvalue or rvalue, so use magic */
-    if (IS(T_ID) && peek_token() == T_ASSIGN) {
-        lval = xstrdup(token.sym);
-        next_token(); /* skip ID */
-        next_token(); /* skip '=' */
-    }
-    n = R_or_exp(ok);
-    if (*ok && lval) {
-        /* XXX should ban internal functions */
-        varlist(lval, NULL, n);
-    }
-    free(lval);
-    LEAVE();
-    return n;
-}
-
 static struct node *
 R_argument_exp_list(int *ok)
 {
@@ -1115,6 +1126,9 @@ R_rvalue_exp(int *ok)
         char *bp;
         n = strton(token.sym, &bp, 0);
         switch (*bp) {
+            case '%':
+                n /= 100;
+                break;
             case 'G':
                 n *= 1024;
             case 'M':
@@ -1127,6 +1141,28 @@ R_rvalue_exp(int *ok)
         expect("expression");
         *ok = 0;
     }
+    LEAVE();
+    return n;
+}
+
+static LONG
+R_assignment_exp(int *ok)
+{
+    LONG n;
+    char *lval = NULL;
+    ENTER();
+    /* we cannot tell here if we have lvalue or rvalue, so use magic */
+    if (IS(T_ID) && peek_token() == T_ASSIGN) {
+        lval = xstrdup(token.sym);
+        next_token(); /* skip ID */
+        next_token(); /* skip '=' */
+    }
+    n = R_or_exp(ok);
+    if (*ok && lval) {
+        /* XXX should ban internal functions */
+        varlist(lval, NULL, n);
+    }
+    free(lval);
     LEAVE();
     return n;
 }
@@ -1161,7 +1197,7 @@ main(void)
     char buf[BUFSIZ];
     while (fgets(buf, sizeof(buf), stdin)) {
         if (!strncmp(buf, "@m", 2)) {
-            signed_op = (signed_op + 1) % 3;
+            signed_op = (signed_op + 1) % (sizeof(eval_mode_str) / sizeof(*eval_mode_str));
             SET_SCALER();
             printf("mode = %s\n", eval_mode_str[signed_op]);
             continue;
@@ -1284,7 +1320,7 @@ switch_mode (int action)
     Listbox *listbox;
     int rv, i, rows, cols;
 
-    rows = 3;
+    rows = sizeof(eval_mode_str) / sizeof(*eval_mode_str);
     cols = 0;
 
     for (i = 0; i < rows; i++) {
@@ -1308,11 +1344,11 @@ switch_mode (int action)
 
     rv = run_listbox(listbox);
     if (rv != -1) {
-        WButton *b = (WButton *)current_dlg->current;
-        button_set_text(b, eval_mode_str[signed_op = rv]);
+        /*WButton *b = (WButton *)current_dlg->current;
+        button_set_text(b, eval_mode_str[signed_op = rv]);*/
+        signed_op = rv;
+        SET_SCALER();
     }
-
-    SET_SCALER();
 
     in = find_widget_type(current_dlg, input_callback);
     if (in) {
@@ -1328,7 +1364,7 @@ do_eval(void)
     static char *last_eval_string;
     static char result_hex[19];
     static char result_oct[24];
-    static char result_dec[22];
+    static char result_dec[32];
     static char result_neg[22];
     static char result_asc[9];
     static char result_bin[45];
@@ -1376,7 +1412,7 @@ do_eval(void)
         int ok, rv;
         LONG result;
 
-        quick_widgets[6].text = eval_mode_str[signed_op];
+        quick_widgets[6].text = eval_mode_hot[signed_op];
         rv = quick_dialog(&Quick_input);
         if (rv < B_USER && rv != B_ENTER) {
             break;
@@ -1443,9 +1479,23 @@ do_eval(void)
 
         switch (rv) {
             case B_USER + 0:
-                return ok ? strdup(result_hex) : NULL;
+                return *result_hex ? strdup(result_hex) : NULL;
             case B_USER + 1:
-                return ok ? strdup(result_dec) : NULL;
+                if (*result_dec) {
+                    char *ret = malloc(32);
+                    if (ret) {
+                        char *p, *q = ret;
+                        for (p = result_dec; *p; p++) {
+                            if (*p == '\'') {
+                                continue;
+                            }
+                            *q++ = *p;
+                        }
+                        *q = '\0';
+                        return ret;
+                    }
+                }
+                return NULL;
         }
     }
 

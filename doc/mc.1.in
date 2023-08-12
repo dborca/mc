@@ -2676,14 +2676,32 @@ can be postfixed by
 For example:
 .RI 4 k " = 4096, 1" M " = 1048576, etc."
 .PP
-All operations are performed using unsigned arithmetic, unless specifically
-stated. The signed/unsigned conversion is assumed to be two's complement.
-In Scaled mode, all numbers are signed decimal and the bitwise operations
-are disabled (see
+Evaluation modes:
+.TP
+.B Unsigned
+Perform unsigned integer arithmetic. Negative numbers are treated as unsigned
+quantities stored in two's complement. This is the default behavior, unless
+specifically stated.
+.TP
+.B Signed
+Perform signed integer arithmetic, where appropriate. The calculations affected
+by negative quantities are identified below.
+.TP
+.B Scaled
+Perform signed fixed-point arithmetic. All numbers must be signed decimal and
+the bitwise operations are disabled. See
 .\"LINK2"
 Special Settings
 .\"Special Settings"
-for more information).
+for more information about the scale factor.
+.TP
+.B Scale2
+Same as above, but the result is displayed in human-readable format. Input
+literals exceeding the precision are rounded up. In addition, decimals can be
+postfixed by
+.IR % " (percent)"
+meaning these numbers are automatically divided by 100. Do not confuse
+this postfix with the remainder operator (use whitespace to avoid confusion).
 .PP
 Supported operators:
 .TP
@@ -2705,10 +2723,10 @@ add, subtract
 .B << >>
 shift left/right (can be signed; use
 .B >>>
-for logical shift)
+to force logical shift)
 .TP
 .B & ^ |
-logical bitwise and, xor, or (in this order of precedence).
+bitwise and, xor, or (in this order of precedence).
 .PP
 A
 .I semicolon
@@ -2727,7 +2745,7 @@ expressions, but can not be assignments:
 .RB "Absolute: " "abs(-5)" " = 5 (input is always signed)."
 .TP
 .B sqrt(<expr>)
-.RB "Integer square root: " "sqrt(2 * 5)" " = 3."
+.RB "Integer square root: " "sqrt(2 * 5)" " = 3 (can be signed)."
 .TP
 .B cbrt(<expr>)
 .RB "Integer cube root: " "cbrt(9)" " = 2 (can be signed)."
