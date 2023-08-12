@@ -182,6 +182,7 @@ slang_init (void)
 #endif
 	tcsetattr (SLang_TT_Read_FD, TCSADRAIN, &new_mode);
     }
+    SLutf8_enable(-1);
     slang_prog_mode ();
     load_terminfo_keys ();
     SLtt_Blink_Mode = 0;
