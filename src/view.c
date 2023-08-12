@@ -162,6 +162,7 @@ struct WView {
     gboolean hexview_in_text;	/* Is the hexview cursor in the text area? */
     offset_type hex_mark;	/* Start of selected block in Hexedit */
     unsigned hex_le_word;	/* Show little endian words */
+    int click_x, click_y;	/* Hex view click */
     gboolean text_nroff_mode;	/* Nroff-style highlighting */
     gboolean text_wrap_mode;	/* Wrap text lines to fit them on the screen */
     gboolean magic_mode;	/* Preprocess the file using external programs */
@@ -1846,6 +1847,7 @@ view_display_ruler (WView *view)
 static void
 view_display_hex (WView *view)
 {
+    offset_type hex_cursor = view->hex_cursor;
     const int le_mask = view->hex_le_word - 1;
     const int le_last = view->hex_le_word - 1;
     const screen_dimen gsize = (le_last == 0) ? 13 : (le_last == 1) ? 11 : 10;
@@ -1882,6 +1884,13 @@ view_display_hex (WView *view)
 	curr = curr->next;
     }
 
+    /* Do we have a pending click in hex mode? */
+    if (view->click_x >= 0 && view->click_y >= 0) {
+	/* Update the side */
+	view->hexview_in_text = (view->click_x >= left + text_start);
+	/* Save the cursor and then nuke it */
+	view->hex_cursor = -1;
+    }
     for (row = 0; get_byte (view, from) != -1 && row < height; row++) {
 	col = 0;
 
@@ -1919,6 +1928,22 @@ view_display_hex (WView *view)
 	    }
 	    from += inword;
 	    c = le_bytes[bytes & le_mask];
+
+	    /* Are we about to print the new cursor? */
+	    if (view->click_y == top + row &&
+		(view->click_x == left + text_start + bytes + inword ||
+		(view->click_x >= left + col && view->click_x < left + col + 2))
+	    ) {
+		/* Update the cursor */
+		view->hex_cursor = from;
+		view->click_x = view->click_y = -2;
+	    }
+	    /* Did we pass the line we were looking and the old cursor is in the future? */
+	    if (view->click_y + 1 == top + row && hex_cursor >= from) {
+		/* Restore the old cursor */
+		view->hex_cursor = hex_cursor;
+		view->click_x = view->click_y = -2;
+	    }
 
 	    /* Save the cursor position for view_place_cursor() */
 	    if (from == view->hex_cursor && !view->hexview_in_text) {
@@ -2012,11 +2037,25 @@ view_display_hex (WView *view)
 	}
     }
 
+    /* We did (or did not) handle the click properly */
+    view->click_x = view->click_y = -2;
+    /* If we did not find the new cursor, use the old one */
+    if (view->hex_cursor == -1) {
+	/* XXX too heavy-handed, but the logic above is meh */
+	view->hex_cursor = hex_cursor;
+	view_display_hex (view);
+    } else if (view->hex_cursor != hex_cursor) {
+	/* We just changed the cursor, update search */
+	view->search_start = view->hex_cursor;
+	view->search_length = 0;
+    }
+
     /* Be polite to the other functions */
     tty_setcolor (NORMAL_COLOR);
 
     view_place_cursor (view);
     view->dpy_end = from;
+
 }
 
 static int
@@ -3569,6 +3608,14 @@ view_event (WView *view, Gpm_Event *event, int *result)
 	}
     }
 
+    if (view->hex_mode) {
+	/* We don't want to scroll in hex mode. Store the click position and let view_display_hex handle it */
+	view->click_x = x - 1;
+	view->click_y = y - 1;
+	view_movement_fixups (view, TRUE);
+	return 1;
+    }
+
     /* Scrolling up and down */
     if (y < view->data_area.top + view->data_area.height * 1/3) {
 	if (mouse_move_pages_viewer)
@@ -3844,6 +3891,8 @@ view_new (int y, int x, int cols, int lines, int is_panel)
     view->string_length = 0;
     view->hex_mark = -1;
     view->hex_le_word = 1;
+
+    view->click_x = view->click_y = -2;
 
     view->hexedit_lownibble = FALSE;
     view->coord_cache       = NULL;
