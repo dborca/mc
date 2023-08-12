@@ -90,7 +90,7 @@ static const name_map_t key_names[] = {
     {"f20", KEY_F(20)},
     {"tab", '\t'},
     {"return", '\n'},
-    {NULL, 0}
+    {NULL, -1}
 };
 
 static const name_map_t command_names[] = {
@@ -403,6 +403,7 @@ cmd_bind(config_t *cfg, int argc, char *argv[])
     } else { 
 	while (key->name && strcasecmp(key->name, keyname) != 0)
 	    key++;
+	k = key->val;
     }
 
     if (k < 0 && !key->name) {
