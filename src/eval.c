@@ -1456,23 +1456,29 @@ static LONG
 R_assignment_exp(int *ok, int existing, int dry)
 {
     LONG n;
-    char *lval = NULL;
     ENTER();
-    /* we cannot tell here if we have lvalue or rvalue, so use magic */
-    if (IS(T_ID) && peek_token() == T_ASSIGN) {
-        lval = xstrdup(token.sym);
-        next_token(); /* skip ID */
-        next_token(); /* skip '=' */
-    }
-    n = R_cond_exp(ok, dry);
-    if (*ok && lval && !dry) {
-        /* XXX should ban internal functions */
-        if (!varlist(lval, NULL, n, existing)) {
-            message(D_ERROR, MSG_ERROR, _("unknown identifier: '%s'"), lval);
-            *ok = 0;
+    while (1) {
+        char *lval = NULL;
+        /* we cannot tell here if we have lvalue or rvalue, so use magic */
+        if (IS(T_ID) && peek_token() == T_ASSIGN) {
+            lval = xstrdup(token.sym);
+            next_token(); /* skip ID */
+            next_token(); /* skip '=' */
         }
+        n = R_cond_exp(ok, dry);
+        if (*ok && lval && !dry) {
+            /* XXX should ban internal functions */
+            if (!varlist(lval, NULL, n, existing)) {
+                message(D_ERROR, MSG_ERROR, _("unknown identifier: '%s'"), lval);
+                *ok = 0;
+            }
+        }
+        free(lval);
+        if (*ok == 0 || !IS(T_COMMA)) {
+            break;
+        }
+        next_token(); /* skip ',' */
     }
-    free(lval);
     LEAVE();
     return n;
 }

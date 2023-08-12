@@ -2740,7 +2740,10 @@ bitwise and, xor, or (in this order of precedence)
 logical and, or (in this order of precedence)
 .TP
 .B ? :
-ternary operator.
+ternary operator
+.TP
+.B ,
+comma operator.
 .PP
 A
 .I semicolon
