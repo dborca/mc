@@ -167,7 +167,7 @@ strton(const char *str, char **endptr, int base)
         }
         return n;
     }
-    if ((base | 2) == 2 && str[0] == '0' && (str[1] | 0x20) == 'b') {
+    if ((base | 2) == 2 && str[0] == '0' && (str[1] | 0x20) == 'b' && (str[2] | 1) == '1') {
         p += 2;
         base = 2;
     }
