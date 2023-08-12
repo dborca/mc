@@ -2708,8 +2708,8 @@ Supported operators:
 .B ()
 parentheses
 .TP
-.B ~ + -
-bitwise not, unary plus/minus
+.B ~ + - !
+bitwise not, unary plus/minus, logical not
 .TP
 .B **
 exponentiation (power is always signed)
@@ -2725,8 +2725,20 @@ shift left/right (can be signed; use
 .B >>>
 to force logical shift)
 .TP
+.B < <= > >=
+relational operators (can be signed)
+.TP
+.B == !=
+equality operators
+.TP
 .B & ^ |
-bitwise and, xor, or (in this order of precedence).
+bitwise and, xor, or (in this order of precedence)
+.TP
+.B && ||
+logical and, or (in this order of precedence)
+.TP
+.B ? :
+ternary operator.
 .PP
 A
 .I semicolon
@@ -2780,8 +2792,8 @@ expressions, but can not be assignments:
 .B bits(<expr>)
 .RB "Bit width: " "bits(9)" " = 4."
 .TP
-.B cdq(<expr>)
-.RB "Convert int to long long: " "cdq(1 << 31)" " = 0xffffffff80000000."
+.B sext(<expr>, <bits>)
+.RB "Sign-extend from the given number of bits to native: " "sext(4, 3)" " = 0xfffffffffffffffc."
 .\"NODE "Diff Viewer"
 .SH "Diff Viewer"
 Side-by-side diff output.

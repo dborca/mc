@@ -225,6 +225,20 @@ enum TOKTYPE {
     T_XOR,
     T_OR,
 
+    T_EQ,
+    T_NE,
+    T_LT,
+    T_GT,
+    T_LE,
+    T_GE,
+
+    T_LNOT,
+    T_LAND,
+    T_LOR,
+
+    T_QUEST,
+    T_COLON,
+
     T_COMMA,
     T_OPENBRACE,
     T_CLOSEBRACE,
@@ -277,8 +291,11 @@ tokenize(const char *s)
 #endif
 
         switch (*s) {
+            case '&':
+            case '|':
+            case '=':
             case '*':
-                if (s[1] == '*') {
+                if (s[1] == s[0]) {
                     s++;
                 }
             case '~':
@@ -286,13 +303,12 @@ tokenize(const char *s)
             case '%':
             case '+':
             case '-':
-            case '&':
             case '^':
-            case '|':
             case ',':
             case '(':
             case ')':
-            case '=':
+            case '?':
+            case ':':
                 break;
             case '<':
             case '>':
@@ -303,6 +319,11 @@ tokenize(const char *s)
                     }
                     break;
                 }
+            case '!':
+                if (s[1] == '=') {
+                    s++;
+                }
+                break;
             default:
             if (isdigit(*s)) {
                 strton(s, &p, 0);
@@ -379,6 +400,28 @@ eval_token(const char *s)
         type = T_SHL;
     } else if (!strcmp(s, ">>")) {
         type = T_ASR;
+    } else if (!strcmp(s, "<=")) {
+        type = T_LE;
+    } else if (!strcmp(s, ">=")) {
+        type = T_GE;
+    } else if (!strcmp(s, "<")) {
+        type = T_LT;
+    } else if (!strcmp(s, ">")) {
+        type = T_GT;
+    } else if (!strcmp(s, "&&")) {
+        type = T_LAND;
+    } else if (!strcmp(s, "||")) {
+        type = T_LOR;
+    } else if (!strcmp(s, "==")) {
+        type = T_EQ;
+    } else if (!strcmp(s, "?")) {
+        type = T_QUEST;
+    } else if (!strcmp(s, ":")) {
+        type = T_COLON;
+    } else if (!strcmp(s, "!=")) {
+        type = T_NE;
+    } else if (!strcmp(s, "!")) {
+        type = T_LNOT;
     } else if (!strcmp(s, "&")) {
         type = T_AND;
     } else if (!strcmp(s, "^")) {
@@ -732,9 +775,17 @@ fn_bits(const char *func, struct node *args, int *ok)
 }
 
 static LONG
-fn_cdq(const char *func, struct node *args, int *ok)
+fn_sext(const char *func, struct node *args, int *ok)
 {
-    return (int)args->val;
+    LONG n = args->next->val;
+    unsigned LONG bits = args->val;
+    if (bits < 1 || bits > sizeof(LONG) * 8) {
+        message(D_ERROR, MSG_ERROR, _("invalid number of bits %"LFMT"u in function '%s'"), bits, func);
+        *ok = 0;
+        return 0;
+    }
+    bits = sizeof(LONG) * 8 - bits;
+    return n << bits >> bits;
 }
 
 static LONG
@@ -770,7 +821,7 @@ builtin_call(const char *func, struct node *args, int *ok)
         { "floor2", 1, FUN_NOFRAC, fn_floor2 },
         { "ceil2",  1, FUN_NOFRAC, fn_ceil2 },
         { "bits",   1, FUN_NOFRAC, fn_bits },
-        { "cdq",    1, FUN_NOFRAC, fn_cdq },
+        { "sext",   2, FUN_NOFRAC, fn_sext },
         { NULL,    -1, 0,          fn_default }
     };
 
@@ -974,11 +1025,80 @@ R_shift_exp(int *ok)
 }
 
 static LONG
-R_and_exp(int *ok)
+R_rel_exp(int *ok)
 {
     LONG n;
     ENTER();
     n = R_shift_exp(ok);
+    while (*ok && (IS(T_LT) || IS(T_GT) || IS(T_LE) || IS(T_GE))) {
+        LONG v;
+        enum TOKTYPE op = token.type;
+        next_token(); /* skip '>=' */
+        v = R_shift_exp(ok);
+        if (*ok) {
+            switch (op) {
+                case T_LT:
+                    if (signed_op) {
+                        n = n < v;
+                    } else {
+                        n = (unsigned LONG)n < (unsigned LONG)v;
+                    }
+                    break;
+                case T_GT:
+                    if (signed_op) {
+                        n = n > v;
+                    } else {
+                        n = (unsigned LONG)n > (unsigned LONG)v;
+                    }
+                    break;
+                case T_LE:
+                    if (signed_op) {
+                        n = n <= v;
+                    } else {
+                        n = (unsigned LONG)n <= (unsigned LONG)v;
+                    }
+                    break;
+                case T_GE:
+                    if (signed_op) {
+                        n = n >= v;
+                    } else {
+                        n = (unsigned LONG)n >= (unsigned LONG)v;
+                    }
+                    break;
+                default:; /* silence */
+            }
+            n *= FIXED_ONE;
+        }
+    }
+    LEAVE();
+    return n;
+}
+
+static LONG
+R_eq_exp(int *ok)
+{
+    LONG n;
+    ENTER();
+    n = R_rel_exp(ok);
+    while (*ok && (IS(T_EQ) || IS(T_NE))) {
+        LONG v;
+        enum TOKTYPE op = token.type;
+        next_token(); /* skip '==' */
+        v = R_rel_exp(ok);
+        if (*ok) {
+            n = op == T_NE ^ n == v ? FIXED_ONE : 0;
+        }
+    }
+    LEAVE();
+    return n;
+}
+
+static LONG
+R_and_exp(int *ok)
+{
+    LONG n;
+    ENTER();
+    n = R_eq_exp(ok);
     while (*ok && IS(T_AND)) {
         LONG v;
         if (FIXED_ONE > 1) {
@@ -987,7 +1107,7 @@ R_and_exp(int *ok)
             break;
         }
         next_token(); /* skip '&' */
-        v = R_shift_exp(ok);
+        v = R_eq_exp(ok);
         if (*ok) {
             n &= v;
         }
@@ -1042,13 +1162,75 @@ R_or_exp(int *ok)
     return n;
 }
 
+static LONG
+R_land_exp(int *ok)
+{
+    LONG n;
+    ENTER();
+    n = R_or_exp(ok);
+    if (*ok && IS(T_LAND)) {
+        LONG v;
+        next_token(); /* skip '&&' */
+        v = R_or_exp(ok);
+        if (*ok) {
+            n = n && v ? FIXED_ONE : 0;
+        }
+    }
+    LEAVE();
+    return n;
+}
+
+static LONG
+R_lor_exp(int *ok)
+{
+    LONG n;
+    ENTER();
+    n = R_land_exp(ok);
+    if (*ok && IS(T_LOR)) {
+        LONG v;
+        next_token(); /* skip '||' */
+        v = R_land_exp(ok);
+        if (*ok) {
+            n = n || v ? FIXED_ONE : 0;
+        }
+    }
+    LEAVE();
+    return n;
+}
+
+static LONG
+R_cond_exp(int *ok)
+{
+    LONG n, pri, sec;
+    ENTER();
+    n = R_lor_exp(ok);
+    if (*ok && IS(T_QUEST)) {
+        next_token(); /* skip '?' */
+        pri = R_cond_exp(ok);
+        if (*ok) {
+            if (!IS(T_COLON)) {
+                expect("':'");
+                *ok = 0;
+            } else {
+                next_token(); /* skip ':' */
+                sec = R_cond_exp(ok);
+                if (*ok) {
+                    n = n ? pri : sec;
+                }
+            }
+        }
+    }
+    LEAVE();
+    return n;
+}
+
 static struct node *
 R_argument_exp_list(int *ok)
 {
     struct node *p = NULL;
     LONG n;
     ENTER();
-    n = R_or_exp(ok);
+    n = R_cond_exp(ok);
     while (*ok) {
         struct node *q = xmalloc(sizeof(struct node));
         q->val = n;
@@ -1058,7 +1240,7 @@ R_argument_exp_list(int *ok)
             break;
         }
         next_token(); /* skip ',' */
-        n = R_or_exp(ok);
+        n = R_cond_exp(ok);
     }
     LEAVE();
     return p;
@@ -1094,7 +1276,7 @@ R_rvalue_exp(int *ok)
         free(func);
     } else if (IS(T_OPENBRACE)) {
         next_token(); /* skip '(' */
-        n = R_or_exp(ok);
+        n = R_cond_exp(ok);
         if (*ok) {
             if (!IS(T_CLOSEBRACE)) {
                 expect("')'");
@@ -1116,6 +1298,9 @@ R_rvalue_exp(int *ok)
             message(D_ERROR, MSG_ERROR, _("bitwise op not supported"));
             *ok = 0;
         }
+    } else if (IS(T_LNOT)) {
+        next_token(); /* skip '!' */
+        n = R_rvalue_exp(ok) ? 0 : FIXED_ONE;
     } else if (IS(T_ID)) {
         if (!varlist(token.sym, &n, 0)) {
             message(D_ERROR, MSG_ERROR, _("unknown identifier: '%s'"), token.sym);
@@ -1157,7 +1342,7 @@ R_assignment_exp(int *ok)
         next_token(); /* skip ID */
         next_token(); /* skip '=' */
     }
-    n = R_or_exp(ok);
+    n = R_cond_exp(ok);
     if (*ok && lval) {
         /* XXX should ban internal functions */
         varlist(lval, NULL, n);
